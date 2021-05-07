@@ -42,6 +42,8 @@ contract GalleryDAO is IGalleryDAO {
 		tokenAddress = _token;
 	}
 
+	
+
 
 	function createProposal(Proposal _type) onlyMember {
 
