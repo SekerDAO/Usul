@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-interface IGalleryDAO {
+interface IGalleryDAOV0 {
 
 	struct Role {
 		bool admin;
@@ -20,13 +20,7 @@ interface IGalleryDAO {
 	struct Proposal {
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
-        mapping(address => Vote) votesByMember; // the votes on this proposal by each member		
+        mapping(address => bool) votesByMember; // the votes on this proposal by each member		
 	}
-
-	enum Vote {
-        Null, // default value, counted as abstention
-        Yes,
-        No
-    }
 
 }

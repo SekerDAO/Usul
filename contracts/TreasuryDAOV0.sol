@@ -1,9 +1,10 @@
 pragma solidity ^0.8.0;
 
+import Exhibit from './ExhibitV0.sol';
 import IERC20 from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import IGalleryDAO from './interfaces/IGalleryDAO';
+import IGalleryDAO from './interfaces/IGalleryDAOV0';
 
-contract GalleryDAO is IGalleryDAO {
+contract GalleryDAOV0 is IGalleryDAOV0, ExhibitV0 {
 	mapping(address => Member) private members;
 	mapping(uint => Proposal) public proposals;
 	mapping(address => uint) public donators; // donator => amount donated in eth
@@ -42,37 +43,17 @@ contract GalleryDAO is IGalleryDAO {
 		tokenAddress = _token;
 	}
 
-	
-
-
-	function createProposal(Proposal _type) onlyMember {
+	// the wealthy may choose a gallery / artist dao to endorse
+	function commissionProposal() onlyMember {
 
 	}
 
-	function createCommissionArtProposal() onlyMember {
+	// anyone may fund this?
+	function fund() payable {
 
 	}
 
-	function createNFTPurchaseProposal() onlyCurator {
-
-	}
-
-	function createAddRoleProposal(Role _role) onlyCurator {
-
-	}
-
-	function createRemoveRoleProposal(Role _role, address _memember) {
-
-	}
-
-	function voteOnProposal(Proposal _type, bool _vote) {
-
-	}
-
-	function donate() payable {
-
-	}
-
+	// native token of the dao
 	function updateToken() public onlyAdmin {
 
 	}

@@ -1,26 +1,26 @@
 pragma solidity ^0.8.0;
 
-import './interfaces/IFactory.sol';
-import './Gallery.sol';
+import './interfaces/IFactoryV0.sol';
+import './GalleryDAOV0.sol';
 
-contract Factory is IFactory {
+contract FactoryV0 is IFactoryV0 {
     address public feeTo;
     address public feeToSetter;
 
-    mapping(address => mapping(address => address)) public getPair;
-    address[] public allPairs;
+    mapping(address => mapping(address => address)) public getGalleryDAO;
+    address[] public allGalleryDAOs;
 
-    event PairCreated(address indexed token0, address indexed token1, address pair, uint);
+    event GallertDAOCreated(address indexed token0, address indexed token1, address pair, uint);
 
     constructor(address _feeToSetter) public {
         feeToSetter = _feeToSetter;
     }
 
-    function allPairsLength() external view returns (uint) {
+    function allGalleriesLength() external view returns (uint) {
         return allPairs.length;
     }
 
-    function createPair(address tokenA, address tokenB) external returns (address pair) {
+    function createGalleryDAO(address tokenA, address tokenB) external returns (address pair) {
         
         
         require(tokenA != tokenB, 'UniswapV2: IDENTICAL_ADDRESSES');

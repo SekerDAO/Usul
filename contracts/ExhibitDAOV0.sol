@@ -1,15 +1,10 @@
 pragma solidity ^0.8.0;
 
-import './interfaces/IFactory.sol';
-import './Gallery.sol';
-import '@openzepplin/contracts/access/Ownable.sol'
-import SafeMath from "@openzeppelin/contracts/math/SafeMath.sol";
 import IERC721 from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import IERC20 from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import SafeERC20 from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-contract Exhibit is Ownable {
-    using SafeMath for uint256;
+contract ExhibitV0 {
     using SafeERC20 for IERC20;
 
     struct Bid {

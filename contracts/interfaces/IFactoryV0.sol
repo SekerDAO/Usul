@@ -1,5 +1,5 @@
 pragma solidity ^0.8.0;
 
-interface IFactory {
+interface IFactoryV0 {
 
 }
