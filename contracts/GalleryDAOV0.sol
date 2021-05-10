@@ -1,10 +1,10 @@
 pragma solidity ^0.8.0;
 
 import Exhibit from './ExhibitV0.sol';
-import IERC20 from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import IGalleryDAO from './interfaces/IGalleryDAOV0';
+import IDAOBase from './interfaces/IDAOBase';
 
-contract GalleryDAOV0 is IGalleryDAOV0, ExhibitV0 {
+contract GalleryDAOV0 is IGalleryDAOV0, IDAOBase, ExhibitV0 {
 	mapping(address => Member) private members;
 	mapping(uint => Proposal) public proposals;
 	mapping(address => uint) public donators; // donator => amount donated in eth
@@ -12,10 +12,8 @@ contract GalleryDAOV0 is IGalleryDAOV0, ExhibitV0 {
 	uint public proposalCount;
 
 	address private initialCoordinator;
+	bool public private;
 
-	address public tokenAddress;
-
-	uint public tokenSupply;
 
     modifier onlyMember {
         require(members[msg.sender].member == true, "not a member");
@@ -37,10 +35,9 @@ contract GalleryDAOV0 is IGalleryDAOV0, ExhibitV0 {
         _;
     }
 
-	constructor(uint _initialTokenSupply, address _token) {
-		tokenSupply = _initialTokenSupply
+	constructor(bool _private) {
 		initialCoordinator = msg.sender;
-		tokenAddress = _token;
+		private = _private;
 	}
 
 	function proposeExhibit() onlyAdmin {
