@@ -4,7 +4,15 @@
   "description": "something's happening here i think",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "yarn prettier ./test/*.ts --check",
+    "lint:fix": "yarn prettier ./test/*.ts --write",
+    "clean": "rimraf ./build/",
+    "precompile": "yarn clean",
+    "compile": "npx hardhat compile",
+    "pretest": "yarn compile",
+    "test": "npx hardhat test",
+    "prepublishOnly": "yarn compile",
+    "deploy": "ts-node scripts/deploy.ts"
   },
   "repository": {
     "type": "git",

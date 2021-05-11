@@ -11,10 +11,10 @@ interface IDAOBase {
     struct Member {
         uint256 shares; // the # of voting shares assigned to this member
         Role roles;
-        uint256 highestIndexYesVote; // highest proposal index # on which the member voted YES
         uint256 jailed; // set to proposalIndex of a passing guild kick proposal for this member, prevents voting on and sponsoring proposals
     }
 
+    // TODO: combine all of these into one
 	struct NFTProposal {
 		address nftAddress;
 		uint nftId;
@@ -22,15 +22,16 @@ interface IDAOBase {
         uint256 noVotes; // the total number of NO votes for this proposal
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		
         bool executed;
+        uint deadline;
 	}
 
-	struct TransferNFTProposal {
-		address nftAddress;
-		uint nftId;
+	struct CommissionNFTProposal {
+		uint funding;
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		
         bool executed;
+        uint deadline;
 	}
 	
 	struct GallerySplitProposal {
@@ -39,6 +40,7 @@ interface IDAOBase {
         uint256 noVotes; // the total number of NO votes for this proposal
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		
         bool executed;
+        uint deadline;
 	}
 
 	struct ExhibitProposal {
@@ -48,5 +50,6 @@ interface IDAOBase {
         uint256 noVotes; // the total number of NO votes for this proposal
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		
         bool executed;
+        uint deadline;
 	}
 }
