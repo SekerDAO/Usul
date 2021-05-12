@@ -29,6 +29,7 @@ interface IDAOBase {
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		
         bool executed;
         uint deadline;
+        address proposer;
 	}
 
     // TODO: combine all of these into one
@@ -41,6 +42,17 @@ interface IDAOBase {
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		
         bool executed;
         uint deadline;
+        address proposer;
+	}
+
+	struct AdminWithdrawFundsProposal {
+		uint funding;
+        uint256 yesVotes; // the total number of YES votes for this proposal
+        uint256 noVotes; // the total number of NO votes for this proposal
+        mapping(address => bool) votesByMember; // the votes on this proposal by each member		
+        bool executed;
+        uint deadline;
+        address proposer;
 	}
 
 	struct CommissionNFTProposal {
@@ -50,6 +62,7 @@ interface IDAOBase {
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		
         bool executed;
         uint deadline;
+        address proposer;
 	}
 	
 	struct GallerySplitProposal {
@@ -59,6 +72,7 @@ interface IDAOBase {
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		
         bool executed;
         uint deadline;
+        address proposer;
 	}
 
 	struct ExhibitProposal {
@@ -69,5 +83,6 @@ interface IDAOBase {
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		
         bool executed;
         uint deadline;
+        address proposer;
 	}
 }

@@ -1,91 +1,91 @@
-pragma solidity ^0.8.0;
+// pragma solidity ^0.8.0;
 
-import Exhibit from './ExhibitV0.sol';
-import IGalleryDAO from './interfaces/IGalleryDAOV0';
-import IDAOBase from './interfaces/IDAOBase';
+// import Exhibit from './ExhibitV0.sol';
+// import IGalleryDAO from './interfaces/IGalleryDAOV0';
+// import IDAOBase from './interfaces/IDAOBase';
 
-contract GalleryDAOV0 is IGalleryDAOV0, IDAOBase, ExhibitV0 {
-	mapping(address => Member) private members;
-	mapping(uint => Proposal) public proposals;
-	mapping(address => uint) public donators; // donator => amount donated in eth
+// contract GalleryDAOV0 is IGalleryDAOV0, IDAOBase, ExhibitV0 {
+// 	mapping(address => Member) private members;
+// 	mapping(uint => Proposal) public proposals;
+// 	mapping(address => uint) public donators; // donator => amount donated in eth
 
-	uint public proposalCount;
+// 	uint public proposalCount;
 
-	address private initialCoordinator;
-	bool public private;
-
-
-    modifier onlyMember {
-        require(members[msg.sender].member == true, "not a member");
-        _;
-    }
-
-    modifier onlyArtist {
-        require(members[msg.sender].artist == true, "not an artist");
-        _;
-    }
-
-    modifier onlyCurator {
-        require(members[msg.sender].curator == true, "not a curator");
-        _;
-    }
-
-    modifier onlyAdmin {
-        require(members[msg.sender].admin == true, "not an admin");
-        _;
-    }
-
-	constructor(bool _private) {
-		initialCoordinator = msg.sender;
-		private = _private;
-	}
-
-	function proposeExhibit() onlyAdmin {
-
-	}
+// 	address private initialCoordinator;
+// 	bool public private;
 
 
-	function Proposal(Proposal _type) onlyMember {
+//     modifier onlyMember {
+//         require(members[msg.sender].member == true, "not a member");
+//         _;
+//     }
 
-	}
+//     modifier onlyArtist {
+//         require(members[msg.sender].artist == true, "not an artist");
+//         _;
+//     }
 
-	function enterNFTProposal() public {
+//     modifier onlyCurator {
+//         require(members[msg.sender].curator == true, "not a curator");
+//         _;
+//     }
 
-	}
+//     modifier onlyAdmin {
+//         require(members[msg.sender].admin == true, "not an admin");
+//         _;
+//     }
 
-	// others may ask to support this gallery and thier artists
-	function acceptCommissionProposal() onlyMember {
+// 	constructor(bool _private) {
+// 		initialCoordinator = msg.sender;
+// 		private = _private;
+// 	}
 
-	}
+// 	function proposeExhibit() onlyAdmin {
 
-	function NFTPurchaseProposal() onlyCurator {
+// 	}
 
-	}
 
-	function addRoleProposal(Role _role) onlyCurator {
+// 	function Proposal(Proposal _type) onlyMember {
 
-	}
+// 	}
 
-	function removeRoleProposal(Role _role, address _memember) {
+// 	function enterNFTProposal() public {
 
-	}
+// 	}
 
-	function voteOnProposal(Proposal _type, bool _vote) {
+// 	// others may ask to support this gallery and thier artists
+// 	function acceptCommissionProposal() onlyMember {
 
-	}
+// 	}
 
-	function donate() payable {
+// 	function NFTPurchaseProposal() onlyCurator {
 
-	}
+// 	}
 
-	// native token of the dao
-	function updateToken() public onlyAdmin {
+// 	function addRoleProposal(Role _role) onlyCurator {
 
-	}
+// 	}
 
-	function burnCoordinator() public {
-		require(msg.sender == initialCoordinator, "only coordinator can remove themselves")
-		initialCoordinator = address(0);
-	}
+// 	function removeRoleProposal(Role _role, address _memember) {
 
-}
+// 	}
+
+// 	function voteOnProposal(Proposal _type, bool _vote) {
+
+// 	}
+
+// 	function donate() payable {
+
+// 	}
+
+// 	// native token of the dao
+// 	function updateToken() public onlyAdmin {
+
+// 	}
+
+// 	function burnCoordinator() public {
+// 		require(msg.sender == initialCoordinator, "only coordinator can remove themselves")
+// 		initialCoordinator = address(0);
+// 	}
+
+// }

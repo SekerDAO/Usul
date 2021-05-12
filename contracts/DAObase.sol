@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
-import './interfaces/IDAObase'
+import './interfaces/IDAOBase.sol';
 
-contract DAObase is IDAObase {
+contract DAOBase is IDAOBase {
 
 }

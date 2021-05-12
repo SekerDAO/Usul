@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import './interfaces/IFactoryV0.sol';
-import './GalleryDAOV0.sol';
+//import './GalleryDAOV0.sol';
 
 contract FactoryV0 is IFactoryV0 {
     address public feeTo;
