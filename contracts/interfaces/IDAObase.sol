@@ -1,6 +1,13 @@
 pragma solidity ^0.8.0;
 
 interface IDAOBase {
+	struct GalleryNFT {
+		address[] nftAddresses;
+		uint[] nftIds;
+		bool[] forSale;
+		uint nftCount;
+	}
+
 	struct Role {
 		bool admin;
 		bool curator;
@@ -14,10 +21,21 @@ interface IDAOBase {
         uint256 jailed; // set to proposalIndex of a passing guild kick proposal for this member, prevents voting on and sponsoring proposals
     }
 
+	struct ChangeRoleProposal {
+		address memberAddress;
+		Role role;
+        uint256 yesVotes; // the total number of YES votes for this proposal
+        uint256 noVotes; // the total number of NO votes for this proposal
+        mapping(address => bool) votesByMember; // the votes on this proposal by each member		
+        bool executed;
+        uint deadline;
+	}
+
     // TODO: combine all of these into one
 	struct NFTProposal {
 		address nftAddress;
 		uint nftId;
+		bool forSale;
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
         mapping(address => bool) votesByMember; // the votes on this proposal by each member		

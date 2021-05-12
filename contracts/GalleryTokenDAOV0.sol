@@ -14,16 +14,18 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 	mapping(uint => CommissionNFTProposal) public commissionNFTProposals;
 	mapping(uint => GallerySplitProposal) public gallerySplitProposals;
 	mapping(uint => ExhibitProposal) public exhibitProposals;
+	mapping(uint => ChangeRoleProposal) public changeRoleProposals;
 
 	mapping(address => uint) public contributors; // donator => amount donated in eth
 
-	mapping(address => mapping(uint => address)) public galleryNFTs; // nftAddress => nftId => owner nfts on lend to the gallery
+	mapping(address => GalleryNFT) public galleryNFTs; // nftAddress => gallery nfts on lend to the gallery
 
 	//address[] public ownedNFTs; // list of all owned nfts
 	uint public galleryNFTCount = 0;
 	uint public exhibitCount = 0;
 	uint public splitCount = 0;
 	uint public commissionProposalCount = 0;
+	uint public changeRoleProposalsCount = 0;
 
 
 	address public currency; // token address of deposit currency, default weth
@@ -35,6 +37,8 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 	uint public gallerySplitEventAdmissions; // the profit taken from admissions
 	uint public votingThreshold; // number of votes needed to accept proposal
 	uint public proposalDuration;
+	uint public stillAccepting = true;
+
 	address _private wethAddress = "0x0";
 
 	// Constants
@@ -59,6 +63,11 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
     modifier onlyAdmin {
         require(members[msg.sender].admin == true, "not an admin");
         _;
+    }
+
+    modifier accepting {
+    	require(stillAccepting == true);
+    	_;
     }
 
     // Events
@@ -97,8 +106,9 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 		members[_user].jailed = false;
 	}
 
-	function enterDAO(uint _contribution) public {
+	function enterDAO(uint _contribution) accepting  public {
 		require(_contribution > 0, "contributors must supply something");
+		require(IERC20(governanceToken).balanceOf(address(this) > 0), "no more gov tokens left");
 		require(IERC20(wethAddress).balanceOf(msg.sender) >= _contribution, "not enough weth for contribution");
 		IERC20(wethAddress).safeTransferFrom(msg.sender, address(this), _contribution);
 		IERC20(governanceToken).safeTransfer(msg.sender, _contribution);
@@ -111,6 +121,9 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 		// event
 	}
 
+
+
+	// ---- Proposals ----
 	function exhibitProposal(uint _funding, uint _startDate) onlyMember {
 		// record how much of the gallery holdings the admins can withdraw for the exhibit
 		require(_funding > 0 && _funding <= IERC20(wethAddress).balanceOf(address(this)), "must give appropriate funding amount");
@@ -129,13 +142,14 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 	}
 
 	// contributors can ask for vote to enter art
-	function enterNFTProposal(address _nftAddress, uint _nftId) onlyNFTContributor {
+	function enterNFTProposal(address _nftAddress, uint _nftId, bool _forSale) onlyNFTContributor {
 		require(_nftAddress != address(0), "nft must have an address");
 		require(IERC20(stakeTokenAddress).balanceOf(msg.sender) >= 1, "all proposals must have governance tokens");
 		require(IERC721(_nftAddress).ownerOf(_nftId) == msg.sender, "contributor must own the nft");
 
 		nftProposals[nftProposalCount].nftAddress = _nftAddress;
 		nftProposals[nftProposalCount].nftId = _nftId;
+		nftProposals[nftProposalCount].forSale = _forSale;
 		nftProposals[nftProposalCount].yesVotes = IERC20(stakeTokenAddress).balanceOf(msg.sender);
 		nftProposals[nftProposalCount].noVotes = 0;
 		nftProposals[nftProposalCount].votesByMember[msg.sender] = true;
@@ -145,30 +159,6 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 
 		// event
 	}
-
-	// override governance to allow curators to quickly add pieces
-	function enterNFTCurator(address _nftAddress, uint _nftId, address _owner) onlyCurator {
-		require(IERC721(_nftAddress).ownerOf(_nftId) == msg.sender, "contributor must own the nft");
-
-		galleryNFTs[_nftAddress][_nftId] = msg.sender;
-		galleryNFTCount++;
-
-		require(IERC721(_nftAddress).transferFrom(msg.sender, address(this), _nftId), "failed to transfer nft");
-		// event
-	}
-
-	// all owners can remove their nft
-	// maybe lock transfer during exhibits
-	function withdrawNFT(address _nftAddress, uint _nftId) public {
-		require(IERC721(_nftAddress).ownerOf(_nftId) == address(this), "dao must own the nft");
-
-		galleryNFTCount--;
-		require(galleryNFTs[_nftAddress][_nftId] == msg.sender, "sender does not own this nft")
-		require(IERC721(_nftAddress).transfer(address(this), msg.sender, _nftId), "failed to transfer nft");
-
-		// event
-	}
-
 
 	// set the amount the dao takes from exhibit events and sales
 	function gallerySplitProposal(uint _splitProposal) onlyMember {
@@ -188,8 +178,10 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 	}
 
 	// others may ask to support this gallery and thier artists
-	function createPublicCommissionProposal(uint _funding) public {
+	function createCommissionProposal(uint _funding) onlyMember {
 		require(IERC20(wethAddress).balanceOf(msg.sender) >= _funding. "not enough weth for commision");
+		// just mark the commission so its public, hold the funds until complete
+		require(IERC20(wethAddress).safeTransferFrom(msg.sender, address(this), _funding), "fund transfer failed");
 
 		commissionNFTProposals[commissionProposalCount].funding = _funding;
 		commissionNFTProposals[commissionProposalCount].yesVotes = IERC20(stakeTokenAddress).balanceOf(msg.sender);
@@ -197,13 +189,37 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 		commissionNFTProposals[commissionProposalCount].votesByMember[msg.sender] = true;
 		commissionNFTProposals[commissionProposalCount].executed = false;
 		commissionNFTProposals[commissionProposalCount].deadline = now + votingThreshold;
-
-		// just mark the commission so its public, hold the funds until complete
-		require(IERC20(wethAddress).safeTransferFrom(msg.sender, address(this), _funding), "fund transfer failed");
+		commissionProposalCount++;
 
 		// event
 	}
 
+	// can also remove roles here
+	function changeRoleProposal(Role _roles, address _member) onlyMember {
+		changeRoleProposals[changeRoleProposalsCount].memberAddress = _member;
+		changeRoleProposals[changeRoleProposalsCount].role = _roles;
+		changeRoleProposals[changeRoleProposalsCount].yesVotes = IERC20(stakeTokenAddress).balanceOf(msg.sender);
+		changeRoleProposals[changeRoleProposalsCount].noVotes = 0;
+		changeRoleProposals[changeRoleProposalsCount].votesByMember[msg.sender] = true;
+		changeRoleProposals[changeRoleProposalsCount].executed = false;
+		changeRoleProposals[changeRoleProposalsCount].deadline = now + votingThreshold;
+		changeRoleProposalsCount++;
+
+		// event
+	}
+
+	function adminWithdrawFundsProposal() onlyAdmin {
+
+	}
+
+	// MOVE THIS TO HOUSES
+	function NFTPurchaseProposal() onlyCurator {
+
+	}
+
+
+
+	// ---- finalize proposals ----
 	function submitNFTCommission(address _nftAddress, uint _nftId) onlyNFTContributor {
 		// get the receiver
 		// transfer the nft
@@ -213,28 +229,51 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 	function recoverFailedCommission() public {
 
 	}
-	// members can propose spending gallery funds ot commision an artist
-	function createGalleryCommissionProposal(uint _funding) onlyMember {
-		require(IERC20(wethAddress).balanceOf(address(this)) >= _funding. "gallery does not have enough weth for commision");
+
+	function executeExhibitProposal() public {
 
 	}
 
-	// MOVE THIS TO HOUSES
-	function NFTPurchaseProposal() onlyCurator {
+	function executeGallerySplitProposal() public {
 
 	}
 
-	function adminWithdrawFundsProposal() onlyAdmin {
+	function executeEnterNFTProposal() public {
 
 	}
 
-	// can also remove roles here
-	function changeRoleProposal(Role _role) onlyMember {
 
+
+	// ---- actions ----
+	function admissionToggle() onlyAdmin {
+		if(stillAccepting == true) {
+			stillAccepting = false;
+		} else {
+			stillAccepting = true;
+		}
 	}
 
-	function voteOnProposal(Proposal _type, bool _vote) {
+	// all owners can remove their nft
+	// maybe lock transfer during exhibits
+	function withdrawNFT(address _nftAddress, uint _nftId) public {
+		require(IERC721(_nftAddress).ownerOf(_nftId) == address(this), "dao must own the nft");
 
+		galleryNFTCount--;
+		require(galleryNFTs[_nftAddress][_nftId] == msg.sender, "sender does not own this nft")
+		require(IERC721(_nftAddress).transfer(address(this), msg.sender, _nftId), "failed to transfer nft");
+
+		// event
+	}
+
+	// override governance to allow curators to quickly add pieces
+	function enterNFTCurator(address _nftAddress, uint _nftId, address _owner, bool _forSale) onlyCurator {
+		require(IERC721(_nftAddress).ownerOf(_nftId) == msg.sender, "contributor must own the nft");
+
+		galleryNFTs[_nftAddress][_nftId] = msg.sender;
+		galleryNFTCount++;
+
+		require(IERC721(_nftAddress).transferFrom(msg.sender, address(this), _nftId), "failed to transfer nft");
+		// event
 	}
 
 	function donate(_amount) {
@@ -245,16 +284,6 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20 {
 	// native token of the dao
 	function updateToken() public onlyAdmin {
 
-	}
-
-	function lendNFT(uint _lendDuration) public {
-
-	}
-
-	function confirmProposal() public {
-		require(proposals[_proposalId.yesVotes > proposals[_proposalId.noVotes]);
-		require(proposals[_proposalId.yesVotes >= votingThreshold);
-		// confirm
 	}
 
 	function burnCoordinator() public {
