@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import './ExhibitV0.sol';
@@ -87,7 +89,7 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20, DAOBase {
 		uint _gallerySplit,
 		uint _proposalDuration
 	) ERC20(_name, _symbol) {
-		governanceTokenSupply = _governanceTokenSupply
+		governanceTokenSupply = _governanceTokenSupply;
 		initialCoordinator = msg.sender;
 		stakeTokenAddress = _stakeToken;
 		//currency = _currency; // assume weth
