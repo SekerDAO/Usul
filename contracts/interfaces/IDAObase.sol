@@ -20,7 +20,7 @@ interface IDAOBase {
     struct Member {
         uint256 shares; // the # of voting shares assigned to this member
         Role roles;
-        uint256 jailed; // set to proposalIndex of a passing guild kick proposal for this member, prevents voting on and sponsoring proposals
+        bool jailed; // set to proposalIndex of a passing guild kick proposal for this member, prevents voting on and sponsoring proposals
     }
 
 	struct ChangeRoleProposal {
