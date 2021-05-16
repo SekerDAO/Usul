@@ -4,11 +4,12 @@ pragma solidity ^0.8.0;
 
 import './ExhibitV0.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import './interfaces/IGalleryDAOV0.sol';
 import './DAOBase.sol';
 // import market contracts
+
+// NOTE: have funds for exhibits go to the proposer?
 
 contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20, DAOBase {
 	mapping(address => Member) private members;
@@ -287,6 +288,10 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20, DAOBase {
 
 	function withdrawMemberProfit() public {
 		//_burn();
+	}
+
+	function contributeMore() public {
+		
 	}
 
 	// all owners can remove their nft
