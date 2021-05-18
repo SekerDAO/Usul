@@ -10,7 +10,8 @@ contract HouseDAOV0 is IHouseDAO {
 	mapping(address => Member) private members;
 	mapping(uint => Proposal) public proposals;
 	// use shares on member struct for balances
-	uint public proposalCount;
+	uint public openProposalCount;
+	uint public totalProposalCount;
 
 	uint public totalContribution;
 
@@ -41,6 +42,9 @@ contract HouseDAOV0 is IHouseDAO {
 		//initialCoordinator = msg.sender;
 		for(uint i=0; i<heads.length; i++) {
 			// create head of house member struct
+			require(heads[i] != address(0));
+			members[heads[i]].roles.headOfHouse = true;
+			members[heads[i]].roles.member = true;
 		}
 
 		isPublic = _public;
@@ -50,40 +54,58 @@ contract HouseDAOV0 is IHouseDAO {
 	}
 
 	function nftMembershipEntry() public {
+		require(ERC721Address != address(0));
 		require(isPublic == true);
 		require(IERC721(ERC721Address).balanceOf(msg.sender) >= entryAmount);
-		// require nft balance is equal to entry amount
-		// don't collect the nft
-		// just register
+		members[msg.sender].roles.member = true;
 	}
 
-	function contributionEntry() public {
+	function contributionEntry(uint _amount) public {
+		require(ERC20Address != address(0));
 		require(isPublic == true);
+		require(_amount >= entryAmount);
 		require(IERC20(ERC20Address).balanceOf(msg.sender) >= entryAmount);
+		members[msg.sender].roles.member = true;
+		members[msg.sender].shares = _amount;
+		if(entryAmount > 0) {
+			totalContribution += _amount;
+			IERC20(ERC20Address).transferFrom(msg.sender, address(this), _amount);
+		}	
 	}
 
 	function headOfHouseEnterMember(address _member, uint _contribution) public {
 		require(isPublic == false);
-		// mark how much contributed
+		require(_contribution >= entryAmount);
+		require(IERC20(ERC20Address).balanceOf(msg.sender) >= entryAmount);
+		members[msg.sender].roles.member = true;
+		members[msg.sender].shares = _contribution;
+		if(entryAmount > 0) {
+			totalContribution += _contribution;
+			IERC20(ERC20Address).transferFrom(msg.sender, address(this), _contribution);
+		}	
 	}
 
-	function headOfhouseChangeEntryERC20(address _entryToken, uint _amount) public {
+	function headOfhouseChangeEntryERC20(address _entryToken, uint _amount) onlyHeadOfHouse public {
 		require(_entryToken != address(0));
 		ERC20Address = _entryToken;
 		entryAmount = _amount;
 	}
 
-	function headOfhouseChangeEntryERC721(address _entryToken, uint _amount) public {
+	function headOfhouseChangeEntryERC721(address _entryToken, uint _amount) onlyHeadOfHouse public {
 		require(_entryToken != address(0));
 		ERC721Address = _entryToken;
 		entryAmount = _amount;
 	}
 
-	function addMoreContribution(uint _amount) public {
-		// add more to the conributor amount
+	function addMoreContribution(uint _contribution) onlyMember public {
+		require(_contribution >= entryAmount);
+		require(IERC20(ERC20Address).balanceOf(msg.sender) >= _contribution);
+		members[msg.sender].shares += _contribution;
+		totalContribution += _contribution;
+		IERC20(ERC20Address).transferFrom(msg.sender, address(this), _contribution);
 	}
 
-	function withdraw(uint _amount) public {
+	function withdraw(uint _amount) onlyMember public {
 		// calculate percentage of ownership as member.amount / totalContribution
 		// remove ownership percent from totalContribution
 		// remove amount from member

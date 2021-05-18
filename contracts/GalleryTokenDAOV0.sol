@@ -291,7 +291,7 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20, DAOBase {
 	}
 
 	function contributeMore() public {
-		
+
 	}
 
 	// all owners can remove their nft
