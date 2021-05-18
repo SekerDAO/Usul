@@ -4,14 +4,18 @@ pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
+import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import './interfaces/IHouseDAO.sol';
 
 contract HouseDAOV0 is IHouseDAO {
+	using SafeMath for uint;
+
 	mapping(address => Member) private members;
 	mapping(uint => Proposal) public proposals;
 	// use shares on member struct for balances
-	uint public openProposalCount;
-	uint public totalProposalCount;
+	uint public openProposalCount = 0;
+	uint public totalProposalCount = 0;
+	uint public proposalTime;
 
 	uint public totalContribution;
 
@@ -37,7 +41,8 @@ contract HouseDAOV0 is IHouseDAO {
 		address _ERC20Address,
 		address _ERC721Address,
 		bool _public,
-		uint _entryAmount
+		uint _entryAmount,
+		uint _proposalTime
 	) {
 		//initialCoordinator = msg.sender;
 		for(uint i=0; i<heads.length; i++) {
@@ -51,6 +56,7 @@ contract HouseDAOV0 is IHouseDAO {
 		ERC20Address = _ERC20Address;
 		ERC721Address = _ERC721Address;
 		entryAmount = _entryAmount;
+		proposalTime = _proposalTime;
 	}
 
 	function nftMembershipEntry() public {
@@ -106,23 +112,46 @@ contract HouseDAOV0 is IHouseDAO {
 	}
 
 	function withdraw(uint _amount) onlyMember public {
-		// calculate percentage of ownership as member.amount / totalContribution
-		// remove ownership percent from totalContribution
+		require(members[msg.sender].shares >= _amount);
 		// remove amount from member
+		members[msg.sender].shares = members[msg.sender].shares.sub(_amount);
+		// calculate percentage of ownership as member.amount / totalContribution
+		uint _withdrawalAmount = _amount.div(totalContribution);
+		// remove ownership percent from totalContribution
+		totalContribution = totalContribution.sub(_withdrawalAmount);
 		// send funds
+		require(IERC20(ERC20Address).transfer(msg.sender, _withdrawalAmount));
+	}
+
+	function sendNFT(address _nftAddress, uint _nftId, address _recipient) onlyHeadOfHouse public {
+		IERC721(_nftAddress).safeTransferFrom(address(this), _recipient, _nftId);
 	}
 
 	// the wealthy may choose a gallery / artist dao to endorse
-	function commissionProposal() public {
-
+	function commissionProposal(uint _funding, address _artist) onlyMember public {
+    	proposals[openProposalCount].fundsRequested = _funding;
+    	proposals[openProposalCount].proposalType = 1; // 0 = funding proposal // 1 = commission art etc
+        proposals[openProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
+        proposals[openProposalCount].noVotes = 0; // the total number of NO votes for this proposal
+        //mapping(address => bool) votesByMember; // the votes on this proposal by each member        
+        proposals[openProposalCount].executed = false;
+        proposals[openProposalCount].deadline = block.timestamp + proposalTime;
+        proposals[openProposalCount].proposer = msg.sender;
 	}
 
-	// the wealthy may choose a gallery / artist dao to endorse
-	function fundingProposal() public {
-
+	function fundingProposal(uint _funding, address _recipient) public {
+    	proposals[openProposalCount].fundsRequested = _funding;
+    	proposals[openProposalCount].proposalType = 0; // 0 = funding proposal // 1 = commission art etc
+        proposals[openProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
+        proposals[openProposalCount].noVotes = 0; // the total number of NO votes for this proposal
+        //mapping(address => bool) votesByMember; // the votes on this proposal by each member        
+        proposals[openProposalCount].executed = false;
+        proposals[openProposalCount].deadline = block.timestamp + proposalTime;
+        proposals[openProposalCount].proposer = msg.sender;
 	}
 
-	function executeCommissionProposal() public {
+	function executeCommissionProposal(address _nftAddress, uint _nftId) public {
+		IERC721(_nftAddress).transferFrom(msg.sender, address(this), _nftId);
 
 	}
 
