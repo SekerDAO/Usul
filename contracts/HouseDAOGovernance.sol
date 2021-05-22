@@ -18,10 +18,15 @@ contract HouseDAOGovernance is IHouseDAO {
 	uint public gracePeriod = 3 days;
 
 	uint public totalContribution;
+	uint public balance;
+
 	uint public entryAmount;
+	uint public totalGovernanceSupply;
+	uint public remainingSupply;
 	// address private initialCoordinator;
 
 	address public governanceToken;
+	address public WETH = address(0);
 
     modifier onlyMember {
         require(members[msg.sender].roles.member == true, "not a member");
@@ -38,6 +43,7 @@ contract HouseDAOGovernance is IHouseDAO {
 		address _governanceToken,
 		uint _entryAmount,
 		uint _proposalTime,
+		uint _totalGovernanceSupply
 	) {
 		//initialCoordinator = msg.sender;
 		for(uint i=0; i<heads.length; i++) {
@@ -51,120 +57,161 @@ contract HouseDAOGovernance is IHouseDAO {
 		entryAmount = _entryAmount;
 		proposalTime = _proposalTime;
 		threshold = _threshold;
+		totalGovernanceSupply = _totalGovernanceSupply;
+		remainingSupply = _totalGovernanceSupply;
 	}
 
 	// make this the easy multisig version, split out
 	function headOfHouseEnterMember(address _member, uint _contribution) public {
-		require(isPublic == false);
 		require(_contribution >= entryAmount);
-		require(IERC20(WETH).balanceOf(msg.sender) >= entryAmount);
-		members[msg.sender].roles.member = true;
-		members[msg.sender].shares = _contribution;
-		if(entryAmount > 0) {
-			totalContribution += _contribution;
-			IERC20(ERC20Address).transferFrom(msg.sender, address(this), _contribution);
+		require(IERC20(WETH).balanceOf(_member) >= _contribution);
+
+		members[_member].roles.member = true;
+		members[_member].shares = _contribution;
+		if(_contribution > 0) {
+			totalContribution = totalContribution.add(_contribution);
+			balance = balance.add(_contribution);
+			IERC20(WETH).transferFrom(_member, address(this), _contribution);
+			IERC20(governanceToken).transferFrom(address(this), _member, _contribution);
+			remainingSupply = remainingSupply.sub(_contribution);
 		}	
 	}
 
-	function headOfhouseChangeEntryERC20(address _entryToken, uint _amount) onlyHeadOfHouse public {
-		require(_entryToken != address(0));
-		ERC20Address = _entryToken;
-		entryAmount = _amount;
-	}
-
-	// make nft and erc20 version different contracts
-	function headOfhouseChangeEntryERC721(address _entryToken, uint _amount) onlyHeadOfHouse public {
-		require(_entryToken != address(0));
-		ERC721Address = _entryToken;
-		entryAmount = _amount;
-	}
+	// for now we hard code weth as the bank token
+	// function headOfhouseChangeEntryERC20(address _entryToken, uint _amount) onlyHeadOfHouse public {
+	// 	require(_entryToken != address(0));
+	// 	ERC20Address = _entryToken;
+	// 	entryAmount = _amount;
+	// }
 
 	function addMoreContribution(uint _contribution) onlyMember public {
 		require(_contribution >= entryAmount);
-		require(IERC20(ERC20Address).balanceOf(msg.sender) >= _contribution);
-		members[msg.sender].shares += _contribution;
-		totalContribution += _contribution;
-		IERC20(ERC20Address).transferFrom(msg.sender, address(this), _contribution);
+		require(IERC20(WETH).balanceOf(msg.sender) >= _contribution);
+
+		members[msg.sender].shares = members[msg.sender].shares.add(_contribution);
+		totalContribution = totalContribution.add(_contribution);
+		balance = balance.add(_contribution);
+
+		require(IERC20(WETH).transferFrom(msg.sender, address(this), _contribution));
+
+		// check to see if there are enough gov tokens left to award
+		if(IERC20(governanceToken).balanceOf(address(this)) > _contribution) {
+			require(IERC20(governanceToken).transferFrom(address(this), msg.sender, _contribution));
+		}
+
+		remainingSupply = remainingSupply.sub(_contribution);
 	}
 
 	function withdraw(uint _amount) onlyMember public {
 		require(members[msg.sender].shares >= _amount);
+
+		uint _withdrawalPercent = members[msg.sender].shares.div(totalContribution);
+		uint _withdrawalAmount = balance.mul(_withdrawalPercent);
+
 		// remove amount from member
 		members[msg.sender].shares = members[msg.sender].shares.sub(_amount);
-		// calculate percentage of ownership as member.amount / totalContribution
-		uint _withdrawalAmount = _amount.div(totalContribution);
 		// remove ownership percent from totalContribution
-		totalContribution = totalContribution.sub(_withdrawalAmount);
+		totalContribution = totalContribution.sub(_amount);
+		// update the balance left
+		balance = balance.sub(_withdrawalAmount);
 		// send funds
-		require(IERC20(ERC20Address).transfer(msg.sender, _withdrawalAmount));
+		require(IERC20(WETH).transfer(msg.sender, _withdrawalAmount));
 	}
 
 	function sendNFT(address _nftAddress, uint _nftId, address _recipient) onlyHeadOfHouse public {
 		IERC721(_nftAddress).safeTransferFrom(address(this), _recipient, _nftId);
 	}
 
+
 	// change this, no contribution needed, use a gov token
 	// if you have a gov token you get a membership
 	// if you don't you can put up an entry proposal and get issued gov tokens
-	function enterDAOProposal(uint _amount) public {
+	function enterDAOProposal(uint _contribution, Role _role) public {
+		require(_contribution >= entryAmount);
+		require(IERC20(WETH).balanceOf(msg.sender) >= _contribution);
 
-	}
-
-
-	// the wealthy may choose a gallery / artist dao to endorse
-	function commissionProposal(uint _funding, address _artist) onlyMember public {
-    	proposals[totalProposalCount].fundsRequested = _funding;
-    	proposals[totalProposalCount].proposalType = 1; // 0 = funding proposal // 1 = commission art etc
-        proposals[totalProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
-        proposals[totalProposalCount].noVotes = 0; // the total number of NO votes for this proposal     
-        proposals[totalProposalCount].executed = false;
+    	proposals[totalProposalCount].fundsRequested = _contribution;
+    	proposals[totalProposalCount].role = _role;
+    	proposals[totalProposalCount].proposalType = 2; // 0 = funding proposal // 1 = commission art 2 = entry
+        proposals[totalProposalCount].yesVotes = IERC20(governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
+
+        require(IERC20(WETH).transferFrom(msg.sender, address(this), _contribution));
+
+        totalProposalCount++;
 	}
 
-	function fundingProposal(uint _funding, address _recipient) public {
+	// used for
+	// change role, commission art, request funcing
+	function submitProposal(Role _role, address _recipient, uint _funding, uint _proposalType) onlyMember public {
+		require(balance >= _funding);
+
     	proposals[totalProposalCount].fundsRequested = _funding;
-    	proposals[totalProposalCount].proposalType = 0; // 0 = funding proposal // 1 = commission art etc
-        proposals[totalProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
-        proposals[totalProposalCount].noVotes = 0; // the total number of NO votes for this proposal     
-        proposals[totalProposalCount].executed = false;
+    	proposals[totalProposalCount].role = _role;
+    	proposals[totalProposalCount].proposalType = _proposalType; // 0 = funding proposal // 1 = change role // 2 = entry
+        proposals[totalProposalCount].yesVotes = IERC20(governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
+        proposals[totalProposalCount].targetAddress = _recipient;
+
+        totalProposalCount++;
 	}
 
 
+	// Execute proposals
+	function executeFundingProposal(uint _proposalId) public {
+		require(proposals[_proposalId].canceled = false);
+		require(proposals[_proposalId].executed == false);
+		require(proposals[_proposalId].proposalType = 0);
+		require(balance >= proposals[totalProposalCount].fundsRequested);
 
-	function executeCommissionProposal(address _nftAddress, uint _nftId) public {
-		IERC721(_nftAddress).transferFrom(msg.sender, address(this), _nftId);
+		require(IERC20(WETH).transferFrom(address(this), proposals[totalProposalCount].targetAddress, proposals[totalProposalCount].fundsRequested));
+
+		proposals[_proposalId].executed == true;
+	}
+
+	function executeChangeRoleProposal(uint _proposalId) public {
+		require(proposals[_proposalId].canceled = false);
+		require(proposals[_proposalId].execute == false);
+		require(proposals[_proposalId].proposalType = 1);
+
+		members[proposals[_proposalId].targetAddress].role = proposal[_proposalId].role;
+		proposals[_proposalId].executed == true;
 
 	}
 
-	function executeFundingProposal() public {
+	function executeEnterDAOProposal(uint _proposalId) public {
+		require(proposals[_proposalId].canceled = false);
+		require(proposals[_proposalId].executed == false);
+		require(proposals[_proposalId].proposalType = 2);
 
-	}
-
-	function executeEnterDAOProposal() public {
-		require(ERC20Address != address(0));
-		require(isPublic == true);
-		require(_amount >= entryAmount);
-		require(IERC20(ERC20Address).balanceOf(msg.sender) >= entryAmount);
 		members[msg.sender].roles.member = true;
-		members[msg.sender].shares = _amount;
-		if(entryAmount > 0) {
-			totalContribution += _amount;
-			IERC20(ERC20Address).transferFrom(msg.sender, address(this), _amount);
-		}	
+		members[msg.sender].shares = proposals[totalProposalCount].fundsRequested;
+		totalContribution = totalContribution.add(proposals[_proposalId].fundsRequested);
+
+		if(proposals[_proposalId].fundsRequested > IERC20(governanceToken).balanceOf(address(this))) {
+			IERC20(governanceToken).transferFrom(msg.sender, address(this), proposals[totalProposalCount].fundsRequested);
+		}
+
+		proposals[_proposalId].executed == true;
 	}
 
-	// native token of the dao
-	function updateTokenERC20(address _token) public onlyHeadOfHouse {
-		require(_token != address(0));
-		ERC20Address = _token;
+	// actions
+	function cancelEnterDAO(uint _proposalId) public {
+		// refund the contribution for failed entry
+		require(proposals[_proposalId].canceled = false);
+		require(proposals[_proposalId].executed == false);
+
+		require(IERC20(WETH).transferFrom(address(this), proposals[totalProposalCount].targetAddress, proposals[totalProposalCount].fundsRequested));
+		proposals[_proposalId].canceled == true;
 	}
 
-	// native token of the dao
-	function updateTokenERC721(address _nft) public onlyHeadOfHouse {
-		require(_nft != address(0));
-		ERC721Address = _nft;
+	function cancelProposal(uint _proposalId) public {
+		require(proposals[_proposalId].canceled == false);
+		require(proposals[_proposalId].execute == false);
+		require(proposals[_proposalId].deadline >= block.timestamp);
+		require(proposals[_proposalId].proposer == msg.sender)
+		proposals[_proposalId].canceled = true;
 	}
 }

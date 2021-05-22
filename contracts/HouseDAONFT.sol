@@ -56,7 +56,7 @@ contract HouseDAONFT is IHouseDAO {
 	}
 
 	function nftMembershipEntry() public {
-		require(members[msg.sender].roles.member = false);
+		require(members[msg.sender].roles.member == false);
 		require(ERC721Address != address(0));
 		require(IERC721(ERC721Address).balanceOf(msg.sender) >= entryAmount);
 		members[msg.sender].roles.member = true;
@@ -79,16 +79,16 @@ contract HouseDAONFT is IHouseDAO {
 		entryAmount = _amount;
 	}
 
-	function submitProposal(uint _funding, address _recipient, Role memory _role) public {
+	function submitProposal(uint _funding, address _recipient, Role memory _role) onlyMember public {
+		require(_recipient != address(0));
+		
     	proposals[totalProposalCount].fundsRequested = _funding;
     	proposals[totalProposalCount].role = _role;
     	proposals[totalProposalCount].proposalType = 0; // 0 = funding proposal // 1 = commission art etc
         proposals[totalProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
-        proposals[totalProposalCount].noVotes = 0; // the total number of NO votes for this proposal       
-        proposals[totalProposalCount].executed = false;
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
-        proposals[totalProposalCount].canceled == false;
+        proposals[totalProposalCount].targetAddress = _recipient
 
         totalProposalCount++;
 	}
@@ -103,9 +103,10 @@ contract HouseDAONFT is IHouseDAO {
 		require(proposals[_proposalId].deadline >= block.timestamp);
 		require(proposals[_proposalId].fundsRequested <= totalContributions);
 		require(proposals[_proposalId].yesVotes >= threshold);
+		require(proposals[_proposalId].targetAddress != address(0));
 
 		proposals[_proposalId].executed == true;
-		require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].proposer, proposals[_proposalId].fundsRequested));
+		require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
 	}
 
 	function executeRoleChange(uint _proposalId) public {
@@ -119,6 +120,7 @@ contract HouseDAONFT is IHouseDAO {
 	}
 
 	function cancelProposal(uint _proposalId) public {
+		require(proposals[_proposalId].executed == false);
 		require(proposals[_proposalId].canceled == false);
 		require(proposals[_proposalId].deadline >= block.timestamp);
 		require(proposals[_proposalId].proposer == msg.sender)
