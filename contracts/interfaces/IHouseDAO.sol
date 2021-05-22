@@ -18,10 +18,10 @@ interface IHouseDAO {
     	uint8 proposalType; // 0 = funding proposal // 1 = commission art etc
         Role role; // role change proposed
         uint256 yesVotes; // the total number of YES votes for this proposal
-        uint256 noVotes; // the total number of NO votes for this proposal
-        mapping(address => bool) votesByMember; // the votes on this proposal by each member        
+        uint256 noVotes; // the total number of NO votes for this proposal        
         bool executed;
         uint deadline;
         address proposer;
+        bool canceled;
     }
 }

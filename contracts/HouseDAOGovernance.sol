@@ -7,24 +7,21 @@ import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import './interfaces/IHouseDAO.sol';
 
-contract HouseDAOERC20 is IHouseDAO {
+contract HouseDAOGovernance is IHouseDAO {
 	using SafeMath for uint;
 
 	mapping(address => Member) private members;
 	mapping(uint => Proposal) public proposals;
 	// use shares on member struct for balances
-	uint public openProposalCount = 0;
 	uint public totalProposalCount = 0;
 	uint public proposalTime;
+	uint public gracePeriod = 3 days;
 
 	uint public totalContribution;
-
-	bool public isPublic;
 	uint public entryAmount;
 	// address private initialCoordinator;
 
-	address public ERC20Address;
-	address public ERC721Address;
+	address public governanceToken;
 
     modifier onlyMember {
         require(members[msg.sender].roles.member == true, "not a member");
@@ -38,11 +35,9 @@ contract HouseDAOERC20 is IHouseDAO {
 
 	constructor(
 		address[] memory heads,
-		address _ERC20Address,
-		address _ERC721Address,
-		bool _public,
+		address _governanceToken,
 		uint _entryAmount,
-		uint _proposalTime
+		uint _proposalTime,
 	) {
 		//initialCoordinator = msg.sender;
 		for(uint i=0; i<heads.length; i++) {
@@ -52,41 +47,17 @@ contract HouseDAOERC20 is IHouseDAO {
 			members[heads[i]].roles.member = true;
 		}
 
-		isPublic = _public;
-		ERC20Address = _ERC20Address;
-		ERC721Address = _ERC721Address;
+		governanceToken = _governanceToken;
 		entryAmount = _entryAmount;
 		proposalTime = _proposalTime;
-	}
-
-	function nftMembershipEntry() public {
-		require(ERC721Address != address(0));
-		require(isPublic == true);
-		require(IERC721(ERC721Address).balanceOf(msg.sender) >= entryAmount);
-		members[msg.sender].roles.member = true;
-	}
-
-	// change this, no contribution needed, use a gov token
-	// if you have a gov token you get a membership
-	// if you don't you can put up an entry proposal and get issued gov tokens
-	function contributionEntry(uint _amount) public {
-		require(ERC20Address != address(0));
-		require(isPublic == true);
-		require(_amount >= entryAmount);
-		require(IERC20(ERC20Address).balanceOf(msg.sender) >= entryAmount);
-		members[msg.sender].roles.member = true;
-		members[msg.sender].shares = _amount;
-		if(entryAmount > 0) {
-			totalContribution += _amount;
-			IERC20(ERC20Address).transferFrom(msg.sender, address(this), _amount);
-		}	
+		threshold = _threshold;
 	}
 
 	// make this the easy multisig version, split out
 	function headOfHouseEnterMember(address _member, uint _contribution) public {
 		require(isPublic == false);
 		require(_contribution >= entryAmount);
-		require(IERC20(ERC20Address).balanceOf(msg.sender) >= entryAmount);
+		require(IERC20(WETH).balanceOf(msg.sender) >= entryAmount);
 		members[msg.sender].roles.member = true;
 		members[msg.sender].shares = _contribution;
 		if(entryAmount > 0) {
@@ -132,28 +103,36 @@ contract HouseDAOERC20 is IHouseDAO {
 		IERC721(_nftAddress).safeTransferFrom(address(this), _recipient, _nftId);
 	}
 
+	// change this, no contribution needed, use a gov token
+	// if you have a gov token you get a membership
+	// if you don't you can put up an entry proposal and get issued gov tokens
+	function enterDAOProposal(uint _amount) public {
+
+	}
+
+
 	// the wealthy may choose a gallery / artist dao to endorse
 	function commissionProposal(uint _funding, address _artist) onlyMember public {
-    	proposals[openProposalCount].fundsRequested = _funding;
-    	proposals[openProposalCount].proposalType = 1; // 0 = funding proposal // 1 = commission art etc
-        proposals[openProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
-        proposals[openProposalCount].noVotes = 0; // the total number of NO votes for this proposal
-        //mapping(address => bool) votesByMember; // the votes on this proposal by each member        
-        proposals[openProposalCount].executed = false;
-        proposals[openProposalCount].deadline = block.timestamp + proposalTime;
-        proposals[openProposalCount].proposer = msg.sender;
+    	proposals[totalProposalCount].fundsRequested = _funding;
+    	proposals[totalProposalCount].proposalType = 1; // 0 = funding proposal // 1 = commission art etc
+        proposals[totalProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
+        proposals[totalProposalCount].noVotes = 0; // the total number of NO votes for this proposal     
+        proposals[totalProposalCount].executed = false;
+        proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
+        proposals[totalProposalCount].proposer = msg.sender;
 	}
 
 	function fundingProposal(uint _funding, address _recipient) public {
-    	proposals[openProposalCount].fundsRequested = _funding;
-    	proposals[openProposalCount].proposalType = 0; // 0 = funding proposal // 1 = commission art etc
-        proposals[openProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
-        proposals[openProposalCount].noVotes = 0; // the total number of NO votes for this proposal
-        //mapping(address => bool) votesByMember; // the votes on this proposal by each member        
-        proposals[openProposalCount].executed = false;
-        proposals[openProposalCount].deadline = block.timestamp + proposalTime;
-        proposals[openProposalCount].proposer = msg.sender;
+    	proposals[totalProposalCount].fundsRequested = _funding;
+    	proposals[totalProposalCount].proposalType = 0; // 0 = funding proposal // 1 = commission art etc
+        proposals[totalProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
+        proposals[totalProposalCount].noVotes = 0; // the total number of NO votes for this proposal     
+        proposals[totalProposalCount].executed = false;
+        proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
+        proposals[totalProposalCount].proposer = msg.sender;
 	}
+
+
 
 	function executeCommissionProposal(address _nftAddress, uint _nftId) public {
 		IERC721(_nftAddress).transferFrom(msg.sender, address(this), _nftId);
@@ -162,6 +141,19 @@ contract HouseDAOERC20 is IHouseDAO {
 
 	function executeFundingProposal() public {
 
+	}
+
+	function executeEnterDAOProposal() public {
+		require(ERC20Address != address(0));
+		require(isPublic == true);
+		require(_amount >= entryAmount);
+		require(IERC20(ERC20Address).balanceOf(msg.sender) >= entryAmount);
+		members[msg.sender].roles.member = true;
+		members[msg.sender].shares = _amount;
+		if(entryAmount > 0) {
+			totalContribution += _amount;
+			IERC20(ERC20Address).transferFrom(msg.sender, address(this), _amount);
+		}	
 	}
 
 	// native token of the dao

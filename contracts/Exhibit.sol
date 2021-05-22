@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 // import IERC20 from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 // import SafeERC20 from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-contract ExhibitV0 {
+contract Exhibit {
     // using SafeERC20 for IERC20;
 
     // struct Bid {

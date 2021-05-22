@@ -2,16 +2,16 @@
 
 pragma solidity ^0.8.0;
 
-import './ExhibitV0.sol';
+import './Exhibit.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
-import './interfaces/IGalleryDAOV0.sol';
+import './interfaces/IGalleryDAO.sol';
 import './DAOBase.sol';
 // import market contracts
 
 // NOTE: have funds for exhibits go to the proposer?
 
-contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20, DAOBase {
+contract GalleryDAO is IGalleryDAO, Exhibit, ERC20, DAOBase {
 	mapping(address => Member) private members;
 
 	mapping(uint => NFTProposal) public nftProposals;
@@ -319,6 +319,10 @@ contract GalleryTokenDAOV0 is IGalleryDAOV0, ExhibitV0, ERC20, DAOBase {
 
 		IERC721(_nftAddress).transferFrom(msg.sender, address(this), _nftId);
 		// event
+	}
+
+	function vote(bool _vote) public {
+		// todo reward a token for voting
 	}
 
 	function donate(uint _amount) public {

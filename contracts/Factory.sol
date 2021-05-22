@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.0;
 
-import './interfaces/IFactoryV0.sol';
-import './GalleryDAOV0.sol';
-import './GalleryTokenDAOV0.sol';
+import './interfaces/IFactory.sol';
+import './GalleryDAO.sol';
+import './GalleryTokenDAO.sol';
 
-contract FactoryV0 is IFactoryV0 {
+contract Factory is IFactory {
     // address public feeTo;
     // address public feeToSetter;
 
