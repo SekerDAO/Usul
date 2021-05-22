@@ -7,7 +7,7 @@ import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import './interfaces/IHouseDAO.sol';
 
-contract HouseDAOV0 is IHouseDAO {
+contract HouseDAOMSIG is IHouseDAO {
 	using SafeMath for uint;
 
 	mapping(address => Member) private members;
@@ -66,6 +66,9 @@ contract HouseDAOV0 is IHouseDAO {
 		members[msg.sender].roles.member = true;
 	}
 
+	// change this, no contribution needed, use a gov token
+	// if you have a gov token you get a membership
+	// if you don't you can put up an entry proposal and get issued gov tokens
 	function contributionEntry(uint _amount) public {
 		require(ERC20Address != address(0));
 		require(isPublic == true);
@@ -79,6 +82,7 @@ contract HouseDAOV0 is IHouseDAO {
 		}	
 	}
 
+	// make this the easy multisig version, split out
 	function headOfHouseEnterMember(address _member, uint _contribution) public {
 		require(isPublic == false);
 		require(_contribution >= entryAmount);
@@ -97,6 +101,7 @@ contract HouseDAOV0 is IHouseDAO {
 		entryAmount = _amount;
 	}
 
+	// make nft and erc20 version different contracts
 	function headOfhouseChangeEntryERC721(address _entryToken, uint _amount) onlyHeadOfHouse public {
 		require(_entryToken != address(0));
 		ERC721Address = _entryToken;
