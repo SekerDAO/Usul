@@ -61,6 +61,8 @@ contract HouseDAOGovernance is IHouseDAO {
 		threshold = _threshold;
 		totalGovernanceSupply = _totalGovernanceSupply;
 		remainingSupply = _totalGovernanceSupply;
+
+		IERC20(_governanceToken).transferFrom(msg.sender, address(this), _totalGovernanceSupply);
 	}
 
 	function vote(uint _proposalId, bool _vote) public onlyMember {
