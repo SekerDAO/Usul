@@ -9,6 +9,7 @@ import './interfaces/IHouseDAO.sol';
 
 contract HouseDAOGovernance is IHouseDAO {
 	using SafeMath for uint;
+	bool private initialized = false;
 
 	mapping(address => Member) private members;
 	mapping(uint => Proposal) public proposals;
@@ -57,12 +58,16 @@ contract HouseDAOGovernance is IHouseDAO {
 
 		governanceToken = _governanceToken;
 		entryAmount = _entryAmount;
-		proposalTime = _proposalTime;
+		proposalTime = _proposalTime * 1 days;
 		threshold = _threshold;
 		totalGovernanceSupply = _totalGovernanceSupply;
 		remainingSupply = _totalGovernanceSupply;
+	}
 
-		IERC20(_governanceToken).transferFrom(msg.sender, address(this), _totalGovernanceSupply);
+	function init() onlyHeadOfHouse public {
+		require(initialized == false);
+		initialized == true;
+		IERC20(governanceToken).transferFrom(msg.sender, address(this), totalGovernanceSupply);
 	}
 
 	function vote(uint _proposalId, bool _vote) public onlyMember {
