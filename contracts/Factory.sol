@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 
 import './interfaces/IFactory.sol';
 import './GalleryDAO.sol';
-import './GalleryTokenDAO.sol';
 
 contract Factory is IFactory {
     // address public feeTo;

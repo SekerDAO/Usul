@@ -18,7 +18,7 @@ contract HouseDAONFT is IHouseDAO {
 
 	uint public totalContributions;
 	uint public entryAmount;
-	unit public threshold;
+	uint public threshold;
 	// address private initialCoordinator;
 
 	address public ERC721Address;
@@ -65,11 +65,10 @@ contract HouseDAONFT is IHouseDAO {
 
 	// this is non refundable
 	function fundDAO(uint _amount) public {
-		require(ERC20Address != address(0));
 		require(_amount > 0);
 		require(IERC20(WETH).balanceOf(msg.sender) >= _amount);
 		totalContributions += _amount;
-		IERC20(ERC20Address).transferFrom(msg.sender, address(this), _amount);
+		IERC20(WETH).transferFrom(msg.sender, address(this), _amount);
 	}
 
 	// make nft and erc20 version different contracts
@@ -88,7 +87,7 @@ contract HouseDAONFT is IHouseDAO {
         proposals[totalProposalCount].yesVotes = members[msg.sender].shares; // the total number of YES votes for this proposal
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
-        proposals[totalProposalCount].targetAddress = _recipient
+        proposals[totalProposalCount].targetAddress = _recipient;
 
         totalProposalCount++;
 	}
@@ -131,7 +130,7 @@ contract HouseDAONFT is IHouseDAO {
 		require(proposals[_proposalId].executed == false);
 		require(proposals[_proposalId].canceled == false);
 		require(proposals[_proposalId].deadline >= block.timestamp);
-		require(proposals[_proposalId].proposer == msg.sender)
+		require(proposals[_proposalId].proposer == msg.sender);
 		proposals[_proposalId].canceled = true;
 	}
 }

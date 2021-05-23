@@ -20,6 +20,7 @@ contract HouseDAOGovernance is IHouseDAO {
 	uint public totalContribution;
 	uint public balance;
 
+	uint public threshold;
 	uint public entryAmount;
 	uint public totalGovernanceSupply;
 	uint public remainingSupply;
@@ -43,7 +44,8 @@ contract HouseDAOGovernance is IHouseDAO {
 		address _governanceToken,
 		uint _entryAmount,
 		uint _proposalTime,
-		uint _totalGovernanceSupply
+		uint _totalGovernanceSupply,
+		uint _threshold
 	) {
 		//initialCoordinator = msg.sender;
 		for(uint i=0; i<heads.length; i++) {
@@ -138,7 +140,7 @@ contract HouseDAOGovernance is IHouseDAO {
 	// change this, no contribution needed, use a gov token
 	// if you have a gov token you get a membership
 	// if you don't you can put up an entry proposal and get issued gov tokens
-	function enterDAOProposal(uint _contribution, Role _role) public {
+	function enterDAOProposal(uint _contribution, Role memory _role) public {
 		require(_contribution >= entryAmount);
 		require(IERC20(WETH).balanceOf(msg.sender) >= _contribution);
 
@@ -156,7 +158,7 @@ contract HouseDAOGovernance is IHouseDAO {
 
 	// used for
 	// change role, commission art, request funcing
-	function submitProposal(Role _role, address _recipient, uint _funding, uint _proposalType) onlyMember public {
+	function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember public {
 		require(balance >= _funding);
 
     	proposals[totalProposalCount].fundsRequested = _funding;
@@ -194,19 +196,19 @@ contract HouseDAOGovernance is IHouseDAO {
 	}
 
 	function executeChangeRoleProposal(uint _proposalId) public {
-		require(proposals[_proposalId].canceled = false);
-		require(proposals[_proposalId].execute == false);
-		require(proposals[_proposalId].proposalType = 1);
+		require(proposals[_proposalId].canceled == false);
+		require(proposals[_proposalId].executed == false);
+		require(proposals[_proposalId].proposalType == 1);
 
-		members[proposals[_proposalId].targetAddress].role = proposal[_proposalId].role;
+		members[proposals[_proposalId].targetAddress].roles = proposals[_proposalId].role;
 		proposals[_proposalId].executed == true;
 
 	}
 
 	function executeEnterDAOProposal(uint _proposalId) public {
-		require(proposals[_proposalId].canceled = false);
+		require(proposals[_proposalId].canceled == false);
 		require(proposals[_proposalId].executed == false);
-		require(proposals[_proposalId].proposalType = 2);
+		require(proposals[_proposalId].proposalType == 2);
 
 		members[msg.sender].roles.member = true;
 		members[msg.sender].shares = proposals[_proposalId].fundsRequested;
@@ -222,7 +224,7 @@ contract HouseDAOGovernance is IHouseDAO {
 	// actions
 	function cancelEnterDAO(uint _proposalId) public {
 		// refund the contribution for failed entry
-		require(proposals[_proposalId].canceled = false);
+		require(proposals[_proposalId].canceled == false);
 		require(proposals[_proposalId].executed == false);
 
 		require(IERC20(WETH).transferFrom(address(this), proposals[totalProposalCount].targetAddress, proposals[totalProposalCount].fundsRequested));
@@ -231,9 +233,9 @@ contract HouseDAOGovernance is IHouseDAO {
 
 	function cancelProposal(uint _proposalId) public {
 		require(proposals[_proposalId].canceled == false);
-		require(proposals[_proposalId].execute == false);
+		require(proposals[_proposalId].executed == false);
 		require(proposals[_proposalId].deadline >= block.timestamp);
-		require(proposals[_proposalId].proposer == msg.sender)
+		require(proposals[_proposalId].proposer == msg.sender);
 		proposals[_proposalId].canceled = true;
 	}
 }
