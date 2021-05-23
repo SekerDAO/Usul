@@ -93,8 +93,16 @@ contract HouseDAONFT is IHouseDAO {
         totalProposalCount++;
 	}
 
-	function vote(uint _proposalId) public onlyMember {
+	function vote(uint _proposalId, bool _vote) public onlyMember {
 		require(proposals[_proposalId].canceled == false);
+		require(proposals[_proposalId].executed == false);
+		require(proposals[_proposalId].deadline >= block.timestamp);
+
+		if(_vote == false){
+			proposals[_proposalId].noVotes = proposals[_proposalId].noVotes.add(members[msg.sender].shares);
+		} else {
+			proposals[_proposalId].yesVotes = proposals[_proposalId].yesVotes.add(members[msg.sender].shares);
+		}
 	}
 
 	function executeFundingProposal(uint _proposalId) public {

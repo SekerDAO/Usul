@@ -61,6 +61,18 @@ contract HouseDAOGovernance is IHouseDAO {
 		remainingSupply = _totalGovernanceSupply;
 	}
 
+	function vote(uint _proposalId, bool _vote) public onlyMember {
+		require(proposals[_proposalId].canceled == false);
+		require(proposals[_proposalId].executed == false);
+		require(proposals[_proposalId].deadline >= block.timestamp);
+
+		if(_vote == false){
+			proposals[_proposalId].noVotes = proposals[_proposalId].noVotes.add(members[msg.sender].shares);
+		} else {
+			proposals[_proposalId].yesVotes = proposals[_proposalId].yesVotes.add(members[msg.sender].shares);
+		}
+	}
+
 	// make this the easy multisig version, split out
 	function headOfHouseEnterMember(address _member, uint _contribution) public {
 		require(_contribution >= entryAmount);
@@ -161,14 +173,24 @@ contract HouseDAOGovernance is IHouseDAO {
 
 	// Execute proposals
 	function executeFundingProposal(uint _proposalId) public {
-		require(proposals[_proposalId].canceled = false);
+		require(proposals[_proposalId].canceled == false);
 		require(proposals[_proposalId].executed == false);
-		require(proposals[_proposalId].proposalType = 0);
+		require(proposals[_proposalId].proposalType == 0);
 		require(balance >= proposals[totalProposalCount].fundsRequested);
+		require(proposals[_proposalId].yesVotes >= threshold);
+		require(proposals[_proposalId].deadline >= block.timestamp);
 
-		require(IERC20(WETH).transferFrom(address(this), proposals[totalProposalCount].targetAddress, proposals[totalProposalCount].fundsRequested));
+		proposals[_proposalId].executed = true;
+		proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
+	}
 
-		proposals[_proposalId].executed == true;
+	function finalizeFundingProposal(uint _proposalId) public {
+		require(balance >= proposals[_proposalId].fundsRequested);
+		require(proposals[_proposalId].executed == true);
+		require(block.timestamp >= proposals[_proposalId].gracePeriod);
+
+		balance = balance.sub(proposals[_proposalId].fundsRequested);
+		require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
 	}
 
 	function executeChangeRoleProposal(uint _proposalId) public {
@@ -187,11 +209,11 @@ contract HouseDAOGovernance is IHouseDAO {
 		require(proposals[_proposalId].proposalType = 2);
 
 		members[msg.sender].roles.member = true;
-		members[msg.sender].shares = proposals[totalProposalCount].fundsRequested;
+		members[msg.sender].shares = proposals[_proposalId].fundsRequested;
 		totalContribution = totalContribution.add(proposals[_proposalId].fundsRequested);
 
 		if(proposals[_proposalId].fundsRequested > IERC20(governanceToken).balanceOf(address(this))) {
-			IERC20(governanceToken).transferFrom(msg.sender, address(this), proposals[totalProposalCount].fundsRequested);
+			IERC20(governanceToken).transferFrom(msg.sender, address(this), proposals[_proposalId].fundsRequested);
 		}
 
 		proposals[_proposalId].executed == true;

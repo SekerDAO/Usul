@@ -10,28 +10,27 @@ interface IDAOBase {
 		uint nftCount;
 	}
 
-	struct Role {
-		bool admin;
-		bool curator;
-		bool NFTContributor;
-		bool member;
-	}
+    struct Role {
+        bool headOfHouse;
+        bool member;
+    }
 
     struct Member {
         uint256 shares; // the # of voting shares assigned to this member
         Role roles;
-        bool jailed; // set to proposalIndex of a passing guild kick proposal for this member, prevents voting on and sponsoring proposals
     }
 
-    struct Propsals {
-        address memberAddress;
-        Role role;
+    struct Proposal {
+        uint256 fundsRequested;
+        uint8 proposalType; // 0 = funding proposal // 1 = commission art etc
+        address targetAddress;
+        Role role; // role change proposed
         uint256 yesVotes; // the total number of YES votes for this proposal
-        uint256 noVotes; // the total number of NO votes for this proposal
-        mapping(address => bool) votesByMember; // the votes on this proposal by each member        
+        uint256 noVotes; // the total number of NO votes for this proposal        
         bool executed;
         uint deadline;
         address proposer;
+        bool canceled;
     }
 
 	struct ChangeRoleProposal {

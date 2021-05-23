@@ -24,5 +24,6 @@ interface IHouseDAO {
         uint deadline;
         address proposer;
         bool canceled;
+        uint gracePeriod;
     }
 }
