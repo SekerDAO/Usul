@@ -71,9 +71,9 @@ contract HouseDAOGovernance is IHouseDAO {
 		require(proposals[_proposalId].deadline >= block.timestamp);
 
 		if(_vote == false){
-			proposals[_proposalId].noVotes = proposals[_proposalId].noVotes.add(members[msg.sender].shares);
+			proposals[_proposalId].noVotes = proposals[_proposalId].noVotes.add(IERC20(governanceToken).balanceOf(msg.sender));
 		} else {
-			proposals[_proposalId].yesVotes = proposals[_proposalId].yesVotes.add(members[msg.sender].shares);
+			proposals[_proposalId].yesVotes = proposals[_proposalId].yesVotes.add(IERC20(governanceToken).balanceOf(msg.sender));
 		}
 	}
 
@@ -118,7 +118,7 @@ contract HouseDAOGovernance is IHouseDAO {
 		remainingSupply = remainingSupply.sub(_contribution);
 	}
 
-	function withdraw(uint _amount) onlyMember public {
+	function withdraw(uint _amount) public {
 		require(members[msg.sender].shares >= _amount);
 
 		uint _withdrawalPercent = members[msg.sender].shares.div(totalContribution);
