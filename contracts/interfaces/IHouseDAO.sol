@@ -25,5 +25,6 @@ interface IHouseDAO {
         address proposer;
         bool canceled;
         uint gracePeriod;
+        mapping(address => bool) hasVoted;
     }
 }

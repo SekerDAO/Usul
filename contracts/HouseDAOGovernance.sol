@@ -11,7 +11,7 @@ contract HouseDAOGovernance is IHouseDAO {
 	using SafeMath for uint;
 	bool private initialized = false;
 
-	mapping(address => Member) private members;
+	mapping(address => Member) public members;
 	mapping(uint => Proposal) public proposals;
 	// use shares on member struct for balances
 	uint public totalProposalCount = 0;
@@ -71,9 +71,13 @@ contract HouseDAOGovernance is IHouseDAO {
 	}
 
 	function vote(uint _proposalId, bool _vote) public onlyMember {
+		require(proposals[_proposalId].proposer != msg.sender);
+		require(proposals[_proposalId].hasVoted[msg.sender] == false);
 		require(proposals[_proposalId].canceled == false);
 		require(proposals[_proposalId].executed == false);
 		require(proposals[_proposalId].deadline >= block.timestamp);
+
+		proposals[_proposalId].hasVoted[msg.sender] = true;
 
 		if(_vote == false){
 			proposals[_proposalId].noVotes = proposals[_proposalId].noVotes.add(IERC20(governanceToken).balanceOf(msg.sender));
@@ -147,7 +151,7 @@ contract HouseDAOGovernance is IHouseDAO {
 	// change this, no contribution needed, use a gov token
 	// if you have a gov token you get a membership
 	// if you don't you can put up an entry proposal and get issued gov tokens
-	function enterDAOProposal(uint _contribution, Role memory _role) public {
+	function joinDAOProposal(uint _contribution, Role memory _role) public {
 		require(_contribution >= entryAmount);
 		require(IERC20(WETH).balanceOf(msg.sender) >= _contribution);
 
@@ -181,6 +185,7 @@ contract HouseDAOGovernance is IHouseDAO {
 
 
 	// Execute proposals
+	// todo: maybe check if over threshold on every vote, if so start grace period
 	function executeFundingProposal(uint _proposalId) public {
 		require(proposals[_proposalId].canceled == false);
 		require(proposals[_proposalId].executed == false);

@@ -12,7 +12,11 @@ import './DAOBase.sol';
 // NOTE: have funds for exhibits go to the proposer?
 
 contract GalleryDAO is IGalleryDAO, Exhibit, ERC20, DAOBase {
+	// todo: award gov tokens for voting, having proposals accepted etc
+	
 	mapping(address => Member) private members;
+
+	mapping(address => uint) public royalties;
 
 	mapping(uint => NFTProposal) public nftProposals;
 	mapping(uint => CommissionNFTProposal) public commissionNFTProposals;
