@@ -47,6 +47,9 @@ export async function getFixtureWithParams(
    ethers.BigNumber.from('1000000000000000000') // number of votes wieghted to pass
   )
   console.log('deployed House Governance DAO: ', houseDAOGov.address)
+  await govToken.approve(houseDAOGov.address, ethers.BigNumber.from('50000000000000000000000'))
+  await houseDAOGov.init()
+  console.log('house dao is initialized')
 
   return {
     weth,

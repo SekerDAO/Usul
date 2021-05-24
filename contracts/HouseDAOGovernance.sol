@@ -9,7 +9,7 @@ import './interfaces/IHouseDAO.sol';
 
 contract HouseDAOGovernance is IHouseDAO {
 	using SafeMath for uint;
-	bool private initialized = false;
+	bool public initialized = false;
 
 	mapping(address => Member) public members;
 	mapping(uint => Proposal) public proposals;
@@ -66,7 +66,7 @@ contract HouseDAOGovernance is IHouseDAO {
 
 	function init() onlyHeadOfHouse public {
 		require(initialized == false);
-		initialized == true;
+		initialized = true;
 		IERC20(governanceToken).transferFrom(msg.sender, address(this), totalGovernanceSupply);
 	}
 

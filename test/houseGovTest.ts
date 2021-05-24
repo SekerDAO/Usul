@@ -22,10 +22,16 @@ describe('houseDAOgov:', () => {
     daoFixture = await getFixtureWithParams(wallet, true)
   })
 
-  it('createToken', async () => {
-    const { weth } = daoFixture
-    const baseSupply = ethers.BigNumber.from(4)
+  it('house dao is initialized', async () => {
+    const { houseDAOGov, govToken } = daoFixture
+    expect(await houseDAOGov.initialized()).to.equal(true)
+    expect(await govToken.balanceOf(houseDAOGov.address)).to.equal('50000000000000000000000')
+  })
 
+  it('head of house can enter a member', async () => {
+    const { weth, houseDAOGov, multiNFT, govToken } = daoFixture
+
+    //await expect(houseDAOGov.)
     // console.log(artToken.address)
     // let name = await artToken.name()
     // expect(await artToken.name.call()).to.equal(name)
