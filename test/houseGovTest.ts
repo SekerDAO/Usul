@@ -40,30 +40,56 @@ describe('houseDAOgov:', () => {
   })
 
   it('head of house can enter a member', async () => {
-    const { weth, houseDAOGov, multiNFT, govToken } = daoFixture
+    const { weth, houseDAOGov, govToken } = daoFixture
+    let wallet_2 = (await ethers.getSigners())[1]
 
-    //await expect(houseDAOGov.)
-    // console.log(artToken.address)
-    // let name = await artToken.name()
-    // expect(await artToken.name.call()).to.equal(name)
-    // console.log(name)
-    //expect(await artToken.name().to.equal('Test ArtToken'))
-    // await tokenBase.approve(router.address, baseSupply)
-    // await tokenQuote.approve(router.address, zero)
-    // await expect(router.addLiquidity({
-    //   sender: wallet.address,
-    //   to: wallet.address,
-    //   tokenBase: tokenBase.address,
-    //   tokenQuote: tokenQuote.address,
-    //   amountBase: baseSupply,
-    //   amountQuote: zero,
-    //   slopeNumerator: 1e6,
-    //   n: 1,
-    //   fee: 0
-    // }, MaxUint256))
-    //   .to.emit(pair, 'Deposit')
-    //   .withArgs(router.address, baseSupply, zero, zero, wallet.address)
+    let options = { value: 2000000 }
+    await weth.connect(wallet_2).deposit(options)
+    expect(await weth.balanceOf(wallet_2.address)).to.equal(2000000)
+    await weth.connect(wallet_2).approve(houseDAOGov.address, 1000000)
+
+    await houseDAOGov.headOfHouseEnterMember(wallet_2.address, 1000000)
+
+    expect(await govToken.balanceOf(wallet_2.address)).to.equal(1000000)
+    let member = await houseDAOGov.members(wallet_2.address)
+    expect(member.roles.member).to.equal(true)
+    expect(member.shares).to.equal(1000000)
+    expect(await houseDAOGov.balance()).to.equal(1000000)
+    expect(await houseDAOGov.totalContribution()).to.equal(1000000)
+    expect(await houseDAOGov.remainingSupply()).to.equal('49999999999999999000000')
   })
 
+  it('members can contribute more', async () => {
+    const { weth, houseDAOGov, govToken } = daoFixture
+    let wallet_2 = (await ethers.getSigners())[1]
+
+    let options = { value: 2000000 }
+    await weth.connect(wallet_2).deposit(options)
+    expect(await weth.balanceOf(wallet_2.address)).to.equal(2000000)
+    await weth.connect(wallet_2).approve(houseDAOGov.address, 1000000)
+
+    await houseDAOGov.headOfHouseEnterMember(wallet_2.address, 1000000)
+
+    await weth.connect(wallet_2).approve(houseDAOGov.address, 1000000)
+    await houseDAOGov.connect(wallet_2).addMoreContribution(1000000)
+
+    expect(await govToken.balanceOf(wallet_2.address)).to.equal(2000000)
+    let member = await houseDAOGov.members(wallet_2.address)
+    expect(member.shares).to.equal(2000000)
+    expect(await houseDAOGov.balance()).to.equal(2000000)
+    expect(await houseDAOGov.totalContribution()).to.equal(2000000)
+    expect(await houseDAOGov.remainingSupply()).to.equal('49999999999999998000000')
+  })
+
+  it('enter as member', async () => {
+    // const { weth, houseDAOGov, govToken } = daoFixture
+    // let wallet_2 = (await ethers.getSigners())[1]
+
+    // let options = { value: 1000000 }
+    // await weth.connect(wallet_2).deposit(options)
+    // await weth.connect(wallet_2).approve(houseDAOGov.address, 1000000)
+    // joinDAOProposal(uint _contribution, Role memory _role)
+    // await houseDAOGov.joinDAOProposal(wallet_2.address, 1000000)
+  })
 
 })

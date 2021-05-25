@@ -72,7 +72,7 @@ contract HouseDAOGovernance is IHouseDAO {
 		IERC20(governanceToken).transferFrom(msg.sender, address(this), totalGovernanceSupply);
 	}
 
-	function vote(uint _proposalId, bool _vote) public onlyMember {
+	function vote(uint _proposalId, bool _vote) onlyMember public {
 		require(proposals[_proposalId].proposer != msg.sender);
 		require(proposals[_proposalId].hasVoted[msg.sender] == false);
 		require(proposals[_proposalId].canceled == false);
@@ -89,9 +89,9 @@ contract HouseDAOGovernance is IHouseDAO {
 	}
 
 	// make this the easy multisig version, split out
-	function headOfHouseEnterMember(address _member, uint _contribution) public {
-		require(_contribution >= entryAmount);
-		require(IERC20(WETH).balanceOf(_member) >= _contribution);
+	function headOfHouseEnterMember(address _member, uint _contribution) onlyHeadOfHouse public {
+		require(_contribution >= entryAmount, "Head did not sponsor enough");
+		require(IERC20(WETH).balanceOf(_member) >= _contribution, "sponsor does not have contribution");
 
 		members[_member].roles.member = true;
 		members[_member].shares = _contribution;
@@ -99,7 +99,7 @@ contract HouseDAOGovernance is IHouseDAO {
 			totalContribution = totalContribution.add(_contribution);
 			balance = balance.add(_contribution);
 			IERC20(WETH).transferFrom(_member, address(this), _contribution);
-			IERC20(governanceToken).transferFrom(address(this), _member, _contribution);
+			IERC20(governanceToken).transfer(_member, _contribution);
 			remainingSupply = remainingSupply.sub(_contribution);
 		}	
 	}
@@ -112,8 +112,7 @@ contract HouseDAOGovernance is IHouseDAO {
 	// }
 
 	function addMoreContribution(uint _contribution) onlyMember public {
-		require(_contribution >= entryAmount);
-		require(IERC20(WETH).balanceOf(msg.sender) >= _contribution);
+		require(IERC20(WETH).balanceOf(msg.sender) >= _contribution, "member does not have enough weth");
 
 		members[msg.sender].shares = members[msg.sender].shares.add(_contribution);
 		totalContribution = totalContribution.add(_contribution);
@@ -123,7 +122,7 @@ contract HouseDAOGovernance is IHouseDAO {
 
 		// check to see if there are enough gov tokens left to award
 		if(IERC20(governanceToken).balanceOf(address(this)) > _contribution) {
-			require(IERC20(governanceToken).transferFrom(address(this), msg.sender, _contribution));
+			require(IERC20(governanceToken).transfer(msg.sender, _contribution));
 		}
 
 		remainingSupply = remainingSupply.sub(_contribution);
