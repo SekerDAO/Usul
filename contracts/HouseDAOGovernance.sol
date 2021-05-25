@@ -46,7 +46,8 @@ contract HouseDAOGovernance is IHouseDAO {
 		uint _entryAmount,
 		uint _proposalTime,
 		uint _totalGovernanceSupply,
-		uint _threshold
+		uint _threshold,
+		address _weth
 	) {
 		//initialCoordinator = msg.sender;
 		for(uint i=0; i<heads.length; i++) {
@@ -62,6 +63,7 @@ contract HouseDAOGovernance is IHouseDAO {
 		threshold = _threshold;
 		totalGovernanceSupply = _totalGovernanceSupply;
 		remainingSupply = _totalGovernanceSupply;
+		WETH = _weth;
 	}
 
 	function init() onlyHeadOfHouse public {

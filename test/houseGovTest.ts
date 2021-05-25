@@ -23,9 +23,20 @@ describe('houseDAOgov:', () => {
   })
 
   it('house dao is initialized', async () => {
-    const { houseDAOGov, govToken } = daoFixture
+    const { houseDAOGov, govToken, weth } = daoFixture
     expect(await houseDAOGov.initialized()).to.equal(true)
     expect(await govToken.balanceOf(houseDAOGov.address)).to.equal('50000000000000000000000')
+    expect(await houseDAOGov.totalProposalCount()).to.equal(0)
+    expect(await houseDAOGov.proposalTime()).to.equal(86400)
+    expect(await houseDAOGov.gracePeriod()).to.equal(259200)
+    expect(await houseDAOGov.totalContribution()).to.equal(0)
+    expect(await houseDAOGov.balance()).to.equal(0)
+    expect(await houseDAOGov.threshold()).to.equal('1000000000000000000')
+    expect(await houseDAOGov.entryAmount()).to.equal(1000000)
+    expect(await houseDAOGov.totalGovernanceSupply()).to.equal('50000000000000000000000')
+    expect(await houseDAOGov.remainingSupply()).to.equal('50000000000000000000000')
+    expect(await houseDAOGov.governanceToken()).to.equal(govToken.address)
+    expect(await houseDAOGov.WETH()).to.equal(weth.address)
   })
 
   it('head of house can enter a member', async () => {

@@ -44,7 +44,8 @@ export async function getFixtureWithParams(
    ethers.BigNumber.from(1000000), // min entry fee in gov tokens
    ethers.BigNumber.from(1), // number of days proposals are active
    ethers.BigNumber.from('50000000000000000000000'), // total gov tokens supplied to contract
-   ethers.BigNumber.from('1000000000000000000') // number of votes wieghted to pass
+   ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
+   weth.address
   )
   console.log('deployed House Governance DAO: ', houseDAOGov.address)
   await govToken.approve(houseDAOGov.address, ethers.BigNumber.from('50000000000000000000000'))
