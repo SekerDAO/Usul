@@ -224,16 +224,17 @@ contract HouseDAOGovernance is IHouseDAO {
 		require(proposals[_proposalId].canceled == false);
 		require(proposals[_proposalId].executed == false);
 		require(proposals[_proposalId].proposalType == 2);
+		require(proposals[_proposalId].yesVotes >= threshold);
 
 		members[msg.sender].roles.member = true;
 		members[msg.sender].shares = proposals[_proposalId].fundsRequested;
 		totalContribution = totalContribution.add(proposals[_proposalId].fundsRequested);
 
-		if(proposals[_proposalId].fundsRequested > IERC20(governanceToken).balanceOf(address(this))) {
-			IERC20(governanceToken).transferFrom(msg.sender, address(this), proposals[_proposalId].fundsRequested);
+		if(proposals[_proposalId].fundsRequested <= IERC20(governanceToken).balanceOf(address(this))) {
+			IERC20(governanceToken).transfer(proposals[_proposalId].proposer, proposals[_proposalId].fundsRequested);
 		}
 
-		proposals[_proposalId].executed == true;
+		proposals[_proposalId].executed = true;
 	}
 
 	// actions
