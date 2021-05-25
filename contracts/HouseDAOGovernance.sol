@@ -67,17 +67,17 @@ contract HouseDAOGovernance is IHouseDAO {
 	}
 
 	function init() onlyHeadOfHouse public {
-		require(initialized == false);
+		require(initialized == false, "already initialized");
 		initialized = true;
 		IERC20(governanceToken).transferFrom(msg.sender, address(this), totalGovernanceSupply);
 	}
 
 	function vote(uint _proposalId, bool _vote) onlyMember public {
-		require(proposals[_proposalId].proposer != msg.sender);
-		require(proposals[_proposalId].hasVoted[msg.sender] == false);
-		require(proposals[_proposalId].canceled == false);
-		require(proposals[_proposalId].executed == false);
-		require(proposals[_proposalId].deadline >= block.timestamp);
+		require(proposals[_proposalId].proposer != msg.sender, "cannot vote for yourself again");
+		require(proposals[_proposalId].hasVoted[msg.sender] == false, "already voted");
+		require(proposals[_proposalId].canceled == false, "proposal has been canceled");
+		require(proposals[_proposalId].executed == false, "proposal is already executed");
+		require(proposals[_proposalId].deadline >= block.timestamp, "proposal is past the deadline");
 
 		proposals[_proposalId].hasVoted[msg.sender] = true;
 
@@ -129,7 +129,7 @@ contract HouseDAOGovernance is IHouseDAO {
 	}
 
 	function withdraw(uint _amount) public {
-		require(members[msg.sender].shares >= _amount);
+		require(members[msg.sender].shares >= _amount, "withdraw amount exceeds member contribution");
 
 		uint _withdrawalPercent = members[msg.sender].shares.div(totalContribution);
 		uint _withdrawalAmount = balance.mul(_withdrawalPercent);
@@ -145,6 +145,8 @@ contract HouseDAOGovernance is IHouseDAO {
 	}
 
 	function sendNFT(address _nftAddress, uint _nftId, address _recipient) onlyHeadOfHouse public {
+		require(_nftAddress != address(0), "nft address is zero");
+		require(_recipient != address(0), "_recipient is address zero");
 		IERC721(_nftAddress).safeTransferFrom(address(this), _recipient, _nftId);
 	}
 
@@ -153,8 +155,8 @@ contract HouseDAOGovernance is IHouseDAO {
 	// if you have a gov token you get a membership
 	// if you don't you can put up an entry proposal and get issued gov tokens
 	function joinDAOProposal(uint _contribution, Role memory _role) public {
-		require(_contribution >= entryAmount);
-		require(IERC20(WETH).balanceOf(msg.sender) >= _contribution);
+		require(_contribution >= entryAmount, "contribution is not higher than minimum");
+		require(IERC20(WETH).balanceOf(msg.sender) >= _contribution, "proposer does not have enough weth");
 
     	proposals[totalProposalCount].fundsRequested = _contribution;
     	proposals[totalProposalCount].role = _role;
@@ -172,7 +174,7 @@ contract HouseDAOGovernance is IHouseDAO {
 	// used for
 	// change role, commission art, request funcing
 	function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember public {
-		require(balance >= _funding);
+		require(balance >= _funding, "more funds are request than the DAO currently has");
 
     	proposals[totalProposalCount].fundsRequested = _funding;
     	proposals[totalProposalCount].role = _role;
@@ -189,62 +191,62 @@ contract HouseDAOGovernance is IHouseDAO {
 
 	// Execute proposals
 	// todo: maybe check if over threshold on every vote, if so start grace period
-	function executeFundingProposal(uint _proposalId) public {
-		require(proposals[_proposalId].canceled == false);
-		require(proposals[_proposalId].executed == false);
-		require(proposals[_proposalId].proposalType == 0);
-		require(balance >= proposals[totalProposalCount].fundsRequested);
-		require(proposals[_proposalId].yesVotes >= threshold);
-		require(proposals[_proposalId].deadline >= block.timestamp);
-
-		proposals[_proposalId].executed = true;
+	function startFundingProposalGracePeriod(uint _proposalId) public {
+		require(proposals[_proposalId].canceled == false, "proposal was canceled");
+		require(proposals[_proposalId].executed == false, "proposal already executed");
+		require(proposals[_proposalId].proposalType == 0, "proposal is not a funding type");
+		require(proposals[_proposalId].yesVotes >= threshold, "votes do not meet the threshold");
+		require(proposals[_proposalId].gracePeriod == 0, "proposal already entered grace period");
+		
 		proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
 	}
 
 	function finalizeFundingProposal(uint _proposalId) public {
-		require(balance >= proposals[_proposalId].fundsRequested);
-		require(proposals[_proposalId].executed == true);
-		require(block.timestamp >= proposals[_proposalId].gracePeriod);
+		require(proposals[_proposalId].canceled == false, "proposal canceled or already finalized");
+		require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
+		require(proposals[_proposalId].executed == false, "proposal has already been executed");
+		require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
 
 		balance = balance.sub(proposals[_proposalId].fundsRequested);
+		proposals[_proposalId].executed = true;
 		require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
 	}
 
 	function executeChangeRoleProposal(uint _proposalId) public {
-		require(proposals[_proposalId].canceled == false);
-		require(proposals[_proposalId].executed == false);
-		require(proposals[_proposalId].proposalType == 1);
+		require(proposals[_proposalId].canceled == false, "change role proposal canceled");
+		require(proposals[_proposalId].executed == false, "change role proposal already executed");
+		require(proposals[_proposalId].proposalType == 1, "proposal is not change role type");
+		require(proposals[_proposalId].yesVotes >= threshold, "change role does not meet vote threshold");
 
 		members[proposals[_proposalId].targetAddress].roles = proposals[_proposalId].role;
 		proposals[_proposalId].executed == true;
-
 	}
 
 	function executeEnterDAOProposal(uint _proposalId) public {
-		require(proposals[_proposalId].canceled == false);
-		require(proposals[_proposalId].executed == false);
-		require(proposals[_proposalId].proposalType == 2);
-		require(proposals[_proposalId].yesVotes >= threshold);
+		require(proposals[_proposalId].canceled == false, "enter dao is canceled");
+		require(proposals[_proposalId].executed == false, "enter dao already executed");
+		require(proposals[_proposalId].proposalType == 2, "proposal is not enter dao type");
+		require(proposals[_proposalId].yesVotes >= threshold, "enter dao does not meet vote threshold");
 
 		members[msg.sender].roles.member = true;
 		members[msg.sender].shares = proposals[_proposalId].fundsRequested;
+		proposals[_proposalId].executed = true;
 		totalContribution = totalContribution.add(proposals[_proposalId].fundsRequested);
+		balance = balance.add(proposals[_proposalId].fundsRequested);
 
 		if(proposals[_proposalId].fundsRequested <= IERC20(governanceToken).balanceOf(address(this))) {
 			IERC20(governanceToken).transfer(proposals[_proposalId].proposer, proposals[_proposalId].fundsRequested);
 		}
-
-		proposals[_proposalId].executed = true;
 	}
 
 	// actions
 	function cancelEnterDAO(uint _proposalId) public {
 		// refund the contribution for failed entry
-		require(proposals[_proposalId].canceled == false);
-		require(proposals[_proposalId].executed == false);
+		require(proposals[_proposalId].canceled == false, "join dao is already canceled");
+		require(proposals[_proposalId].executed == false, "cannot cancel an execture join dao");
 
-		require(IERC20(WETH).transferFrom(address(this), proposals[totalProposalCount].targetAddress, proposals[totalProposalCount].fundsRequested));
 		proposals[_proposalId].canceled == true;
+		require(IERC20(WETH).transferFrom(address(this), proposals[totalProposalCount].targetAddress, proposals[totalProposalCount].fundsRequested));
 	}
 
 	function cancelProposal(uint _proposalId) public {
