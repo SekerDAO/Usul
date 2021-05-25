@@ -162,10 +162,11 @@ contract HouseDAOGovernance is IHouseDAO {
         proposals[totalProposalCount].yesVotes = IERC20(governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
-
-        require(IERC20(WETH).transferFrom(msg.sender, address(this), _contribution));
+        proposals[totalProposalCount].hasVoted[msg.sender] = true;
 
         totalProposalCount++;
+
+        require(IERC20(WETH).transferFrom(msg.sender, address(this), _contribution));
 	}
 
 	// used for
@@ -180,6 +181,7 @@ contract HouseDAOGovernance is IHouseDAO {
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
         proposals[totalProposalCount].targetAddress = _recipient;
+        proposals[totalProposalCount].hasVoted[msg.sender] = true;
 
         totalProposalCount++;
 	}
