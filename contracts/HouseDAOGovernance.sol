@@ -95,6 +95,7 @@ contract HouseDAOGovernance is IHouseDAO {
 
 		members[_member].roles.member = true;
 		members[_member].shares = _contribution;
+
 		if(_contribution > 0) {
 			totalContribution = totalContribution.add(_contribution);
 			balance = balance.add(_contribution);
@@ -128,16 +129,16 @@ contract HouseDAOGovernance is IHouseDAO {
 		remainingSupply = remainingSupply.sub(_contribution);
 	}
 
-	function withdraw(uint _amount) public {
-		require(members[msg.sender].shares >= _amount, "withdraw amount exceeds member contribution");
+	function withdraw() onlyMember public {
+		require(members[msg.sender].shares > 0, "no member contribution to withdraw");
 
 		uint _withdrawalPercent = members[msg.sender].shares.div(totalContribution);
-		uint _withdrawalAmount = balance.mul(_withdrawalPercent);
+		uint _withdrawalAmount = members[msg.sender].shares.mul(_withdrawalPercent);
 
+		// remove contribution percent from totalContribution
+		totalContribution = totalContribution.sub(members[msg.sender].shares);
 		// remove amount from member
-		members[msg.sender].shares = members[msg.sender].shares.sub(_amount);
-		// remove ownership percent from totalContribution
-		totalContribution = totalContribution.sub(_amount);
+		members[msg.sender].shares = 0;
 		// update the balance left
 		balance = balance.sub(_withdrawalAmount);
 		// send funds
