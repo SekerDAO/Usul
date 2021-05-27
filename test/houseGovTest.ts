@@ -399,4 +399,8 @@ describe('houseDAOgov:', () => {
   it('can cancel a proposal', async () => {
 
   })
+
+  it('cannot enter dao after cancel a proposal', async () => {
+
+  })
 })
