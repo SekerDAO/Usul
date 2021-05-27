@@ -238,10 +238,7 @@ describe('houseDAOgov:', () => {
     await weth.connect(wallet_3).deposit({ value: '1000000000000000000' })
     await weth.connect(wallet_3).approve(houseDAOGov.address, '1000000000000000000')
     await houseDAOGov.headOfHouseEnterMember(wallet_3.address, '1000000000000000000')
-    let role = {
-      headOfHouse: false,
-      member: true
-    }
+
     await houseDAOGov.connect(wallet_3).submitProposal('0x0', wallet_3.address, 1000000, 0)
     let proposal = await houseDAOGov.proposals(0)
     expect(proposal.yesVotes).to.equal('1000000000000000000') // if they buy on the market this will be non-zero
@@ -263,7 +260,7 @@ describe('houseDAOgov:', () => {
     expect(await houseDAOGov.totalContribution()).to.equal('1000000000000000000')
   })
 
-  it.only('can withdraw proper amount before funding proposals', async () => {
+  it('can withdraw proper amount before funding proposals', async () => {
     const { weth, houseDAOGov, govToken } = daoFixture
     let wallet_2 = (await ethers.getSigners())[1]
     let wallet_3 = (await ethers.getSigners())[2]
@@ -284,7 +281,7 @@ describe('houseDAOgov:', () => {
     await houseDAOGov.headOfHouseEnterMember(wallet_4.address, '1000000000000000000') 
     expect(await houseDAOGov.balance()).to.equal('2000000000000000000')
     expect(await houseDAOGov.totalContribution()).to.equal('2000000000000000000')
-     expect(await weth.balanceOf(houseDAOGov.address)).to.equal('2000000000000000000')
+    expect(await weth.balanceOf(houseDAOGov.address)).to.equal('2000000000000000000')
     let member = await houseDAOGov.members(wallet_3.address)
     expect(member.shares).to.equal('1000000000000000000')
     expect(member.roles.member).to.equal(true)
@@ -292,11 +289,11 @@ describe('houseDAOgov:', () => {
     member = await houseDAOGov.members(wallet_3.address)
     expect(member.shares).to.equal(0)
     expect(await weth.balanceOf(houseDAOGov.address)).to.equal('1000000000000000000')
-    //expect(await houseDAOGov.balance()).to.equal('1000000000000000000')
+    expect(await houseDAOGov.balance()).to.equal('1000000000000000000')
     expect(await houseDAOGov.totalContribution()).to.equal('1000000000000000000')
   })
 
-  it.skip('can withdraw proper amount after funding proposals', async () => {
+  it('can withdraw proper amount after funding proposals', async () => {
     const { weth, houseDAOGov, govToken } = daoFixture
     let wallet_2 = (await ethers.getSigners())[1]
     let wallet_3 = (await ethers.getSigners())[2]
@@ -309,11 +306,27 @@ describe('houseDAOgov:', () => {
     await weth.connect(wallet_4).deposit({ value: '1000000000000000000' })
     await weth.connect(wallet_4).approve(houseDAOGov.address, '1000000000000000000')
     await houseDAOGov.headOfHouseEnterMember(wallet_4.address, '1000000000000000000')
-    let role = {
-      headOfHouse: false,
-      member: true
-    }
-    //await houseDAOGov.connect(wallet_4).submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType)
+    expect(await houseDAOGov.balance()).to.equal('2000000000000000000')
+    expect(await houseDAOGov.totalContribution()).to.equal('2000000000000000000')
+    expect(await weth.balanceOf(houseDAOGov.address)).to.equal('2000000000000000000')
+
+    await houseDAOGov.connect(wallet_3).submitProposal('0x0', wallet_3.address, '1000000000000000000', 0)
+    await houseDAOGov.connect(wallet_3).startFundingProposalGracePeriod(0)
+    let proposal = await houseDAOGov.proposals(0)
+    //expect(proposal.gracePeriod).to.equal(0)
+    await network.provider.send("evm_increaseTime", [259200])
+    await houseDAOGov.connect(wallet_3).finalizeFundingProposal(0)
+    expect(await weth.balanceOf(houseDAOGov.address)).to.equal('1000000000000000000')
+    expect(await weth.balanceOf(wallet_3.address)).to.equal('1000000000000000000')
+    expect(await houseDAOGov.balance()).to.equal('1000000000000000000')
+    expect(await houseDAOGov.totalContribution()).to.equal('2000000000000000000')
+
+    await houseDAOGov.connect(wallet_3).withdraw()
+    let member = await houseDAOGov.members(wallet_3.address)
+    expect(member.shares).to.equal(0)
+    expect(await weth.balanceOf(houseDAOGov.address)).to.equal('500000000000000000')
+    expect(await houseDAOGov.balance()).to.equal('500000000000000000')
+    expect(await houseDAOGov.totalContribution()).to.equal('1000000000000000000')
   })
 
   it('can only vote once', async () => {
@@ -341,7 +354,49 @@ describe('houseDAOgov:', () => {
     //expect(await houseDAOGov.connect(wallet_2).vote(0, true)).to.be.revertedWith("already voted");
   })
 
+  it.only('can change membership', async () => {
+    const { weth, houseDAOGov, govToken } = daoFixture
+    let wallet_2 = (await ethers.getSigners())[1]
+    let wallet_3 = (await ethers.getSigners())[2]
+    let wallet_4 = (await ethers.getSigners())[3]
+
+    await weth.connect(wallet_3).deposit({ value: '1000000000000000000' })
+    await weth.connect(wallet_3).approve(houseDAOGov.address, '1000000000000000000')
+    await houseDAOGov.headOfHouseEnterMember(wallet_3.address, '1000000000000000000')
+
+    await weth.connect(wallet_4).deposit({ value: '1000000000000000000' })
+    await weth.connect(wallet_4).approve(houseDAOGov.address, '1000000000000000000')
+    await houseDAOGov.headOfHouseEnterMember(wallet_4.address, '1000000000000000000')
+    expect(await houseDAOGov.balance()).to.equal('2000000000000000000')
+    expect(await houseDAOGov.totalContribution()).to.equal('2000000000000000000')
+    expect(await weth.balanceOf(houseDAOGov.address)).to.equal('2000000000000000000')
+    let role = {
+      headOfHouse: true,
+      member: true
+    }
+    await houseDAOGov.connect(wallet_3).submitProposal(role, wallet_3.address, 0, 1)
+    let proposal = await houseDAOGov.proposals(0)
+    expect(proposal.yesVotes).to.equal('1000000000000000000') // if they buy on the market this will be non-zero
+    expect(proposal.noVotes).to.equal(0)
+    expect(proposal.targetAddress).to.equal(wallet_3.address)
+    expect(proposal.fundsRequested).to.equal(0)
+    expect(proposal.proposalType).to.equal(1)
+
+    await houseDAOGov.executeChangeRoleProposal(0)
+    let member = await houseDAOGov.members(wallet_3.address)
+    expect(member.shares).to.equal('1000000000000000000')
+    expect(member.roles.member).to.equal(true)
+    expect(member.roles.headOfHouse).to.equal(true)
+    proposal = await houseDAOGov.proposals(0)
+    expect(proposal.executed).to.equal(true)
+    expect(proposal.canceled).to.equal(false)
+  })
+
   it('can only execute correct proposal types', async () => {
+
+  })
+
+  it('can cancel a proposal', async () => {
 
   })
 })

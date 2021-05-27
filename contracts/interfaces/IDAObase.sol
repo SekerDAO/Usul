@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-interface IDAOBase {
+interface IDAObase {
 	struct GalleryNFT {
 		address[] nftAddresses;
 		uint[] nftIds;

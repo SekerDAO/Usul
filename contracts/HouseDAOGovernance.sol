@@ -132,8 +132,9 @@ contract HouseDAOGovernance is IHouseDAO {
 	function withdraw() onlyMember public {
 		require(members[msg.sender].shares > 0, "no member contribution to withdraw");
 
-		uint _withdrawalPercent = members[msg.sender].shares.div(totalContribution);
-		uint _withdrawalAmount = members[msg.sender].shares.mul(_withdrawalPercent);
+		// todo: watch overflow here, work on precision 
+		uint _withdrawalPercent = members[msg.sender].shares.mul(balance);
+		uint _withdrawalAmount = _withdrawalPercent.div(totalContribution);
 
 		// remove contribution percent from totalContribution
 		totalContribution = totalContribution.sub(members[msg.sender].shares);
@@ -183,7 +184,7 @@ contract HouseDAOGovernance is IHouseDAO {
         proposals[totalProposalCount].yesVotes = IERC20(governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
-        proposals[totalProposalCount].targetAddress = _recipient;
+        proposals[totalProposalCount].targetAddress = _recipient; // can switch target to contract and provide call data
         proposals[totalProposalCount].hasVoted[msg.sender] = true;
 
         totalProposalCount++;
@@ -220,7 +221,7 @@ contract HouseDAOGovernance is IHouseDAO {
 		require(proposals[_proposalId].yesVotes >= threshold, "change role does not meet vote threshold");
 
 		members[proposals[_proposalId].targetAddress].roles = proposals[_proposalId].role;
-		proposals[_proposalId].executed == true;
+		proposals[_proposalId].executed = true;
 	}
 
 	function executeEnterDAOProposal(uint _proposalId) public {
@@ -246,7 +247,7 @@ contract HouseDAOGovernance is IHouseDAO {
 		require(proposals[_proposalId].canceled == false, "join dao is already canceled");
 		require(proposals[_proposalId].executed == false, "cannot cancel an execture join dao");
 
-		proposals[_proposalId].canceled == true;
+		proposals[_proposalId].canceled = true;
 		require(IERC20(WETH).transferFrom(address(this), proposals[totalProposalCount].targetAddress, proposals[totalProposalCount].fundsRequested));
 	}
 

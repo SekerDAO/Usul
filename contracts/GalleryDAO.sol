@@ -6,12 +6,12 @@ import './Exhibit.sol';
 import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import './interfaces/IGalleryDAO.sol';
-import './DAOBase.sol';
+import './DAObase.sol';
 // import market contracts
 
 // NOTE: have funds for exhibits go to the proposer?
 
-contract GalleryDAO is IGalleryDAO, Exhibit, ERC20, DAOBase {
+contract GalleryDAO is IGalleryDAO, Exhibit, ERC20, DAObase {
 	// todo: award gov tokens for voting, having proposals accepted etc
 	
 	mapping(address => Member) private members;
