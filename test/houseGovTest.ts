@@ -354,7 +354,7 @@ describe('houseDAOgov:', () => {
     //expect(await houseDAOGov.connect(wallet_2).vote(0, true)).to.be.revertedWith("already voted");
   })
 
-  it.only('can change membership', async () => {
+  it('can change membership', async () => {
     const { weth, houseDAOGov, govToken } = daoFixture
     let wallet_2 = (await ethers.getSigners())[1]
     let wallet_3 = (await ethers.getSigners())[2]
