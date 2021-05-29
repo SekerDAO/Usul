@@ -15,6 +15,7 @@ contract HouseDAOGovernance is IHouseDAO {
     mapping(uint => Proposal) public proposals;
     // use shares on member struct for balances
     uint public totalProposalCount = 0;
+    uint public memberCount = 0;
     uint public proposalTime;
     uint public gracePeriod = 3 days;
 
@@ -53,6 +54,7 @@ contract HouseDAOGovernance is IHouseDAO {
             require(heads[i] != address(0));
             members[heads[i]].roles.headOfHouse = true;
             members[heads[i]].roles.member = true;
+            memberCount++;
         }
 
         governanceToken = _governanceToken;
@@ -92,6 +94,7 @@ contract HouseDAOGovernance is IHouseDAO {
 
         members[_member].roles.member = true;
         members[_member].shares = _contribution;
+        memberCount++;
 
         if(entryAmount > 0 && remainingSupply >= _contribution) {
             totalContribution = totalContribution.add(_contribution);
@@ -199,7 +202,7 @@ contract HouseDAOGovernance is IHouseDAO {
         proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
     }
 
-    function finalizeFundingProposal(uint _proposalId) public {
+    function executeFundingProposal(uint _proposalId) public {
         require(proposals[_proposalId].canceled == false, "proposal canceled or already finalized");
         require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
         require(proposals[_proposalId].executed == false, "proposal has already been executed");
@@ -232,6 +235,7 @@ contract HouseDAOGovernance is IHouseDAO {
         proposals[_proposalId].executed = true;
         totalContribution = totalContribution.add(proposals[_proposalId].fundsRequested);
         balance = balance.add(proposals[_proposalId].fundsRequested);
+        memberCount++;
 
         if(proposals[_proposalId].fundsRequested <= IERC20(governanceToken).balanceOf(address(this))) {
             IERC20(governanceToken).transfer(proposals[_proposalId].proposer, proposals[_proposalId].fundsRequested);

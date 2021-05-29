@@ -61,6 +61,7 @@ describe('houseDAOgov:', () => {
     expect(await houseDAOGov.balance()).to.equal(1000000)
     expect(await houseDAOGov.totalContribution()).to.equal(1000000)
     expect(await houseDAOGov.remainingSupply()).to.equal('49999999999999999000000')
+    expect(await houseDAOGov.memberCount()).to.equal(2)
   })
 
   it('members can contribute more', async () => {
@@ -115,6 +116,7 @@ describe('houseDAOgov:', () => {
     //expect(proposal.hasVoted(wallet_2.address)).to.equal(true)
     //let voted = await houseDAOGov.proposals(0).hasVoted(wallet_2.address)
     //console.log(voted)
+    expect(await houseDAOGov.memberCount()).to.equal(1)
   })
 
   it('vote on a member proposal', async () => {
@@ -152,6 +154,7 @@ describe('houseDAOgov:', () => {
     await weth.connect(wallet_3).deposit({ value: '1000000000000000000' })
     await weth.connect(wallet_3).approve(houseDAOGov.address, '1000000000000000000')
     await houseDAOGov.headOfHouseEnterMember(wallet_3.address, '1000000000000000000')
+    expect(await houseDAOGov.memberCount()).to.equal(2)
     let role = {
       headOfHouse: false,
       member: true
@@ -175,6 +178,7 @@ describe('houseDAOgov:', () => {
     expect(member.roles.member).to.equal(true)
     expect(await houseDAOGov.balance()).to.equal('1000000000001000000')
     expect(await houseDAOGov.totalContribution()).to.equal('1000000000001000000')
+    expect(await houseDAOGov.memberCount()).to.equal(3)
   })
 
   it('multiple join DAO proposals', async () => {
@@ -185,6 +189,7 @@ describe('houseDAOgov:', () => {
     await weth.connect(wallet_2).deposit({ value: '1000000000000000000' })
     await weth.connect(wallet_2).approve(houseDAOGov.address, '1000000000000000000')
     await houseDAOGov.headOfHouseEnterMember(wallet_2.address, '1000000000000000000')
+    
     let role = {
       headOfHouse: false,
       member: true
@@ -251,8 +256,8 @@ describe('houseDAOgov:', () => {
     proposal = await houseDAOGov.proposals(0)
     //expect(proposal.gracePeriod).to.equal(0)
     await network.provider.send("evm_increaseTime", [259200])
-    await houseDAOGov.connect(wallet_3).finalizeFundingProposal(0)
-    //await houseDAOGov.connect(wallet_3).finalizeFundingProposal(0)
+    await houseDAOGov.connect(wallet_3).executeFundingProposal(0)
+    //await houseDAOGov.connect(wallet_3).executeFundingProposal(0)
     proposal = await houseDAOGov.proposals(0)
     expect(proposal.executed).to.equal(true)
     expect(await weth.balanceOf(houseDAOGov.address)).to.equal('999999999999000000')
@@ -315,7 +320,7 @@ describe('houseDAOgov:', () => {
     let proposal = await houseDAOGov.proposals(0)
     //expect(proposal.gracePeriod).to.equal(0)
     await network.provider.send("evm_increaseTime", [259200])
-    await houseDAOGov.connect(wallet_3).finalizeFundingProposal(0)
+    await houseDAOGov.connect(wallet_3).executeFundingProposal(0)
     expect(await weth.balanceOf(houseDAOGov.address)).to.equal('1000000000000000000')
     expect(await weth.balanceOf(wallet_3.address)).to.equal('1000000000000000000')
     expect(await houseDAOGov.balance()).to.equal('1000000000000000000')
