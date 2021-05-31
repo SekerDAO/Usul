@@ -20,6 +20,7 @@ contract HouseDAONFT is IHouseDAO {
     uint public totalContribution;
     uint public balance;
     uint public threshold;
+    uint public nftPrice;
 
     address public ERC721Address;
     address public WETH = address(0);
@@ -39,7 +40,8 @@ contract HouseDAONFT is IHouseDAO {
         address _ERC721Address,
         uint _proposalTime,
         uint _threshold,
-        address _weth
+        address _weth,
+        uint _price
     ) {
         for(uint i=0; i<heads.length; i++) {
             // create head of house member struct
@@ -52,7 +54,12 @@ contract HouseDAONFT is IHouseDAO {
         proposalTime = _proposalTime * 1 days;
         threshold = _threshold;
         WETH = _weth;
+        nftPrice = _price;
     }
+
+    // TODO: create purchase function
+    // funcds stay on the dao
+    // owner can vote to withdraw any amount
 
 	function nftMembershipEntry() public {
 		require(members[msg.sender].roles.member == false);
@@ -60,6 +67,12 @@ contract HouseDAONFT is IHouseDAO {
 		require(IERC721(ERC721Address).balanceOf(msg.sender) >= 1);
 		members[msg.sender].roles.member = true;
 		members[msg.sender].shares = 1;
+	}
+
+	function contribute() public {
+		// require there are nfts left on the contract
+		// TODO: send nft  to contributor
+		// register them as a member
 	}
 
 	// this is non refundable

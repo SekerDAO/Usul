@@ -78,12 +78,12 @@ describe('houseDAOgov:', () => {
     await weth.connect(wallet_2).approve(houseDAOGov.address, 1000000)
     await houseDAOGov.connect(wallet_2).addMoreContribution(1000000)
 
-    expect(await govToken.balanceOf(wallet_2.address)).to.equal(2000000)
+    expect(await govToken.balanceOf(wallet_2.address)).to.equal(1000000)
     let member = await houseDAOGov.members(wallet_2.address)
     expect(member.shares).to.equal(2000000)
     expect(await houseDAOGov.balance()).to.equal(2000000)
     expect(await houseDAOGov.totalContribution()).to.equal(2000000)
-    expect(await houseDAOGov.remainingSupply()).to.equal('49999999999999998000000')
+    expect(await houseDAOGov.remainingSupply()).to.equal('49999999999999999000000')
   })
 
   it('enter a join member proposal', async () => {
@@ -189,7 +189,7 @@ describe('houseDAOgov:', () => {
     await weth.connect(wallet_2).deposit({ value: '1000000000000000000' })
     await weth.connect(wallet_2).approve(houseDAOGov.address, '1000000000000000000')
     await houseDAOGov.headOfHouseEnterMember(wallet_2.address, '1000000000000000000')
-    
+
     let role = {
       headOfHouse: false,
       member: true
@@ -406,6 +406,10 @@ describe('houseDAOgov:', () => {
   })
 
   it('cannot enter dao after cancel a proposal', async () => {
+
+  })
+
+  it('cannot withdraw more than your contribution', async () => {
 
   })
 })
