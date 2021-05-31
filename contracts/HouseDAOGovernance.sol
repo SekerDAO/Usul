@@ -11,6 +11,8 @@ contract HouseDAOGovernance is IHouseDAO {
     using SafeMath for uint;
     bool public initialized = false;
 
+    string public name;
+
     mapping(address => Member) public members;
     mapping(uint => Proposal) public proposals;
     // use shares on member struct for balances
@@ -95,8 +97,13 @@ contract HouseDAOGovernance is IHouseDAO {
         }
     }
 
+    // for now allow heads of house to update threshold
+    function adminUpdateThreshold(uint _threshold) onlyHeadOfHouse external {
+    	threshold = _threshold;
+    }
+
     // make this the easy multisig version, split out
-    function headOfHouseEnterMember(address _member, uint _contribution) onlyHeadOfHouse public {
+    function headOfHouseEnterMember(address _member, uint _contribution) onlyHeadOfHouse external {
         require(_contribution >= entryAmount, "Head did not sponsor enough");
         require(IERC20(WETH).balanceOf(_member) >= _contribution, "sponsor does not have contribution");
 
@@ -120,7 +127,7 @@ contract HouseDAOGovernance is IHouseDAO {
 	// 	entryAmount = _amount;
 	// }
 
-    function addMoreContribution(uint _contribution) onlyMember public {
+    function addMoreContribution(uint _contribution) onlyMember external {
         require(IERC20(WETH).balanceOf(msg.sender) >= _contribution, "member does not have enough weth");
 
         members[msg.sender].shares = members[msg.sender].shares.add(_contribution);
@@ -137,7 +144,7 @@ contract HouseDAOGovernance is IHouseDAO {
         // }
     }
 
-    function withdraw() onlyMember public {
+    function withdraw() onlyMember external {
         require(members[msg.sender].shares > 0, "no member contribution to withdraw");
         require(balance > 0, "nothing to withdraw");
 
@@ -170,7 +177,7 @@ contract HouseDAOGovernance is IHouseDAO {
     // change this, no contribution needed, use a gov token
     // if you have a gov token you get a membership
     // if you don't you can put up an entry proposal and get issued gov tokens
-    function joinDAOProposal(uint _contribution, Role memory _role) public {
+    function joinDAOProposal(uint _contribution, Role memory _role) external {
         require(_contribution >= entryAmount, "contribution is not higher than minimum");
         require(IERC20(WETH).balanceOf(msg.sender) >= _contribution, "proposer does not have enough weth");
 
@@ -188,7 +195,7 @@ contract HouseDAOGovernance is IHouseDAO {
     }
 
     // change role, commission art, request funcing
-    function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember public {
+    function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember external {
         require(balance >= _funding, "more funds are request than the DAO currently has");
 
         proposals[totalProposalCount].fundsRequested = _funding;
@@ -206,14 +213,14 @@ contract HouseDAOGovernance is IHouseDAO {
 
     // Execute proposals
     // todo: maybe check if over threshold on every vote, if so start grace period
-    function startFundingProposalGracePeriod(uint _proposalId) isPassed(_proposalId) public {
+    function startFundingProposalGracePeriod(uint _proposalId) isPassed(_proposalId) external {
         require(proposals[_proposalId].proposalType == 0, "proposal is not a funding type");
         require(proposals[_proposalId].gracePeriod == 0, "proposal already entered grace period");
 		
         proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
     }
 
-    function executeFundingProposal(uint _proposalId) isPassed(_proposalId) public {
+    function executeFundingProposal(uint _proposalId) isPassed(_proposalId) external {
         require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
         require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
 
@@ -223,14 +230,14 @@ contract HouseDAOGovernance is IHouseDAO {
     }
 
     //TODO: combine common requires to a modifier
-    function executeChangeRoleProposal(uint _proposalId) isPassed(_proposalId) public {
+    function executeChangeRoleProposal(uint _proposalId) isPassed(_proposalId) external {
         require(proposals[_proposalId].proposalType == 1, "proposal is not change role type");
 
         members[proposals[_proposalId].targetAddress].roles = proposals[_proposalId].role;
         proposals[_proposalId].executed = true;
     }
 
-    function executeEnterDAOProposal(uint _proposalId) isPassed(_proposalId) public {
+    function executeEnterDAOProposal(uint _proposalId) isPassed(_proposalId) external {
         require(proposals[_proposalId].proposalType == 2, "proposal is not enter dao type");
 
         members[msg.sender].roles.member = true;
@@ -246,7 +253,7 @@ contract HouseDAOGovernance is IHouseDAO {
     }
 
     // actions
-    function cancelEnterDAO(uint _proposalId) public {
+    function cancelEnterDAO(uint _proposalId) external {
         // refund the contribution for failed entry
         require(proposals[_proposalId].canceled == false, "join dao is already canceled");
         require(proposals[_proposalId].executed == false, "cannot cancel an execture join dao");
@@ -255,7 +262,7 @@ contract HouseDAOGovernance is IHouseDAO {
         require(IERC20(WETH).transferFrom(address(this), proposals[totalProposalCount].targetAddress, proposals[totalProposalCount].fundsRequested));
     }
 
-    function cancelProposal(uint _proposalId) public {
+    function cancelProposal(uint _proposalId) external {
         require(proposals[_proposalId].canceled == false);
         require(proposals[_proposalId].executed == false);
         require(proposals[_proposalId].deadline >= block.timestamp);
