@@ -54,7 +54,7 @@ describe('houseDAOgov:', () => {
 
     await houseDAOGov.headOfHouseEnterMember(wallet_2.address, 1000000)
 
-    expect(await govToken.balanceOf(wallet_2.address)).to.equal(1000000)
+    expect(await govToken.balanceOf(wallet_2.address)).to.equal('1000000000000000000')
     let member = await houseDAOGov.members(wallet_2.address)
     expect(member.roles.member).to.equal(true)
     expect(member.shares).to.equal(1000000)
@@ -78,7 +78,7 @@ describe('houseDAOgov:', () => {
     await weth.connect(wallet_2).approve(houseDAOGov.address, 1000000)
     await houseDAOGov.connect(wallet_2).addMoreContribution(1000000)
 
-    expect(await govToken.balanceOf(wallet_2.address)).to.equal(1000000)
+    expect(await govToken.balanceOf(wallet_2.address)).to.equal('1000000000000000000')
     let member = await houseDAOGov.members(wallet_2.address)
     expect(member.shares).to.equal(2000000)
     expect(await houseDAOGov.balance()).to.equal(2000000)
@@ -141,9 +141,9 @@ describe('houseDAOgov:', () => {
     await houseDAOGov.connect(wallet_3).vote(0, true)
 
     let proposal = await houseDAOGov.proposals(0)
-    expect(await govToken.balanceOf(wallet_3.address)).to.equal(1000000)
+    expect(await govToken.balanceOf(wallet_3.address)).to.equal('1000000000000000000')
 
-    expect(proposal.yesVotes).to.equal(1000000) // if they buy on the market this will be non-zero
+    expect(proposal.yesVotes).to.equal('1000000000000000000') // if they buy on the market this will be non-zero
     expect(proposal.noVotes).to.equal(0) 
   })
 
@@ -169,7 +169,7 @@ describe('houseDAOgov:', () => {
     expect(await govToken.balanceOf(wallet_2.address)).to.equal(0)
     expect(await govToken.balanceOf(houseDAOGov.address)).to.equal('49999000000000000000000')
     await houseDAOGov.connect(wallet_2).executeEnterDAOProposal(0)
-    expect(await govToken.balanceOf(wallet_2.address)).to.equal(1000000)
+    expect(await govToken.balanceOf(wallet_2.address)).to.equal('1000000000000000000')
     proposal = await houseDAOGov.proposals(0)
     expect(proposal.executed).to.equal(true)
     expect(proposal.canceled).to.equal(false)
@@ -210,7 +210,7 @@ describe('houseDAOgov:', () => {
     expect(await govToken.balanceOf(wallet_3.address)).to.equal(0)
     expect(await govToken.balanceOf(houseDAOGov.address)).to.equal('49999000000000000000000')
     await houseDAOGov.connect(wallet_3).executeEnterDAOProposal(0)
-    expect(await govToken.balanceOf(wallet_3.address)).to.equal(1000000)
+    expect(await govToken.balanceOf(wallet_3.address)).to.equal('1000000000000000000')
     proposal = await houseDAOGov.proposals(0)
     expect(proposal.executed).to.equal(true)
     expect(proposal.canceled).to.equal(false)
@@ -223,9 +223,9 @@ describe('houseDAOgov:', () => {
     expect(proposal.yesVotes).to.equal('1000000000000000000') // if they buy on the market this will be non-zero
     expect(proposal.noVotes).to.equal(0)
     expect(await govToken.balanceOf(wallet_4.address)).to.equal(0)
-    expect(await govToken.balanceOf(houseDAOGov.address)).to.equal('49998999999999999000000')
+    expect(await govToken.balanceOf(houseDAOGov.address)).to.equal('49998000000000000000000')
     await houseDAOGov.connect(wallet_4).executeEnterDAOProposal(1)
-    expect(await govToken.balanceOf(wallet_4.address)).to.equal(1000000)
+    expect(await govToken.balanceOf(wallet_4.address)).to.equal('1000000000000000000')
     proposal = await houseDAOGov.proposals(1)
     expect(proposal.executed).to.equal(true)
     expect(proposal.canceled).to.equal(false)

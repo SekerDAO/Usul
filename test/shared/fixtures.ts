@@ -45,6 +45,8 @@ export async function getFixtureWithParams(
    ethers.BigNumber.from(1), // number of days proposals are active
    ethers.BigNumber.from('50000000000000000000000'), // total gov tokens supplied to contract
    ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
+   ethers.BigNumber.from(0), // min proposal gov token amt
+   ethers.BigNumber.from('1000000000000000000'), // reward for entry in gov token
    weth.address
   )
   console.log('deployed House Governance DAO: ', houseDAOGov.address)
