@@ -55,13 +55,17 @@ contract HouseDAONFT is IHouseDAO {
         threshold = _threshold;
         WETH = _weth;
         nftPrice = _price;
+        // entrynumber
     }
 
     // TODO: create purchase function
     // funcds stay on the dao
     // owner can vote to withdraw any amount
+    // mint on purchase from custom domain
+    // make an option to mint on purchase or transfer
 
 	function nftMembershipEntry() public {
+		// put an entry number here
 		require(members[msg.sender].roles.member == false);
 		require(ERC721Address != address(0));
 		require(IERC721(ERC721Address).balanceOf(msg.sender) >= 1);

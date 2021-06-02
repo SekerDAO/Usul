@@ -26,8 +26,10 @@ contract HouseDAOGovernance is IHouseDAO {
 
     uint public threshold;
     uint public entryAmount;
+    uint public minimumProposalAmount; // amount of gov tokens needed to participate
     uint public totalGovernanceSupply;
     uint public remainingSupply;
+    uint public entryReward;
 
     address public governanceToken;
     address public WETH = address(0);
@@ -57,6 +59,8 @@ contract HouseDAOGovernance is IHouseDAO {
         uint _proposalTime,
         uint _totalGovernanceSupply,
         uint _threshold,
+        uint _minimumProposalAmount,
+        uint _entryReward,
         address _weth
     ) {
         for(uint i=0; i<heads.length; i++) {
@@ -73,6 +77,8 @@ contract HouseDAOGovernance is IHouseDAO {
         threshold = _threshold;
         totalGovernanceSupply = _totalGovernanceSupply;
         remainingSupply = _totalGovernanceSupply;
+        minimumProposalAmount = _minimumProposalAmount;
+        entryReward = _entryReward;
         WETH = _weth;
     }
 
@@ -106,16 +112,20 @@ contract HouseDAOGovernance is IHouseDAO {
     function headOfHouseEnterMember(address _member, uint _contribution) onlyHeadOfHouse external {
         require(_contribution >= entryAmount, "Head did not sponsor enough");
         require(IERC20(WETH).balanceOf(_member) >= _contribution, "sponsor does not have contribution");
+        require(IERC20(governanceToken).balanceOf(_member) >= minimumProposalAmount, "sponsor does not have enough gov tokens");
 
         members[_member].roles.member = true;
-        members[_member].shares = _contribution;
+        if(entryAmount > 0) {
+            members[_member].shares = _contribution;
+        }
+
         memberCount++;
 
         if(entryAmount > 0 && remainingSupply >= _contribution) {
             totalContribution = totalContribution.add(_contribution);
             balance = balance.add(_contribution);
             IERC20(WETH).transferFrom(_member, address(this), _contribution);
-            IERC20(governanceToken).transfer(_member, _contribution);
+            IERC20(governanceToken).transfer(_member, entryReward);
             remainingSupply = remainingSupply.sub(_contribution);
         }
     }
@@ -180,6 +190,7 @@ contract HouseDAOGovernance is IHouseDAO {
     function joinDAOProposal(uint _contribution, Role memory _role) external {
         require(_contribution >= entryAmount, "contribution is not higher than minimum");
         require(IERC20(WETH).balanceOf(msg.sender) >= _contribution, "proposer does not have enough weth");
+        require(IERC20(governanceToken).balanceOf(msg.sender) >= minimumProposalAmount, "join dao does not have enough gov tokens");
 
         proposals[totalProposalCount].fundsRequested = _contribution;
         proposals[totalProposalCount].role = _role;
@@ -197,6 +208,7 @@ contract HouseDAOGovernance is IHouseDAO {
     // change role, commission art, request funcing
     function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember external {
         require(balance >= _funding, "more funds are request than the DAO currently has");
+        require(IERC20(governanceToken).balanceOf(msg.sender) >= minimumProposalAmount, "submit proposal does not have enough gov tokens");
 
         proposals[totalProposalCount].fundsRequested = _funding;
         proposals[totalProposalCount].role = _role;
@@ -208,6 +220,10 @@ contract HouseDAOGovernance is IHouseDAO {
         proposals[totalProposalCount].hasVoted[msg.sender] = true;
 
         totalProposalCount++;
+    }
+
+    function submitModularProposal() public {
+
     }
 
 
@@ -248,7 +264,7 @@ contract HouseDAOGovernance is IHouseDAO {
         memberCount++;
 
         if(proposals[_proposalId].fundsRequested <= IERC20(governanceToken).balanceOf(address(this))) {
-            IERC20(governanceToken).transfer(proposals[_proposalId].proposer, proposals[_proposalId].fundsRequested);
+            IERC20(governanceToken).transfer(proposals[_proposalId].proposer, entryReward);
         }
     }
 
