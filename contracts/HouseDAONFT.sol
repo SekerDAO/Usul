@@ -10,17 +10,22 @@ import './interfaces/IHouseDAO.sol';
 contract HouseDAONFT is IHouseDAO {
 	using SafeMath for uint;
 
+    string public name;
+
     mapping(address => Member) public members;
     mapping(uint => Proposal) public proposals;
     // use shares on member struct for balances
     uint public totalProposalCount = 0;
+    uint public memberCount = 0;
     uint public proposalTime;
     uint public gracePeriod = 3 days;
 
     uint public totalContribution;
     uint public balance;
+
     uint public threshold;
     uint public nftPrice;
+    uint public totalGovernanceSupply;
 
     address public ERC721Address;
     address public WETH = address(0);
@@ -35,10 +40,19 @@ contract HouseDAONFT is IHouseDAO {
         _;
     }
 
+    modifier isPassed(uint _proposalId) {
+        require(proposals[_proposalId].canceled == false, "proposal was canceled");
+        require(proposals[_proposalId].executed == false, "proposal already executed");
+        require(proposals[_proposalId].yesVotes >= threshold, "change role does not meet vote threshold");
+        require(proposals[_proposalId].yesVotes >= proposals[_proposalId].noVotes, "no votes outweigh yes");
+        _;
+    }
+
     constructor(
         address[] memory heads,
         address _ERC721Address,
         uint _proposalTime,
+        uint _totalGovernanceSupply,
         uint _threshold,
         address _weth,
         uint _price
@@ -53,6 +67,7 @@ contract HouseDAONFT is IHouseDAO {
         ERC721Address = _ERC721Address;
         proposalTime = _proposalTime * 1 days;
         threshold = _threshold;
+        totalGovernanceSupply = _totalGovernanceSupply;
         WETH = _weth;
         nftPrice = _price;
         // entrynumber
