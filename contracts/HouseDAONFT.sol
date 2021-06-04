@@ -20,13 +20,17 @@ contract HouseDAONFT is IHouseDAO {
     uint public proposalTime;
     uint public gracePeriod = 3 days;
 
-    uint public totalContribution;
     uint public balance;
+    uint public nextNFTId;
+    uint public tokenOwner;
+    uint public issuanceSupply;
 
     uint public threshold;
     uint public nftPrice;
     uint public totalGovernanceSupply;
+    uint public minimumProposalAmount;
 
+    address public tokenVault;
     address public ERC721Address;
     address public WETH = address(0);
 
@@ -51,9 +55,13 @@ contract HouseDAONFT is IHouseDAO {
     constructor(
         address[] memory heads,
         address _ERC721Address,
+        address _tokenVault,
+        uint _tokenIdStartIndex, // tokens issued must be owned in a contiguous sequence
         uint _proposalTime,
         uint _totalGovernanceSupply,
         uint _threshold,
+        uint _minimumProposalAmount,
+        uint _issuanceSupply,
         address _weth,
         uint _price
     ) {
@@ -62,22 +70,21 @@ contract HouseDAONFT is IHouseDAO {
             require(heads[i] != address(0));
             members[heads[i]].roles.headOfHouse = true;
             members[heads[i]].roles.member = true;
+            memberCount++;
         }
 
         ERC721Address = _ERC721Address;
         proposalTime = _proposalTime * 1 days;
         threshold = _threshold;
         totalGovernanceSupply = _totalGovernanceSupply;
+        minimumProposalAmount = _minimumProposalAmount;
         WETH = _weth;
         nftPrice = _price;
+        tokenVault = _tokenVault;
+        nextNFTId = _tokenIdStartIndex;
+        issuanceSupply = _issuanceSupply;
         // entrynumber
     }
-
-    // TODO: create purchase function
-    // funcds stay on the dao
-    // owner can vote to withdraw any amount
-    // mint on purchase from custom domain
-    // make an option to mint on purchase or transfer
 
 	function nftMembershipEntry() public {
 		// put an entry number here
@@ -85,44 +92,42 @@ contract HouseDAONFT is IHouseDAO {
 		require(ERC721Address != address(0));
 		require(IERC721(ERC721Address).balanceOf(msg.sender) >= 1);
 		members[msg.sender].roles.member = true;
-		members[msg.sender].shares = 1;
 	}
 
 	function contribute() public {
-		// require there are nfts left on the contract
-		// TODO: send nft  to contributor
-		// register them as a member
+		require(issuanceSupply > 0, "there are no more tokens to issue");
+		require(IERC721(ERC721Address).balanceOf(address(this)) >= 1, "there are not enough tokens left for entry");
+        require(IERC20(WETH).balanceOf(msg.sender) >= nftPrice, "sender does not have enough weth for nft");
+        require(members[msg.sender].roles.member = false, "contributor is already a member");
+        members[msg.sender].roles.member = true;
+        memberCount++;
+        nextNFTId++;
+        issuanceSupply--;
+        IERC20(WETH).transferFrom(msg.sender, address(this), nftPrice);
+    	IERC721(ERC721Address).transferFrom(tokenVault, msg.sender, nextNFTId);
 	}
 
 	// this is non refundable
 	function fundDAO(uint _amount) public {
 		require(_amount > 0);
 		require(IERC20(WETH).balanceOf(msg.sender) >= _amount);
-		totalContribution += _amount;
+		balance += _amount;
 		IERC20(WETH).transferFrom(msg.sender, address(this), _amount);
 	}
 
 	// make nft and erc20 version different contracts
-	function headOfhouseChangeEntryERC721(address _entryToken) onlyHeadOfHouse public {
+	function headOfhouseChangeERC721(address _entryToken) onlyHeadOfHouse public {
 		require(_entryToken != address(0));
 		ERC721Address = _entryToken;
 	}
 
-    // change role, commission art, request funcing
-    function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember public {
-        require(balance >= _funding, "more funds are request than the DAO currently has");
-
-        proposals[totalProposalCount].fundsRequested = _funding;
-        proposals[totalProposalCount].role = _role;
-        proposals[totalProposalCount].proposalType = _proposalType; // 0 = funding proposal // 1 = change role // 2 = entry
-        proposals[totalProposalCount].yesVotes = 1;    
-        proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
-        proposals[totalProposalCount].proposer = msg.sender;
-        proposals[totalProposalCount].targetAddress = _recipient; // can switch target to contract and provide call data
-        proposals[totalProposalCount].hasVoted[msg.sender] = true;
-
-        totalProposalCount++;
-    }
+	// make nft and erc20 version different contracts
+	function headOfhouseIncreaseERC721Supply(uint _amount, uint _tokenIdStartIndex) onlyHeadOfHouse public {
+		require(_amount > 0, "increase totalSupply to issue must be greater than 0");
+		require(_tokenIdStartIndex > nextNFTId, "start index is not past last nft id issued, issue the remaining ids");
+		issuanceSupply += _amount;
+		nextNFTId = _tokenIdStartIndex;
+	}
 
     function vote(uint _proposalId, bool _vote) onlyMember public {
         require(proposals[_proposalId].hasVoted[msg.sender] == false, "already voted");
@@ -133,28 +138,40 @@ contract HouseDAONFT is IHouseDAO {
         proposals[_proposalId].hasVoted[msg.sender] = true;
 
         if(_vote == false){
-            proposals[_proposalId].noVotes = 1;
+            proposals[_proposalId].noVotes += IERC721(ERC721Address).balanceOf(msg.sender);
         } else {
-            proposals[_proposalId].yesVotes = 1;
+            proposals[_proposalId].yesVotes += IERC721(ERC721Address).balanceOf(msg.sender);
         }
+    }
+
+    // change role, commission art, request funcing
+    function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember public {
+        require(balance >= _funding, "more funds are request than the DAO currently has");
+        require(IERC721(ERC721Address).balanceOf(msg.sender) >= minimumProposalAmount, "submit proposal does not have enough gov tokens");
+        
+        proposals[totalProposalCount].fundsRequested = _funding;
+        proposals[totalProposalCount].role = _role;
+        proposals[totalProposalCount].proposalType = _proposalType; // 0 = funding proposal // 1 = change role // 2 = entry
+        proposals[totalProposalCount].yesVotes = IERC721(ERC721Address).balanceOf(msg.sender);    
+        proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
+        proposals[totalProposalCount].proposer = msg.sender;
+        proposals[totalProposalCount].targetAddress = _recipient; // can switch target to contract and provide call data
+        proposals[totalProposalCount].hasVoted[msg.sender] = true;
+
+        totalProposalCount++;
     }
 
     // Execute proposals
     // todo: maybe check if over threshold on every vote, if so start grace period
-    function startFundingProposalGracePeriod(uint _proposalId) public {
-        require(proposals[_proposalId].canceled == false, "proposal was canceled");
-        require(proposals[_proposalId].executed == false, "proposal already executed");
+    function startFundingProposalGracePeriod(uint _proposalId) isPassed(_proposalId) external {
         require(proposals[_proposalId].proposalType == 0, "proposal is not a funding type");
-        require(proposals[_proposalId].yesVotes >= threshold, "votes do not meet the threshold");
         require(proposals[_proposalId].gracePeriod == 0, "proposal already entered grace period");
 		
         proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
     }
 
-    function finalizeFundingProposal(uint _proposalId) public {
-        require(proposals[_proposalId].canceled == false, "proposal canceled or already finalized");
+    function executeFundingProposal(uint _proposalId) isPassed(_proposalId) external {
         require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
-        require(proposals[_proposalId].executed == false, "proposal has already been executed");
         require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
 
         balance = balance.sub(proposals[_proposalId].fundsRequested);
@@ -163,11 +180,8 @@ contract HouseDAONFT is IHouseDAO {
     }
 
     //TODO: combine common requires to a modifier
-    function executeChangeRoleProposal(uint _proposalId) public {
-        require(proposals[_proposalId].canceled == false, "change role proposal canceled");
-        require(proposals[_proposalId].executed == false, "change role proposal already executed");
+    function executeChangeRoleProposal(uint _proposalId) isPassed(_proposalId) external {
         require(proposals[_proposalId].proposalType == 1, "proposal is not change role type");
-        require(proposals[_proposalId].yesVotes >= threshold, "change role does not meet vote threshold");
 
         members[proposals[_proposalId].targetAddress].roles = proposals[_proposalId].role;
         proposals[_proposalId].executed = true;
