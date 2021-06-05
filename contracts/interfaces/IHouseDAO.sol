@@ -11,6 +11,7 @@ interface IHouseDAO {
     struct Member {
         uint256 shares; // the # of voting shares assigned to this member
         Role roles;
+        bool activeProposal;
     }
 
     struct Proposal {
