@@ -22,7 +22,6 @@ contract HouseDAONFT is IHouseDAO {
 
     uint public balance;
     uint public nextNFTId;
-    uint public tokenOwner;
     uint public issuanceSupply;
 
     uint public threshold;
@@ -88,6 +87,7 @@ contract HouseDAONFT is IHouseDAO {
 		require(members[msg.sender].roles.member == false);
 		require(ERC721Address != address(0));
 		require(IERC721(ERC721Address).balanceOf(msg.sender) >= 1);
+        memberCount++;
 		members[msg.sender].roles.member = true;
 	}
 

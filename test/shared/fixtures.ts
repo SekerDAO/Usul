@@ -53,8 +53,6 @@ export async function getFixtureWithParams(
   await govToken.approve(houseDAOGov.address, ethers.BigNumber.from('50000000000000000000000'))
   await houseDAOGov.init()
 
-  console.log(ethers.utils.parseEther('0.5'))
-
   const houseNFTContract = await ethers.getContractFactory("HouseDAONFT")
   const houseDAONFT = await houseNFTContract.deploy(
    [wallet.address], // head of house
