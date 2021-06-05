@@ -49,15 +49,34 @@ export async function getFixtureWithParams(
    ethers.BigNumber.from('1000000000000000000'), // reward for entry in gov token
    weth.address
   )
-  console.log('deployed House Governance DAO: ', houseDAOGov.address)
+  console.log('deployed House ERC20 DAO: ', houseDAOGov.address)
   await govToken.approve(houseDAOGov.address, ethers.BigNumber.from('50000000000000000000000'))
   await houseDAOGov.init()
-  console.log('house dao is initialized')
+
+  console.log(ethers.utils.parseEther('0.5'))
+
+  const houseNFTContract = await ethers.getContractFactory("HouseDAONFT")
+  const houseDAONFT = await houseNFTContract.deploy(
+   [wallet.address], // head of house
+   multiNFT.address, // gov token addres
+   wallet.address, // nft vault address
+   ethers.BigNumber.from(0), // start index of gov tokens
+   ethers.BigNumber.from(1), // number of days proposals are active
+   ethers.BigNumber.from(5), // number of votes wieghted to pass
+   ethers.BigNumber.from(1), // min proposal gov token amt
+   ethers.BigNumber.from(75), // issuance supply
+   weth.address,
+   ethers.utils.parseEther('0.5') // price of gov token
+  )
+  console.log('deployed House NFT DAO: ', houseDAOGov.address)
+  await multiNFT.setApprovalForAll(houseDAONFT.address, true)
+  console.log('house nft dao is initialized')
 
   return {
     weth,
     houseDAOGov,
+    houseDAONFT,
     multiNFT,
-    govToken
+    govToken,
   }
 }

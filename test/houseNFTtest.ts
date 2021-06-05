@@ -16,7 +16,7 @@ let wallet: SignerWithAddress
 // - figure out how to inspect nested mappings
 // - figure out how to get expect reverts working
 
-describe('houseDAOgov:', () => {
+describe('houseDAOnft:', () => {
   // async function createToken(totalSupply: BigNumber) {
   //   const { artToken } = tokenFixture
   // }
@@ -26,21 +26,21 @@ describe('houseDAOgov:', () => {
     daoFixture = await getFixtureWithParams(wallet, true)
   })
 
-  it('house dao is initialized', async () => {
-    const { houseDAOGov, govToken, weth } = daoFixture
-    expect(await houseDAOGov.initialized()).to.equal(true)
-    expect(await govToken.balanceOf(houseDAOGov.address)).to.equal('50000000000000000000000')
-    expect(await houseDAOGov.totalProposalCount()).to.equal(0)
-    expect(await houseDAOGov.proposalTime()).to.equal(86400)
-    expect(await houseDAOGov.gracePeriod()).to.equal(259200)
-    expect(await houseDAOGov.totalContribution()).to.equal(0)
-    expect(await houseDAOGov.balance()).to.equal(0)
-    expect(await houseDAOGov.threshold()).to.equal('1000000000000000000')
-    expect(await houseDAOGov.entryAmount()).to.equal(1000000)
-    expect(await houseDAOGov.totalGovernanceSupply()).to.equal('50000000000000000000000')
-    expect(await houseDAOGov.remainingSupply()).to.equal('50000000000000000000000')
-    expect(await houseDAOGov.governanceToken()).to.equal(govToken.address)
-    expect(await houseDAOGov.WETH()).to.equal(weth.address)
+  it.only('house dao is initialized', async () => {
+  	let wallet_1 = (await ethers.getSigners())[0]
+    const { houseDAONFT, multiNFT, weth } = daoFixture
+    expect(await multiNFT.isApprovedForAll(wallet_1.address, houseDAONFT.address)).to.equal(true)
+    // expect(await houseDAOGov.totalProposalCount()).to.equal(0)
+    // expect(await houseDAOGov.proposalTime()).to.equal(86400)
+    // expect(await houseDAOGov.gracePeriod()).to.equal(259200)
+    // expect(await houseDAOGov.totalContribution()).to.equal(0)
+    // expect(await houseDAOGov.balance()).to.equal(0)
+    // expect(await houseDAOGov.threshold()).to.equal('1000000000000000000')
+    // expect(await houseDAOGov.entryAmount()).to.equal(1000000)
+    // expect(await houseDAOGov.totalGovernanceSupply()).to.equal('50000000000000000000000')
+    // expect(await houseDAOGov.remainingSupply()).to.equal('50000000000000000000000')
+    // expect(await houseDAOGov.governanceToken()).to.equal(govToken.address)
+    // expect(await houseDAOGov.WETH()).to.equal(weth.address)
   })
 
   it('head of house can enter a member', async () => {

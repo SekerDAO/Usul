@@ -15,8 +15,8 @@ contract HouseDAONFT is IHouseDAO {
     mapping(address => Member) public members;
     mapping(uint => Proposal) public proposals;
     // use shares on member struct for balances
-    uint public totalProposalCount = 0;
-    uint public memberCount = 0;
+    uint public totalProposalCount;
+    uint public memberCount;
     uint public proposalTime;
     uint public gracePeriod = 3 days;
 
@@ -27,12 +27,11 @@ contract HouseDAONFT is IHouseDAO {
 
     uint public threshold;
     uint public nftPrice;
-    uint public totalGovernanceSupply;
     uint public minimumProposalAmount;
 
     address public tokenVault;
     address public ERC721Address;
-    address public WETH = address(0);
+    address public WETH;
 
     modifier onlyMember {
         require(members[msg.sender].roles.member == true, "not a member");
@@ -58,7 +57,6 @@ contract HouseDAONFT is IHouseDAO {
         address _tokenVault,
         uint _tokenIdStartIndex, // tokens issued must be owned in a contiguous sequence
         uint _proposalTime,
-        uint _totalGovernanceSupply,
         uint _threshold,
         uint _minimumProposalAmount,
         uint _issuanceSupply,
@@ -76,7 +74,6 @@ contract HouseDAONFT is IHouseDAO {
         ERC721Address = _ERC721Address;
         proposalTime = _proposalTime * 1 days;
         threshold = _threshold;
-        totalGovernanceSupply = _totalGovernanceSupply;
         minimumProposalAmount = _minimumProposalAmount;
         WETH = _weth;
         nftPrice = _price;
@@ -96,15 +93,14 @@ contract HouseDAONFT is IHouseDAO {
 
 	function contribute() public {
 		require(issuanceSupply > 0, "there are no more tokens to issue");
-		require(IERC721(ERC721Address).balanceOf(address(this)) >= 1, "there are not enough tokens left for entry");
         require(IERC20(WETH).balanceOf(msg.sender) >= nftPrice, "sender does not have enough weth for nft");
         require(members[msg.sender].roles.member = false, "contributor is already a member");
         members[msg.sender].roles.member = true;
         memberCount++;
-        nextNFTId++;
         issuanceSupply--;
         IERC20(WETH).transferFrom(msg.sender, address(this), nftPrice);
     	IERC721(ERC721Address).transferFrom(tokenVault, msg.sender, nextNFTId);
+        nextNFTId++;
 	}
 
 	// this is non refundable
@@ -128,6 +124,8 @@ contract HouseDAONFT is IHouseDAO {
 		issuanceSupply += _amount;
 		nextNFTId = _tokenIdStartIndex;
 	}
+
+	// head of house change price?
 
     function vote(uint _proposalId, bool _vote) onlyMember public {
         require(proposals[_proposalId].hasVoted[msg.sender] == false, "already voted");

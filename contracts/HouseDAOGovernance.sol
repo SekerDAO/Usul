@@ -9,15 +9,15 @@ import './interfaces/IHouseDAO.sol';
 
 contract HouseDAOGovernance is IHouseDAO {
     using SafeMath for uint;
-    bool public initialized = false;
+    bool public initialized;
 
     string public name;
 
     mapping(address => Member) public members;
     mapping(uint => Proposal) public proposals;
     // use shares on member struct for balances
-    uint public totalProposalCount = 0;
-    uint public memberCount = 0;
+    uint public totalProposalCount;
+    uint public memberCount;
     uint public proposalTime;
     uint public gracePeriod = 3 days;
 
@@ -115,18 +115,18 @@ contract HouseDAOGovernance is IHouseDAO {
         require(IERC20(governanceToken).balanceOf(_member) >= minimumProposalAmount, "sponsor does not have enough gov tokens");
 
         members[_member].roles.member = true;
-        if(entryAmount > 0) {
-            members[_member].shares = _contribution;
-        }
-
         memberCount++;
 
-        if(entryAmount > 0 && remainingSupply >= _contribution) {
+        if(entryAmount > 0) {
+            members[_member].shares = _contribution;
+            IERC20(WETH).transferFrom(_member, address(this), _contribution);
+        }
+
+        if(entryReward > 0 && entryReward <= IERC20(governanceToken).balanceOf(address(this))) {
+        	remainingSupply = remainingSupply.sub(entryReward);
             totalContribution = totalContribution.add(_contribution);
             balance = balance.add(_contribution);
-            IERC20(WETH).transferFrom(_member, address(this), _contribution);
             IERC20(governanceToken).transfer(_member, entryReward);
-            remainingSupply = remainingSupply.sub(_contribution);
         }
     }
 
@@ -263,7 +263,8 @@ contract HouseDAOGovernance is IHouseDAO {
         balance = balance.add(proposals[_proposalId].fundsRequested);
         memberCount++;
 
-        if(proposals[_proposalId].fundsRequested <= IERC20(governanceToken).balanceOf(address(this))) {
+        if(entryReward > 0 && entryReward <= IERC20(governanceToken).balanceOf(address(this))) {
+        	remainingSupply = remainingSupply.sub(entryReward);
             IERC20(governanceToken).transfer(proposals[_proposalId].proposer, entryReward);
         }
     }
