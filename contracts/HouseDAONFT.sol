@@ -53,12 +53,12 @@ contract HouseDAONFT is IHouseDAO {
     constructor(
         address[] memory heads,
         address _ERC721Address,
-        address _tokenVault,
-        uint _tokenIdStartIndex, // tokens issued must be owned in a contiguous sequence
+        address _tokenVault, // refactor to a mint on demand method
+        uint _tokenIdStartIndex, // remove
         uint _proposalTime,
         uint _threshold,
         uint _minimumProposalAmount,
-        uint _issuanceSupply,
+        uint _issuanceSupply, // delete... make uncapped
         address _weth,
         uint _price
     ) {
