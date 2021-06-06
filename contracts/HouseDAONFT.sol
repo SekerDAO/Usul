@@ -7,6 +7,10 @@ import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import './interfaces/IHouseDAO.sol';
 
+interface IMultiArtToken {
+    function mintEdition(string[] memory _tokenURI, uint _editionNumbers, address _to) external;
+}
+
 contract HouseDAONFT is IHouseDAO {
 	using SafeMath for uint;
 
@@ -21,7 +25,7 @@ contract HouseDAONFT is IHouseDAO {
     uint public gracePeriod = 3 days;
 
     uint public balance;
-    uint public nextNFTId;
+    //uint public nextNFTId;
     uint public issuanceSupply;
 
     uint public threshold;
@@ -53,12 +57,12 @@ contract HouseDAONFT is IHouseDAO {
     constructor(
         address[] memory heads,
         address _ERC721Address,
-        address _tokenVault, // refactor to a mint on demand method
-        uint _tokenIdStartIndex, // remove
+        //address _tokenVault, // refactor to a mint on demand method
+        //uint _tokenIdStartIndex, // remove
         uint _proposalTime,
         uint _threshold,
         uint _minimumProposalAmount,
-        uint _issuanceSupply, // delete... make uncapped
+        //uint _issuanceSupply, // delete... make uncapped
         address _weth,
         uint _price
     ) {
@@ -76,9 +80,9 @@ contract HouseDAONFT is IHouseDAO {
         minimumProposalAmount = _minimumProposalAmount;
         WETH = _weth;
         nftPrice = _price;
-        tokenVault = _tokenVault;
-        nextNFTId = _tokenIdStartIndex;
-        issuanceSupply = _issuanceSupply;
+        //tokenVault = _tokenVault;
+        //nextNFTId = 1;
+        //issuanceSupply = _issuanceSupply;
         // entrynumber
     }
 
@@ -91,17 +95,19 @@ contract HouseDAONFT is IHouseDAO {
 		members[msg.sender].roles.member = true;
 	}
 
-	function contribute() public {
-		require(issuanceSupply > 0, "there are no more tokens to issue");
+	function contribute(string[] memory _uri) public {
+		//require(issuanceSupply > 0, "there are no more tokens to issue");
         require(IERC20(WETH).balanceOf(msg.sender) >= nftPrice, "sender does not have enough weth for nft");
         require(members[msg.sender].roles.member == false, "contributor is already a member");
         members[msg.sender].roles.member = true;
         balance = balance.add(nftPrice);
         memberCount++;
-        issuanceSupply--;
+        issuanceSupply++;
         IERC20(WETH).transferFrom(msg.sender, address(this), nftPrice);
-    	IERC721(ERC721Address).transferFrom(tokenVault, msg.sender, nextNFTId);
-        nextNFTId++;
+        // string[] memory _uri;
+        // _uri[0] = nftURI;
+    	IMultiArtToken(ERC721Address).mintEdition(_uri, 1, msg.sender);
+        //nextNFTId++;
 	}
 
 	// this is non refundable
@@ -119,12 +125,12 @@ contract HouseDAONFT is IHouseDAO {
 	}
 
 	// make nft and erc20 version different contracts
-	function headOfhouseIncreaseERC721Supply(uint _amount, uint _tokenIdStartIndex) onlyHeadOfHouse public {
-		require(_amount > 0, "increase totalSupply to issue must be greater than 0");
-		require(_tokenIdStartIndex > nextNFTId, "start index is not past last nft id issued, issue the remaining ids");
-		issuanceSupply += _amount;
-		nextNFTId = _tokenIdStartIndex;
-	}
+	// function headOfhouseIncreaseERC721Supply(uint _amount, uint _tokenIdStartIndex) onlyHeadOfHouse public {
+	// 	require(_amount > 0, "increase totalSupply to issue must be greater than 0");
+	// 	require(_tokenIdStartIndex > nextNFTId, "start index is not past last nft id issued, issue the remaining ids");
+	// 	issuanceSupply += _amount;
+	// 	nextNFTId = _tokenIdStartIndex;
+	// }
 
 	// head of house change price?
 

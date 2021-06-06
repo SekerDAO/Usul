@@ -29,18 +29,18 @@ describe('houseDAOnft:', () => {
   it('house dao is initialized', async () => {
   	let wallet_1 = (await ethers.getSigners())[0]
     const { houseDAONFT, multiNFT, weth } = daoFixture
-    expect(await multiNFT.isApprovedForAll(wallet_1.address, houseDAONFT.address)).to.equal(true)
+    //expect(await multiNFT.isApprovedForAll(wallet_1.address, houseDAONFT.address)).to.equal(true)
 
     expect(await houseDAONFT.totalProposalCount()).to.equal(0)
     expect(await houseDAONFT.memberCount()).to.equal(1)
-    expect(await houseDAONFT.tokenVault()).to.equal(wallet_1.address)
+    //expect(await houseDAONFT.tokenVault()).to.equal(wallet_1.address)
     expect(await houseDAONFT.proposalTime()).to.equal(86400)
     expect(await houseDAONFT.gracePeriod()).to.equal(259200)
     expect(await houseDAONFT.balance()).to.equal(0)
-    expect(await houseDAONFT.nextNFTId()).to.equal(1)
+    //expect(await houseDAONFT.nextNFTId()).to.equal(1)
     expect(await houseDAONFT.threshold()).to.equal(5)
     expect(await houseDAONFT.nftPrice()).to.equal(ethers.utils.parseEther('0.5'))
-    expect(await houseDAONFT.issuanceSupply()).to.equal(75)
+    expect(await houseDAONFT.issuanceSupply()).to.equal(0)
     expect(await houseDAONFT.minimumProposalAmount()).to.equal(1)
     expect(await houseDAONFT.ERC721Address()).to.equal(multiNFT.address)
     expect(await houseDAONFT.WETH()).to.equal(weth.address)
@@ -50,14 +50,14 @@ describe('houseDAOnft:', () => {
     const { weth, houseDAONFT, multiNFT } = daoFixture
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 74)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 1)
     await houseDAONFT.connect(wallet_2).nftMembershipEntry()
 
     let member = await houseDAONFT.members(wallet_2.address)
     expect(member.roles.member).to.equal(true)
     expect(member.shares).to.equal(0)
     expect(await houseDAONFT.balance()).to.equal(0)
-    expect(await houseDAONFT.issuanceSupply()).to.equal(75)
+    expect(await houseDAONFT.issuanceSupply()).to.equal(0)
     expect(await houseDAONFT.memberCount()).to.equal(2)
   })
 
@@ -70,8 +70,8 @@ describe('houseDAOnft:', () => {
     await weth.connect(wallet_2).approve(houseDAONFT.address, ethers.utils.parseEther('0.5'))
     expect(await weth.balanceOf(wallet_2.address)).to.equal('500000000000000000')
     expect(await multiNFT.balanceOf(wallet_2.address)).to.equal(0)
-    expect(await houseDAONFT.nextNFTId()).to.equal(1)
-    await houseDAONFT.connect(wallet_2).contribute()
+    //expect(await houseDAONFT.nextNFTId()).to.equal(1)
+    await houseDAONFT.connect(wallet_2).contribute(["https://ipfs.io/ipfs/"])
     expect(await weth.balanceOf(wallet_2.address)).to.equal(0)
 
     expect(await multiNFT.balanceOf(wallet_2.address)).to.equal(1)
@@ -80,8 +80,8 @@ describe('houseDAOnft:', () => {
     expect(member.shares).to.equal(0)
     expect(member.activeProposal).to.equal(false)
     expect(await houseDAONFT.balance()).to.equal(ethers.utils.parseEther('0.5'))
-    expect(await houseDAONFT.nextNFTId()).to.equal(2)
-    expect(await houseDAONFT.issuanceSupply()).to.equal(74)
+    //expect(await houseDAONFT.nextNFTId()).to.equal(2)
+    expect(await houseDAONFT.issuanceSupply()).to.equal(1)
     expect(await houseDAONFT.memberCount()).to.equal(2)
   })
 
@@ -93,7 +93,7 @@ describe('houseDAOnft:', () => {
     let options = { value: ethers.utils.parseEther('0.5') }
     await weth.connect(wallet_2).deposit(options)
     await weth.connect(wallet_2).approve(houseDAONFT.address, ethers.utils.parseEther('0.5'))
-    await houseDAONFT.connect(wallet_2).contribute()
+    await houseDAONFT.connect(wallet_2).contribute(["https://ipfs.io/ipfs/"])
 
     let options2 = { value: 2000000 }
     await weth.connect(wallet_3).deposit(options2)
@@ -114,15 +114,15 @@ describe('houseDAOnft:', () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
     let wallet_3 = (await ethers.getSigners())[2]
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 74)
-    await multiNFT.transferFrom(wallet_1.address, wallet_3.address, 73)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 1)
+    await multiNFT.transferFrom(wallet_1.address, wallet_3.address, 2)
     await houseDAONFT.connect(wallet_2).nftMembershipEntry()
 
     let member = await houseDAONFT.members(wallet_2.address)
     expect(member.roles.member).to.equal(true)
     expect(member.shares).to.equal(0)
     expect(await houseDAONFT.balance()).to.equal(0)
-    expect(await houseDAONFT.issuanceSupply()).to.equal(75)
+    expect(await houseDAONFT.issuanceSupply()).to.equal(0)
     expect(await houseDAONFT.memberCount()).to.equal(2)
 
     await houseDAONFT.connect(wallet_3).nftMembershipEntry()
@@ -130,7 +130,7 @@ describe('houseDAOnft:', () => {
     expect(member.roles.member).to.equal(true)
     expect(member.shares).to.equal(0)
     expect(await houseDAONFT.balance()).to.equal(0)
-    expect(await houseDAONFT.issuanceSupply()).to.equal(75)
+    expect(await houseDAONFT.issuanceSupply()).to.equal(0)
     expect(await houseDAONFT.memberCount()).to.equal(3)
   })
 
@@ -142,16 +142,16 @@ describe('houseDAOnft:', () => {
     let options = { value: ethers.utils.parseEther('0.5') }
     await weth.connect(wallet_2).deposit(options)
     await weth.connect(wallet_2).approve(houseDAONFT.address, ethers.utils.parseEther('0.5'))
-    await houseDAONFT.connect(wallet_2).contribute()
+    await houseDAONFT.connect(wallet_2).contribute(["https://ipfs.io/ipfs/"])
 
     await weth.connect(wallet_3).deposit(options)
     await weth.connect(wallet_3).approve(houseDAONFT.address, ethers.utils.parseEther('0.5'))
-    await houseDAONFT.connect(wallet_3).contribute()
+    await houseDAONFT.connect(wallet_3).contribute(["https://ipfs.io/ipfs/"])
 
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 74)
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 73)
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 72)
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 71)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 1)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 2)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 3)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 4)
 
     expect(await weth.balanceOf(wallet_2.address)).to.equal(0)
     let role = { headOfHouse: false, member: true }
@@ -201,16 +201,16 @@ describe('houseDAOnft:', () => {
     let options = { value: ethers.utils.parseEther('0.5') }
     await weth.connect(wallet_2).deposit(options)
     await weth.connect(wallet_2).approve(houseDAONFT.address, ethers.utils.parseEther('0.5'))
-    await houseDAONFT.connect(wallet_2).contribute()
+    await houseDAONFT.connect(wallet_2).contribute(["https://ipfs.io/ipfs/"])
 
     await weth.connect(wallet_3).deposit(options)
     await weth.connect(wallet_3).approve(houseDAONFT.address, ethers.utils.parseEther('0.5'))
-    await houseDAONFT.connect(wallet_3).contribute()
+    await houseDAONFT.connect(wallet_3).contribute(["https://ipfs.io/ipfs/"])
 
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 74)
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 73)
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 72)
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 71)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 1)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 2)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 3)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 4)
 
     expect(await weth.balanceOf(wallet_2.address)).to.equal(0)
     let role = { headOfHouse: false, member: true }
@@ -227,16 +227,16 @@ describe('houseDAOnft:', () => {
     let options = { value: ethers.utils.parseEther('0.5') }
     await weth.connect(wallet_2).deposit(options)
     await weth.connect(wallet_2).approve(houseDAONFT.address, ethers.utils.parseEther('0.5'))
-    await houseDAONFT.connect(wallet_2).contribute()
+    await houseDAONFT.connect(wallet_2).contribute(["https://ipfs.io/ipfs/"])
 
     await weth.connect(wallet_3).deposit(options)
     await weth.connect(wallet_3).approve(houseDAONFT.address, ethers.utils.parseEther('0.5'))
-    await houseDAONFT.connect(wallet_3).contribute()
+    await houseDAONFT.connect(wallet_3).contribute(["https://ipfs.io/ipfs/"])
 
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 74)
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 73)
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 72)
-    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 71)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 1)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 2)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 3)
+    await multiNFT.transferFrom(wallet_1.address, wallet_2.address, 4)
 
     expect(await weth.balanceOf(wallet_2.address)).to.equal(0)
     let role = { headOfHouse: true, member: true }

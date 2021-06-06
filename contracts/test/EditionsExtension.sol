@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 /**
  * @dev ERC721 token with editions extension.
  */
-abstract contract TokenWalkDomain is ERC721URIStorage {
+abstract contract EditionsExtension is ERC721URIStorage {
     using Strings for uint256;
 
     // eip-712
@@ -37,28 +37,49 @@ abstract contract TokenWalkDomain is ERC721URIStorage {
     );
 
     bytes32 public DOMAIN_SEPARATOR;
+
+    address public DAO;
     
     // Optional mapping for signatures
     mapping (uint256 => bytes) private _signatures;
 
-    mapping (uint256 => address) private _artists;
-
-    uint256 public topId = 1;
+    // the last nft minted
+    uint public topId = 1;
+    
+    // A view to display the artist's address
+    address public artist;
     
     // A signed token event
     event Signed(address indexed from, uint256 indexed tokenId);
+
+    function _setDAO(address _daoAddress) internal virtual {
+        require(_daoAddress != address(0));
+        DAO = _daoAddress;
+    }
+
+    /**
+     * @dev Sets `artist` as the original artist.
+     * @param _artist the wallet of the signing artist (TODO consider multiple
+     * signers and contract signers (non-EOA)
+     */
+    function _designateArtist(address _artist) internal virtual {
+        require(artist == address(0), "ERC721Extensions: the artist has already been set");
+
+        // If there is no special designation for the artist, set it.
+        artist = _artist;
+    }
+    
 
     /**
      * @dev Creates `tokenIds` representing the printed editions.
      * @param _editionSupply the number of prints
      */
-    function _createEditions(string memory _tokenURI, uint256 _editionSupply) internal virtual {
+    function _createEditions(string[] memory _tokenURI, uint256 _editionSupply, address _to) internal virtual {
         require(_editionSupply > 0, "ERC721Extensions: the edition supply is not set to more than 0");
 
         for(uint i=0; i < _editionSupply; i++) { //0, 1+2
-            _mint(msg.sender, topId);
-            _setTokenURI(topId, string(abi.encodePacked(_tokenURI, topId.toString(), ".json")));
-            _artists[topId] = msg.sender;
+            _mint(_to, topId);
+            _setTokenURI(topId, string(abi.encodePacked(_tokenURI[i])));
             topId++;
         }
     }
@@ -95,13 +116,13 @@ abstract contract TokenWalkDomain is ERC721URIStorage {
      * Emits a {Signed} event.
      */
     function _signEdition(uint256 _tokenId, Signature memory _message, bytes memory _signature) internal virtual {
-        require(msg.sender == _artists[_tokenId], "ERC721Extensions: only the artist may sign their work");
+        require(msg.sender == artist, "ERC721Extensions: only the artist may sign their work");
         require(_signatures[_tokenId].length == 0, "ERC721Extensions: this token is already signed");
         bytes32 digest = _hash(_message);
         address recovered = ECDSA.recover(digest, _signature);
-        require(recovered == _artists[_tokenId], "ERC721Extensions: artist signature mismatch");
+        require(recovered == artist, "ERC721Extensions: artist signature mismatch");
         _signatures[_tokenId] = _signature;
-        emit Signed(msg.sender, _tokenId);
+        emit Signed(artist, _tokenId);
     }
 
     
@@ -126,7 +147,7 @@ abstract contract TokenWalkDomain is ERC721URIStorage {
     function isSigned(Signature memory _message, bytes memory _signature, uint _tokenId) external view virtual returns (bool) {
         bytes32 messageHash = _hash(_message);
         address _artist = ECDSA.recover(messageHash, _signature);
-        return (_artist == _artists[_tokenId] && _equals(_signatures[_tokenId], _signature));
+        return (_artist == artist && _equals(_signatures[_tokenId], _signature));
     }
 
     /**
