@@ -58,7 +58,7 @@ export async function getFixtureWithParams(
    [wallet.address], // head of house
    multiNFT.address, // gov token addres
    wallet.address, // nft vault address
-   ethers.BigNumber.from(0), // start index of gov tokens
+   ethers.BigNumber.from(1), // start index of gov tokens
    ethers.BigNumber.from(1), // number of days proposals are active
    ethers.BigNumber.from(5), // number of votes wieghted to pass
    ethers.BigNumber.from(1), // min proposal gov token amt

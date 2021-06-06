@@ -84,7 +84,7 @@ contract HouseDAONFT is IHouseDAO {
 
 	function nftMembershipEntry() public {
 		// put an entry number here
-		require(members[msg.sender].roles.member == false);
+		require(members[msg.sender].roles.member == false, "already a member");
 		require(ERC721Address != address(0));
 		require(IERC721(ERC721Address).balanceOf(msg.sender) >= 1);
         memberCount++;
@@ -94,8 +94,9 @@ contract HouseDAONFT is IHouseDAO {
 	function contribute() public {
 		require(issuanceSupply > 0, "there are no more tokens to issue");
         require(IERC20(WETH).balanceOf(msg.sender) >= nftPrice, "sender does not have enough weth for nft");
-        require(members[msg.sender].roles.member = false, "contributor is already a member");
+        require(members[msg.sender].roles.member == false, "contributor is already a member");
         members[msg.sender].roles.member = true;
+        balance = balance.add(nftPrice);
         memberCount++;
         issuanceSupply--;
         IERC20(WETH).transferFrom(msg.sender, address(this), nftPrice);
@@ -146,7 +147,9 @@ contract HouseDAONFT is IHouseDAO {
     function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember public {
         require(balance >= _funding, "more funds are request than the DAO currently has");
         require(IERC721(ERC721Address).balanceOf(msg.sender) >= minimumProposalAmount, "submit proposal does not have enough gov tokens");
-        
+        require(members[msg.sender].activeProposal == false, "memeber has an active proposal already");
+
+        members[msg.sender].activeProposal = true;
         proposals[totalProposalCount].fundsRequested = _funding;
         proposals[totalProposalCount].role = _role;
         proposals[totalProposalCount].proposalType = _proposalType; // 0 = funding proposal // 1 = change role // 2 = entry
@@ -172,6 +175,7 @@ contract HouseDAONFT is IHouseDAO {
         require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
         require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
 
+        members[proposals[_proposalId].proposer].activeProposal = false;
         balance = balance.sub(proposals[_proposalId].fundsRequested);
         proposals[_proposalId].executed = true;
         require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
@@ -182,6 +186,7 @@ contract HouseDAONFT is IHouseDAO {
         require(proposals[_proposalId].proposalType == 1, "proposal is not change role type");
 
         members[proposals[_proposalId].targetAddress].roles = proposals[_proposalId].role;
+        members[proposals[_proposalId].proposer].activeProposal = false;
         proposals[_proposalId].executed = true;
     }
 
@@ -191,5 +196,6 @@ contract HouseDAONFT is IHouseDAO {
         require(proposals[_proposalId].deadline >= block.timestamp);
         require(proposals[_proposalId].proposer == msg.sender);
         proposals[_proposalId].canceled = true;
+        members[proposals[_proposalId].proposer].activeProposal = false;
     }
 }
