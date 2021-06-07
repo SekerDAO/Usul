@@ -29,15 +29,12 @@ describe('houseDAOnft:', () => {
   it('house dao is initialized', async () => {
   	let wallet_1 = (await ethers.getSigners())[0]
     const { houseDAONFT, multiNFT, weth } = daoFixture
-    //expect(await multiNFT.isApprovedForAll(wallet_1.address, houseDAONFT.address)).to.equal(true)
 
     expect(await houseDAONFT.totalProposalCount()).to.equal(0)
     expect(await houseDAONFT.memberCount()).to.equal(1)
-    //expect(await houseDAONFT.tokenVault()).to.equal(wallet_1.address)
     expect(await houseDAONFT.proposalTime()).to.equal(86400)
     expect(await houseDAONFT.gracePeriod()).to.equal(259200)
     expect(await houseDAONFT.balance()).to.equal(0)
-    //expect(await houseDAONFT.nextNFTId()).to.equal(1)
     expect(await houseDAONFT.threshold()).to.equal(5)
     expect(await houseDAONFT.nftPrice()).to.equal(ethers.utils.parseEther('0.5'))
     expect(await houseDAONFT.issuanceSupply()).to.equal(0)
@@ -70,17 +67,17 @@ describe('houseDAOnft:', () => {
     await weth.connect(wallet_2).approve(houseDAONFT.address, ethers.utils.parseEther('0.5'))
     expect(await weth.balanceOf(wallet_2.address)).to.equal('500000000000000000')
     expect(await multiNFT.balanceOf(wallet_2.address)).to.equal(0)
-    //expect(await houseDAONFT.nextNFTId()).to.equal(1)
     await houseDAONFT.connect(wallet_2).contribute(["https://ipfs.io/ipfs/"])
     expect(await weth.balanceOf(wallet_2.address)).to.equal(0)
-
+    expect(await multiNFT.tokenURI(5)).to.equal("https://ipfs.io/ipfs/")
+    expect(await multiNFT.ownerOf(5)).to.equal(wallet_2.address)
+    expect(await multiNFT.ownerOf(4)).to.equal(wallet_1.address)
     expect(await multiNFT.balanceOf(wallet_2.address)).to.equal(1)
     let member = await houseDAONFT.members(wallet_2.address)
     expect(member.roles.member).to.equal(true)
     expect(member.shares).to.equal(0)
     expect(member.activeProposal).to.equal(false)
     expect(await houseDAONFT.balance()).to.equal(ethers.utils.parseEther('0.5'))
-    //expect(await houseDAONFT.nextNFTId()).to.equal(2)
     expect(await houseDAONFT.issuanceSupply()).to.equal(1)
     expect(await houseDAONFT.memberCount()).to.equal(2)
   })

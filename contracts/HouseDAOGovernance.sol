@@ -234,6 +234,7 @@ contract HouseDAOGovernance is IHouseDAO {
         proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
     }
 
+    // TODO: allow for a target erc20 so that any holdings on the dao can be sent
     function executeFundingProposal(uint _proposalId) isPassed(_proposalId) external {
         require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
         require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
