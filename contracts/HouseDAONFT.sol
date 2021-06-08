@@ -31,7 +31,6 @@ contract HouseDAONFT is IHouseDAO {
     uint public threshold;
     uint public nftPrice;
     uint public minimumProposalAmount;
-    uint public fundedProjects;
 
     address public tokenVault;
     address public ERC721Address;
@@ -185,7 +184,6 @@ contract HouseDAONFT is IHouseDAO {
         members[proposals[_proposalId].proposer].activeProposal = false;
         balance = balance.sub(proposals[_proposalId].fundsRequested);
         proposals[_proposalId].executed = true;
-        fundedProjects++;
         require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
     }
 
