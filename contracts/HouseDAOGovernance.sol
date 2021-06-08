@@ -30,6 +30,7 @@ contract HouseDAOGovernance is IHouseDAO {
     uint public totalGovernanceSupply;
     uint public remainingSupply;
     uint public entryReward;
+    uint public fundedProjects;
 
     address public governanceToken;
     address public WETH = address(0);
@@ -235,6 +236,7 @@ contract HouseDAOGovernance is IHouseDAO {
     }
 
     // TODO: allow for a target erc20 so that any holdings on the dao can be sent
+    // maybe do this in the general execution section
     function executeFundingProposal(uint _proposalId) isPassed(_proposalId) external {
         require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
         require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
@@ -242,6 +244,7 @@ contract HouseDAOGovernance is IHouseDAO {
         balance = balance.sub(proposals[_proposalId].fundsRequested);
         members[proposals[_proposalId].proposer].activeProposal = false;
         proposals[_proposalId].executed = true;
+        fundedProjects++;
         require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
     }
 
