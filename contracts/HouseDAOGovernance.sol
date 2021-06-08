@@ -30,6 +30,7 @@ contract HouseDAOGovernance is IHouseDAO {
     uint public totalGovernanceSupply;
     uint public remainingSupply;
     uint public entryReward;
+    uint public fundedProjects;
 
     address public governanceToken;
     address public WETH = address(0);
@@ -243,6 +244,7 @@ contract HouseDAOGovernance is IHouseDAO {
         balance = balance.sub(proposals[_proposalId].fundsRequested);
         members[proposals[_proposalId].proposer].activeProposal = false;
         proposals[_proposalId].executed = true;
+        fundedProjects++;
         require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
     }
 
