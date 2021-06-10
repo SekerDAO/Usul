@@ -183,7 +183,7 @@ contract HouseDAOGovernance is IHouseDAO {
     // change this, no contribution needed, use a gov token
     // if you have a gov token you get a membership
     // if you don't you can put up an entry proposal and get issued gov tokens
-    function joinDAOProposal(uint _contribution, Role memory _role) external {
+    function joinDAOProposal(uint _contribution, Role memory _role) external returns (uint) {
         require(members[msg.sender].roles.member == false, "already a member");
         require(_contribution >= entryAmount, "contribution is not higher than minimum");
         require(IERC20(WETH).balanceOf(msg.sender) >= _contribution, "proposer does not have enough weth");
@@ -200,10 +200,11 @@ contract HouseDAOGovernance is IHouseDAO {
         totalProposalCount++;
 
         require(IERC20(WETH).transferFrom(msg.sender, address(this), _contribution));
+        return totalProposalCount-1;
     }
 
     // change role, commission art, request funcing
-    function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember external {
+    function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember external returns (uint) {
         require(balance >= _funding, "more funds are request than the DAO currently has");
         require(members[msg.sender].activeProposal == false, "memeber has an active proposal already");
         require(IERC20(governanceToken).balanceOf(msg.sender) >= minimumProposalAmount, "submit proposal does not have enough gov tokens");
@@ -219,6 +220,7 @@ contract HouseDAOGovernance is IHouseDAO {
         proposals[totalProposalCount].hasVoted[msg.sender] = true;
 
         totalProposalCount++;
+        return totalProposalCount-1;
     }
 
     function submitModularProposal() public {
