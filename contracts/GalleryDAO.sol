@@ -294,7 +294,7 @@ contract GalleryDAO is IGalleryDAO, Exhibit, ERC20, DAObase {
 		//_burn();
 	}
 
-	function contributeMore() public {
+	function donate() public {
 
 	}
 

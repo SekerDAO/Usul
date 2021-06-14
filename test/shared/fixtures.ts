@@ -39,17 +39,17 @@ export async function getFixtureWithParams(
   await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
   await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
   await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
-    
+
   const houseGovContract = await ethers.getContractFactory("HouseDAOGovernance")
   const houseDAOGov = await houseGovContract.deploy(
    [wallet.address], // head of house
    govToken.address, // gov token addres
-   ethers.BigNumber.from(1000000), // min entry fee in gov tokens
+   //ethers.BigNumber.from(1000000), // min entry fee in gov tokens
    ethers.BigNumber.from(1), // number of days proposals are active
    ethers.BigNumber.from('50000000000000000000000'), // total gov tokens supplied to contract
    ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
-   ethers.BigNumber.from(0), // min proposal gov token amt
-   ethers.BigNumber.from('1000000000000000000'), // reward for entry in gov token
+   ethers.BigNumber.from('10000'), // min proposal gov token amt
+   //ethers.BigNumber.from('1000000000000000000'), // reward for entry in gov token
    weth.address
   )
   console.log('deployed House ERC20 DAO: ', houseDAOGov.address)

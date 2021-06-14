@@ -36,9 +36,9 @@ describe('houseDAOgov:', () => {
     expect(await houseDAOGov.totalContribution()).to.equal(0)
     expect(await houseDAOGov.balance()).to.equal(0)
     expect(await houseDAOGov.threshold()).to.equal('1000000000000000000')
-    expect(await houseDAOGov.entryAmount()).to.equal(1000000)
-    expect(await houseDAOGov.totalGovernanceSupply()).to.equal('50000000000000000000000')
-    expect(await houseDAOGov.remainingSupply()).to.equal('50000000000000000000000')
+    //expect(await houseDAOGov.entryAmount()).to.equal(1000000)
+    expect(await houseDAOGov.daoGovernanceSupply()).to.equal('50000000000000000000000')
+    //expect(await houseDAOGov.remainingSupply()).to.equal('50000000000000000000000')
     expect(await houseDAOGov.governanceToken()).to.equal(govToken.address)
     expect(await houseDAOGov.WETH()).to.equal(weth.address)
   })
@@ -51,15 +51,20 @@ describe('houseDAOgov:', () => {
     await weth.deposit(options)
     expect(await weth.balanceOf(wallet_1.address)).to.equal(2000000)
     await weth.approve(houseDAOGov.address, 1000000)
-    await houseDAOGov.headOfHouseEnterMember(wallet_2.address, 1000000)
+    await govToken.transfer(wallet_2.address, 10000)
+    await houseDAOGov.headOfHouseEnterMember(wallet_2.address)
+    await houseDAOGov.contribute(1000000)
 
-    expect(await govToken.balanceOf(wallet_2.address)).to.equal('1000000000000000000')
+    expect(await govToken.balanceOf(wallet_2.address)).to.equal(10000)
     let member = await houseDAOGov.members(wallet_2.address)
+    expect(member.roles.member).to.equal(true)
+    expect(member.shares).to.equal(0)
+    member = await houseDAOGov.members(wallet_1.address)
     expect(member.roles.member).to.equal(true)
     expect(member.shares).to.equal(1000000)
     expect(await houseDAOGov.balance()).to.equal(1000000)
     expect(await houseDAOGov.totalContribution()).to.equal(1000000)
-    expect(await houseDAOGov.remainingSupply()).to.equal('49999000000000000000000')
+    expect(await houseDAOGov.daoGovernanceSupply()).to.equal('50000000000000000000000')
     expect(await houseDAOGov.memberCount()).to.equal(2)
   })
 
@@ -69,21 +74,23 @@ describe('houseDAOgov:', () => {
     let options = { value: 2000000 }
     await weth.deposit(options)
     await weth.approve(houseDAOGov.address, 1000000)
-    await houseDAOGov.headOfHouseEnterMember(wallet_2.address, 1000000)
+    await govToken.transfer(wallet_2.address, 10000)
+    await houseDAOGov.headOfHouseEnterMember(wallet_2.address)
 
     await weth.connect(wallet_2).deposit(options)
     await weth.connect(wallet_2).approve(houseDAOGov.address, 1000000)
-    await houseDAOGov.connect(wallet_2).addMoreContribution(1000000)
+    await houseDAOGov.connect(wallet_2).contribute(1000000)
+    await houseDAOGov.connect(wallet_2).contribute(1000000)
 
-    expect(await govToken.balanceOf(wallet_2.address)).to.equal('1000000000000000000')
+    expect(await govToken.balanceOf(wallet_2.address)).to.equal(10000)
     let member = await houseDAOGov.members(wallet_2.address)
     expect(member.shares).to.equal(2000000)
     expect(await houseDAOGov.balance()).to.equal(2000000)
     expect(await houseDAOGov.totalContribution()).to.equal(2000000)
-    expect(await houseDAOGov.remainingSupply()).to.equal('49999000000000000000000')
+    expect(await houseDAOGov.daoGovernanceSupply()).to.equal('50000000000000000000000')
   })
 
-  it('enter a join member proposal', async () => {
+  it.only('enter a join member proposal', async () => {
     const { weth, houseDAOGov, govToken } = daoFixture
     let wallet_2 = (await ethers.getSigners())[1]
 
