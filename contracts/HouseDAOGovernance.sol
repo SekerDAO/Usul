@@ -48,7 +48,7 @@ contract HouseDAOGovernance is IHouseDAO {
     modifier isPassed(uint _proposalId) {
         require(proposals[_proposalId].canceled == false, "proposal was canceled");
         require(proposals[_proposalId].executed == false, "proposal already executed");
-        require(proposals[_proposalId].yesVotes >= threshold, "change role does not meet vote threshold");
+        require(proposals[_proposalId].yesVotes >= threshold, "proposal does not meet vote threshold");
         require(proposals[_proposalId].yesVotes >= proposals[_proposalId].noVotes, "no votes outweigh yes");
     	_;
     }
