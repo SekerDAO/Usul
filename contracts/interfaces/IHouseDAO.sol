@@ -22,6 +22,7 @@ interface IHouseDAO {
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal        
         bool executed;
+        bool queued;
         uint deadline;
         address proposer;
         bool canceled;

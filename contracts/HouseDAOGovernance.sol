@@ -19,7 +19,7 @@ contract HouseDAOGovernance is IHouseDAO {
     uint public totalProposalCount;
     uint public memberCount;
     uint public proposalTime;
-    uint public gracePeriod = 3 days;
+    uint public gracePeriod = 60 seconds; //3 days;
 
     uint public totalContribution;
     uint public balance;
@@ -32,6 +32,7 @@ contract HouseDAOGovernance is IHouseDAO {
     address public governanceToken;
     address public WETH = address(0);
 
+    // TODO: Create a role module that is updatable and programable
     modifier onlyMember {
         require(members[msg.sender].roles.member == true, "not a member");
         _;
@@ -70,7 +71,7 @@ contract HouseDAOGovernance is IHouseDAO {
         }
 
         governanceToken = _governanceToken;
-        proposalTime = _proposalTime * 1 days;
+        proposalTime = _proposalTime * 1 minutes;//days;
         threshold = _threshold;
         daoGovernanceSupply = _daoGovernanceSupply;
         minimumProposalAmount = _minimumProposalAmount;
@@ -177,6 +178,7 @@ contract HouseDAOGovernance is IHouseDAO {
 
     function joinDAOProposal(Role memory _role) external {
         require(members[msg.sender].roles.member == false, "already a member");
+        require(members[msg.sender].activeProposal == false, "memeber has an active proposal already");
         require(IERC20(governanceToken).balanceOf(msg.sender) >= minimumProposalAmount, "join dao does not have enough gov tokens");
 
         proposals[totalProposalCount].role = _role;
