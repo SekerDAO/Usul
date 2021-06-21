@@ -26,13 +26,19 @@ contract HouseDAOGovernance is IHouseDAO {
 
     uint public threshold;
     uint public minimumProposalAmount; // amount of gov tokens needed to participate
-    uint public daoGovernanceSupply;
+    //uint public daoGovernanceSupply;
     uint public fundedProjects;
 
+    address public safe;
     address public governanceToken;
     address public WETH = address(0);
 
     // TODO: Create a role module that is updatable and programable
+    modifier onlySafe {
+        require(msg.sender == safe, "not a member");
+        _;
+    }
+
     modifier onlyMember {
         require(members[msg.sender].roles.member == true, "not a member");
         _;
@@ -56,8 +62,9 @@ contract HouseDAOGovernance is IHouseDAO {
     constructor(
         address[] memory heads,
         address _governanceToken,
+        address _safe,
         uint _proposalTime,
-        uint _daoGovernanceSupply,
+        //uint _daoGovernanceSupply,
         uint _threshold,
         uint _minimumProposalAmount,
         address _weth //finance token... hard code as ether for v0
@@ -69,24 +76,24 @@ contract HouseDAOGovernance is IHouseDAO {
             members[heads[i]].roles.member = true;
             memberCount++;
         }
-
+        safe = _safe;
         governanceToken = _governanceToken;
         proposalTime = _proposalTime * 1 minutes;//days;
         threshold = _threshold;
-        daoGovernanceSupply = _daoGovernanceSupply;
+        //daoGovernanceSupply = _daoGovernanceSupply;
         minimumProposalAmount = _minimumProposalAmount;
         WETH = _weth;
     }
 
-    function init() onlyHeadOfHouse public {
+    function init(uint daoGovernanceSupply) onlyHeadOfHouse external {
         require(initialized == false, "already initialized");
         initialized = true;
         if(daoGovernanceSupply > 0) {
-            IERC20(governanceToken).transferFrom(msg.sender, address(this), daoGovernanceSupply);
+            IERC20(governanceToken).transferFrom(msg.sender, safe, daoGovernanceSupply);
         }
 	}
 
-    function vote(uint _proposalId, bool _vote) onlyMember public {
+    function vote(uint _proposalId, bool _vote) onlyMember external {
         require(proposals[_proposalId].hasVoted[msg.sender] == false, "already voted");
         require(proposals[_proposalId].canceled == false, "proposal has been canceled");
         require(proposals[_proposalId].executed == false, "proposal is already executed");
@@ -102,25 +109,29 @@ contract HouseDAOGovernance is IHouseDAO {
     }
 
     // for now allow heads of house to update threshold
-    function adminSendFunds(address _currency, uint _amount) onlyHeadOfHouse external {
-    	IERC20(_currency).transferFrom(address(this), msg.sender, _amount);
-    }
+    // this is replaced by safe owners
+    // function adminSendFunds(address _currency, uint _amount) onlyHeadOfHouse external {
+    // 	IERC20(_currency).transferFrom(address(this), msg.sender, _amount);
+    // }
 
     // for now allow heads of house to update threshold
-    function adminUpdateThreshold(uint _threshold) onlyHeadOfHouse external {
+    function updateThreshold(uint _threshold) onlySafe external {
     	threshold = _threshold;
     }
 
     // for now allow heads of house to update minimumProposalAmount
-    function adminUpdateMinimumProposalAmount(uint _minimumProposalAmount) onlyHeadOfHouse external {
+    function updateMinimumProposalAmount(uint _minimumProposalAmount) onlySafe external {
     	minimumProposalAmount = _minimumProposalAmount;
     }
 
-    function sendNFT(address _nftAddress, uint _nftId, address _recipient) onlyHeadOfHouse public {
-        require(_nftAddress != address(0), "nft address is zero");
-        require(_recipient != address(0), "_recipient is address zero");
-        IERC721(_nftAddress).safeTransferFrom(address(this), _recipient, _nftId);
-    }
+    // safe now owns the nfts, call xfers through proposal data or msig owners
+    // function sendNFT(address _nftAddress, uint _nftId, address _recipient) onlyHeadOfHouse public {
+    //     require(_nftAddress != address(0), "nft address is zero");
+    //     require(_recipient != address(0), "_recipient is address zero");
+    //     //IERC721(_nftAddress).safeTransferFrom(address(this), _recipient, _nftId);
+    //     // TODO: craft call data for only nft xfer here
+    //     require(executor.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
+    // }
 
     // make this the easy multisig version, split out
     function headOfHouseEnterMember(address _member) onlyHeadOfHouse external {
@@ -136,18 +147,20 @@ contract HouseDAOGovernance is IHouseDAO {
 	// 	entryAmount = _amount;
 	// }
 
-    function addGovernanceTokens(uint _amount) external {
-        require(IERC20(governanceToken).balanceOf(msg.sender) >= _amount, "member does not have enough gov tokens");
-        daoGovernanceSupply = daoGovernanceSupply.add(_amount);
-        require(IERC20(governanceToken).transferFrom(msg.sender, address(this), _amount));
-    }
+    // all tokens are on msig
+    // call balanceOf(msig.address) = daoGovernanceSupply
+    // function addGovernanceTokens(uint _amount) external {
+    //     require(IERC20(governanceToken).balanceOf(msg.sender) >= _amount, "member does not have enough gov tokens");
+    //     daoGovernanceSupply = daoGovernanceSupply.add(_amount);
+    //     require(IERC20(governanceToken).transferFrom(msg.sender, address(this), _amount));
+    // }
 
     function contribute(uint _contribution) onlyMember external {
         require(IERC20(WETH).balanceOf(msg.sender) >= _contribution, "member does not have enough weth");
         members[msg.sender].shares = members[msg.sender].shares.add(_contribution);
         totalContribution = totalContribution.add(_contribution);
         balance = balance.add(_contribution);
-        require(IERC20(WETH).transferFrom(msg.sender, address(this), _contribution));
+        require(IERC20(WETH).transferFrom(msg.sender, safe, _contribution));
     }
 
     // TODO: consider only allowing withdraw durinb grace period and if they did a no vote
@@ -173,7 +186,9 @@ contract HouseDAOGovernance is IHouseDAO {
         // update the balance left
         balance = balance.sub(_withdrawalAmount);
         // send funds
-        require(IERC20(WETH).transfer(msg.sender, _withdrawalAmount));
+        //require(IERC20(WETH).transfer(msg.sender, _withdrawalAmount));
+        // TODO: craft an erc20 transfer from safe
+         require(safe.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
     }
 
     function joinDAOProposal(Role memory _role) external {
@@ -215,6 +230,7 @@ contract HouseDAOGovernance is IHouseDAO {
 
     function submitModularProposal() public {
         // TODO
+        // store calldata for tx to be executed
     }
 
 
@@ -235,7 +251,9 @@ contract HouseDAOGovernance is IHouseDAO {
         members[proposals[_proposalId].proposer].activeProposal = false;
         proposals[_proposalId].executed = true;
         fundedProjects++;
-        require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
+        //require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
+        // todo craft call to safe from proposal data
+        require(safe.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
     }
 
     //TODO: combine common requires to a modifier
@@ -256,6 +274,16 @@ contract HouseDAOGovernance is IHouseDAO {
         memberCount++;
     }
 
+    function executeProposal(uint _proposalId) isPassed(_proposalId) external {
+        require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
+        require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
+        members[proposals[_proposalId].proposer].activeProposal = false;
+        proposals[_proposalId].executed = true;
+        // todo craft call to safe from proposal data
+        require(safe.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
+    }
+
+
     // actions
     function cancelEnterDAO(uint _proposalId) external {
         require(proposals[_proposalId].canceled == false, "join dao is already canceled");
@@ -264,6 +292,7 @@ contract HouseDAOGovernance is IHouseDAO {
         members[proposals[_proposalId].proposer].activeProposal = false;
     }
 
+    // TODO MSig can veto 
     function cancelProposal(uint _proposalId) external {
         require(proposals[_proposalId].canceled == false);
         require(proposals[_proposalId].executed == false);
