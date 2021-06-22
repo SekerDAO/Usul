@@ -51,6 +51,7 @@ contract HouseDAOGovernance is IHouseDAO {
     }
 
     event ProposalCreated(uint number);
+    event GracePeriodStarted(uint endDate);
 
     constructor(
         address[] memory heads,
@@ -222,13 +223,22 @@ contract HouseDAOGovernance is IHouseDAO {
         require(proposals[_proposalId].gracePeriod == 0, "proposal already entered grace period");
         require(proposals[_proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
         proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
+        emit GracePeriodStarted(proposals[_proposalId].gracePeriod);
+    }
+
+    function startRoleProposalGracePeriod(uint _proposalId) isPassed(_proposalId) external {
+        require(proposals[_proposalId].proposalType == 1 || proposals[_proposalId].proposalType == 2, "proposal is not a role type");
+        require(proposals[_proposalId].gracePeriod == 0, "proposal already entered grace period");
+        require(proposals[_proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
+        proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
+        emit GracePeriodStarted(proposals[_proposalId].gracePeriod);
     }
 
     // TODO: allow for a target erc20 so that any holdings on the dao can be sent
     // maybe do this in the general execution section
     function executeFundingProposal(uint _proposalId) isPassed(_proposalId) external {
         require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
-        require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
+        require(block.timestamp >= proposals[_proposalId].gracePeriod && proposals[_proposalId].gracePeriod != 0, "grace period has not elapsed");
         balance = balance.sub(proposals[_proposalId].fundsRequested);
         members[proposals[_proposalId].proposer].activeProposal = false;
         proposals[_proposalId].executed = true;
@@ -239,7 +249,7 @@ contract HouseDAOGovernance is IHouseDAO {
     //TODO: combine common requires to a modifier
     function executeChangeRoleProposal(uint _proposalId) isPassed(_proposalId) external {
         require(proposals[_proposalId].proposalType == 1, "proposal is not change role type");
-        require(proposals[_proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
+        require(block.timestamp >= proposals[_proposalId].gracePeriod && proposals[_proposalId].gracePeriod != 0, "grace period has not elapsed");
         members[proposals[_proposalId].targetAddress].roles = proposals[_proposalId].role;
         members[proposals[_proposalId].proposer].activeProposal = false;
         proposals[_proposalId].executed = true;
@@ -247,7 +257,7 @@ contract HouseDAOGovernance is IHouseDAO {
 
     function executeEnterDAOProposal(uint _proposalId) isPassed(_proposalId) external {
         require(proposals[_proposalId].proposalType == 2, "proposal is not enter dao type");
-        require(proposals[_proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
+        require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
         members[proposals[_proposalId].proposer].roles.member = true;
         proposals[_proposalId].executed = true;
         members[proposals[_proposalId].proposer].activeProposal = false;
