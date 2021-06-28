@@ -163,33 +163,33 @@ contract HouseDAOGovernance is IHouseDAO {
         require(IERC20(WETH).transferFrom(msg.sender, safe, _contribution));
     }
 
-    // TODO: consider only allowing withdraw durinb grace period and if they did a no vote
-    function withdraw() onlyMember external {
-        require(members[msg.sender].shares > 0, "no member contribution to withdraw");
-        require(balance > 0, "nothing to withdraw");
+    // // TODO: consider only allowing withdraw durinb grace period and if they did a no vote
+    // function withdraw() onlyMember external {
+    //     require(members[msg.sender].shares > 0, "no member contribution to withdraw");
+    //     require(balance > 0, "nothing to withdraw");
 
-        // todo: watch overflow here, work on precision 
-        uint _withdrawalPercent = members[msg.sender].shares.mul(balance);
-        uint _withdrawalAmount = _withdrawalPercent.div(totalContribution);
+    //     // todo: watch overflow here, work on precision 
+    //     uint _withdrawalPercent = members[msg.sender].shares.mul(balance);
+    //     uint _withdrawalAmount = _withdrawalPercent.div(totalContribution);
 
-        // limited withdraw to user contribution. I think the math makes this always true
-        // if(_withdrawalAmount > members[msg.sender].shares){
-        // 	_withdrawalAmount = members[msg.sender].shares;
-        // }
+    //     // limited withdraw to user contribution. I think the math makes this always true
+    //     // if(_withdrawalAmount > members[msg.sender].shares){
+    //     // 	_withdrawalAmount = members[msg.sender].shares;
+    //     // }
 
-        // remove contribution percent from totalContribution
-        totalContribution = totalContribution.sub(members[msg.sender].shares);
-        // remove amount from member
-        members[msg.sender].shares = 0;
-        members[msg.sender].roles.member = false;
-        members[msg.sender].roles.headOfHouse = false;
-        // update the balance left
-        balance = balance.sub(_withdrawalAmount);
-        // send funds
-        //require(IERC20(WETH).transfer(msg.sender, _withdrawalAmount));
-        // TODO: craft an erc20 transfer from safe
-         require(safe.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
-    }
+    //     // remove contribution percent from totalContribution
+    //     totalContribution = totalContribution.sub(members[msg.sender].shares);
+    //     // remove amount from member
+    //     members[msg.sender].shares = 0;
+    //     members[msg.sender].roles.member = false;
+    //     members[msg.sender].roles.headOfHouse = false;
+    //     // update the balance left
+    //     balance = balance.sub(_withdrawalAmount);
+    //     // send funds
+    //     //require(IERC20(WETH).transfer(msg.sender, _withdrawalAmount));
+    //     // TODO: craft an erc20 transfer from safe
+    //     require(safe.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
+    // }
 
     function joinDAOProposal(Role memory _role) external {
         require(members[msg.sender].roles.member == false, "already a member");
@@ -253,7 +253,7 @@ contract HouseDAOGovernance is IHouseDAO {
         fundedProjects++;
         //require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
         // todo craft call to safe from proposal data
-        require(safe.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
+        //require(safe.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
     }
 
     //TODO: combine common requires to a modifier
@@ -280,7 +280,7 @@ contract HouseDAOGovernance is IHouseDAO {
         members[proposals[_proposalId].proposer].activeProposal = false;
         proposals[_proposalId].executed = true;
         // todo craft call to safe from proposal data
-        require(safe.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
+        //require(safe.execTransactionFromModule(to, value, data, operation), "Module transaction failed");
     }
 
 
