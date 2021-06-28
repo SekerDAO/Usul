@@ -22,10 +22,9 @@ contract HouseDAONFT is IHouseDAO {
     uint public totalProposalCount;
     uint public memberCount;
     uint public proposalTime;
-    uint public gracePeriod = 3 days;
+    uint public gracePeriod = 3 minutes;
 
     uint public balance;
-    //uint public nextNFTId;
     uint public issuanceSupply;
 
     uint public threshold;
@@ -36,6 +35,9 @@ contract HouseDAONFT is IHouseDAO {
     address public tokenVault;
     address public ERC721Address;
     address public WETH;
+
+    event GracePeriodStarted(uint endDate);
+    event ProposalCreated(uint number);
 
     modifier onlyMember {
         require(members[msg.sender].roles.member == true, "not a member");
@@ -59,11 +61,9 @@ contract HouseDAONFT is IHouseDAO {
         address[] memory heads,
         address _ERC721Address,
         //address _tokenVault, // refactor to a mint on demand method
-        //uint _tokenIdStartIndex, // remove
         uint _proposalTime,
         uint _threshold,
         uint _minimumProposalAmount,
-        //uint _issuanceSupply, // delete... make uncapped
         address _weth,
         uint _price
     ) {
@@ -76,15 +76,11 @@ contract HouseDAONFT is IHouseDAO {
         }
 
         ERC721Address = _ERC721Address;
-        proposalTime = _proposalTime * 1 days;
+        proposalTime = _proposalTime * 1 minutes;
         threshold = _threshold;
         minimumProposalAmount = _minimumProposalAmount;
         WETH = _weth;
         nftPrice = _price;
-        //tokenVault = _tokenVault;
-        //nextNFTId = 1;
-        //issuanceSupply = _issuanceSupply;
-        // entrynumber
     }
 
 	function nftMembershipEntry() public {
@@ -97,7 +93,6 @@ contract HouseDAONFT is IHouseDAO {
 	}
 
 	function contribute(string[] memory _uri) public {
-		//require(issuanceSupply > 0, "there are no more tokens to issue");
         require(IERC20(WETH).balanceOf(msg.sender) >= nftPrice, "sender does not have enough weth for nft");
         require(members[msg.sender].roles.member == false, "contributor is already a member");
         members[msg.sender].roles.member = true;
@@ -105,10 +100,7 @@ contract HouseDAONFT is IHouseDAO {
         memberCount++;
         issuanceSupply++;
         IERC20(WETH).transferFrom(msg.sender, address(this), nftPrice);
-        // string[] memory _uri;
-        // _uri[0] = nftURI;
     	IMultiArtToken(ERC721Address).mintEdition(_uri, 1, msg.sender);
-        //nextNFTId++;
 	}
 
 	// this is non refundable
@@ -124,14 +116,6 @@ contract HouseDAONFT is IHouseDAO {
 		require(_entryToken != address(0));
 		ERC721Address = _entryToken;
 	}
-
-	// make nft and erc20 version different contracts
-	// function headOfhouseIncreaseERC721Supply(uint _amount, uint _tokenIdStartIndex) onlyHeadOfHouse public {
-	// 	require(_amount > 0, "increase totalSupply to issue must be greater than 0");
-	// 	require(_tokenIdStartIndex > nextNFTId, "start index is not past last nft id issued, issue the remaining ids");
-	// 	issuanceSupply += _amount;
-	// 	nextNFTId = _tokenIdStartIndex;
-	// }
 
 	// head of house change price?
 
@@ -167,6 +151,7 @@ contract HouseDAONFT is IHouseDAO {
         proposals[totalProposalCount].hasVoted[msg.sender] = true;
 
         totalProposalCount++;
+        emit ProposalCreated(totalProposalCount-1);
     }
 
     // Execute proposals
@@ -176,11 +161,20 @@ contract HouseDAONFT is IHouseDAO {
         require(proposals[_proposalId].gracePeriod == 0, "proposal already entered grace period");
 		
         proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
+        emit GracePeriodStarted(proposals[_proposalId].gracePeriod);
+    }
+
+    function startRoleProposalGracePeriod(uint _proposalId) isPassed(_proposalId) external {
+        require(proposals[_proposalId].proposalType == 1 || proposals[_proposalId].proposalType == 2, "proposal is not a role type");
+        require(proposals[_proposalId].gracePeriod == 0, "proposal already entered grace period");
+        require(proposals[_proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
+        proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
+        emit GracePeriodStarted(proposals[_proposalId].gracePeriod);
     }
 
     function executeFundingProposal(uint _proposalId) isPassed(_proposalId) external {
         require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
-        require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
+        require(block.timestamp >= proposals[_proposalId].gracePeriod && proposals[_proposalId].gracePeriod != 0, "grace period has not elapsed");
 
         members[proposals[_proposalId].proposer].activeProposal = false;
         balance = balance.sub(proposals[_proposalId].fundsRequested);
@@ -192,7 +186,7 @@ contract HouseDAONFT is IHouseDAO {
     //TODO: combine common requires to a modifier
     function executeChangeRoleProposal(uint _proposalId) isPassed(_proposalId) external {
         require(proposals[_proposalId].proposalType == 1, "proposal is not change role type");
-
+        require(block.timestamp >= proposals[_proposalId].gracePeriod && proposals[_proposalId].gracePeriod != 0, "grace period has not elapsed");
         members[proposals[_proposalId].targetAddress].roles = proposals[_proposalId].role;
         members[proposals[_proposalId].proposer].activeProposal = false;
         proposals[_proposalId].executed = true;
