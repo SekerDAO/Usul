@@ -19,7 +19,7 @@ contract HouseDAOGovernance is IHouseDAO {
     uint public totalProposalCount;
     uint public memberCount;
     uint public proposalTime;
-    uint public gracePeriod = 3 days;
+    uint public gracePeriod = 3 minutes;
 
     uint public totalContribution;
     uint public balance;
@@ -71,7 +71,7 @@ contract HouseDAOGovernance is IHouseDAO {
         }
 
         governanceToken = _governanceToken;
-        proposalTime = _proposalTime * 1 days;
+        proposalTime = _proposalTime * 1 minutes;
         threshold = _threshold;
         daoGovernanceSupply = _daoGovernanceSupply;
         minimumProposalAmount = _minimumProposalAmount;
