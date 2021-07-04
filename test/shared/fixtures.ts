@@ -1,14 +1,16 @@
-import WETH from '../../artifacts/contracts/test/WETH9.sol/WETH9.json'
-import GovernanceToken from '../../artifacts/contracts/common/GovernanceToken.sol/GovernanceToken.json'
-import HouseDAOGov from '../../artifacts/contracts/HouseDAOGovernance.sol/HouseDAOGovernance.json'
-import HouseDAONFT from '../../artifacts/contracts/HouseDAONFT.sol/HouseDAONFT.json'
-import MultiNFT from '../../artifacts/contracts/test/NFT.sol/MultiArtToken.json'
-import Safe from '../../artifacts/contracts/test/SafeFixture.sol/SafeFixture.json'
-import ProxyFactory from '../../artifacts/contracts/test/safe/proxies/GnosisSafeProxyFactory.sol/GnosisSafeProxyFactory.json'
+//import WETH from '../../artifacts/contracts/test/WETH9.sol/WETH9.json'
+//import GovernanceToken from '../../artifacts/contracts/common/GovernanceToken.sol/GovernanceToken.json'
+//import HouseDAOGov from '../../artifacts/contracts/HouseDAOGovernance.sol/HouseDAOGovernance.json'
+//import HouseDAONFT from '../../artifacts/contracts/HouseDAONFT.sol/HouseDAONFT.json'
+//import MultiNFT from '../../artifacts/contracts/test/NFT.sol/MultiArtToken.json'
+//import Safe from '../../artifacts/contracts/test/SafeFixture.sol/SafeFixture.json'
+//import GnosisSafe from '../../artifacts/contracts/test/safe/GnosisSafeL2.sol/GnosisSafeL2.json'
+//import ProxyFactory from '../../artifacts/contracts/test/safe/proxies/GnosisSafeProxyFactory.sol/GnosisSafeProxyFactory.json'
 
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
-import "@nomiclabs/hardhat-ethers";
-import { ethers, upgrades } from 'hardhat'
+//import "@nomiclabs/hardhat-ethers";
+import { AddressZero } from "@ethersproject/constants";
+import hre, { ethers, upgrades, deployments, waffle } from 'hardhat'
 import { deployContract } from 'ethereum-waffle'
 import { Contract } from 'ethers'
 
@@ -84,32 +86,43 @@ export async function getFixtureWithParams(
   // console.log('house nft dao is initialized')
 
 
-  const safeContract = await ethers.getContractFactory("SafeFixture")
-  const FactoryContract = await ethers.getContractFactory("GnosisSafeProxyFactory")
-  const ProxyContract = await ethers.getContractFactory("GnosisSafeProxy")
-  const factory = await FactoryContract.deploy()
+  //const safeContract = await hre.ethers.getContractFactory("SafeFixture")
+  const GnosisSafeL2 = await hre.ethers.getContractFactory("@gnosis.pm/safe-contracts/contracts/GnosisSafeL2.sol:GnosisSafeL2")
+  const FactoryContract = await hre.ethers.getContractFactory("GnosisSafeProxyFactory")
+  //const ProxyContract = await ethers.getContractFactory("GnosisSafeProxy")
   //const safe = await safeContract.deploy()
-  const safeABI = ["function setup(address[] _owners, uint256 _threshold, address to, bytes data, address fallbackHandler, address paymentToken, uint256 payment, address paymentReceiver)"]
-  const iface = new ethers.utils.Interface(safeABI);
+  //const safeABI = ["function setup(address[] _owners, uint256 _threshold, address to, bytes data, address fallbackHandler, address paymentToken, uint256 payment, address paymentReceiver)"]
+  //const iface = new ethers.utils.Interface(safeABI);
 
-  let owner1SafeData = await iface.encodeFunctionData(
-      "setup",
-      [[wallet.address], 1, wallet.address, "0x", wallet.address, wallet.address, 0, wallet.address]
-  )
+  // let owner1SafeData = await iface.encodeFunctionData(
+  //     "setup",
+  //     [[wallet.address], 1, wallet.address, "0x", wallet.address, wallet.address, 0, wallet.address]
+  // )
 
-  const safe = await upgrades.deployProxy(safeContract, [owner1SafeData], {initializer: 'setup'})
+  //const safe = await safeContract.deploy()
+  const singleton = await GnosisSafeL2.deploy()
+  const factory = await FactoryContract.deploy()
+  const template = await factory.callStatic.createProxy(singleton.address, "0x")
+  await factory.createProxy(singleton.address, "0x").then((tx: any) => tx.wait())
+  const safe = GnosisSafeL2.attach(template);
+  safe.setup([wallet.address], 1, AddressZero, "0x", AddressZero, AddressZero, 0, AddressZero)
 
-  let tx = await factory.createProxy(safe.address, owner1SafeData)
-  let receipt = await tx.wait()
-  let event = receipt.events?.filter((x: any) => {return x.event == "ProxyCreation"})
-  let proxyAddress = event[0].args[0]
-  console.log(proxyAddress)
-  const proxy = await ProxyContract.attach(proxyAddress)
-  console.log(safe.deployTransaction.gasLimit.toString())
-  console.log('deployed Gnosis Safe: ', safe.address)
-  console.log(proxy)
-  let ownerCount = await proxy.nonce()
-  console.log(ownerCount)
+  //let tx = await factory.callStatic.createProxy(safe.address, owner1SafeData)
+
+    // await factory.createProxy(singleton.address, "0x").then((tx: any) => tx.wait())
+    // const Safe = await hre.ethers.getContractFactory(safeContractUnderTest());
+    // return Safe.attach(template);
+
+  // let receipt = await tx.wait()
+  // let event = receipt.events?.filter((x: any) => {return x.event == "ProxyCreation"})
+  // let proxyAddress = event[0].args[0]
+  // console.log(proxyAddress)
+  // const proxy = await ProxyContract.attach(proxyAddress)
+  // console.log(safe.deployTransaction.gasLimit.toString())
+  // console.log('deployed Gnosis Safe: ', safe.address)
+  // console.log(proxy)
+  // let ownerCount = await proxy.nonce()
+  // console.log(ownerCount)
   console.log("Gnosis Safe is setup")
 
   return {
@@ -119,6 +132,6 @@ export async function getFixtureWithParams(
     multiNFT,
     govToken,
     safe,
-    proxy
+    factory
   }
 }

@@ -17,9 +17,6 @@ let wallet: SignerWithAddress
 // - figure out how to get expect reverts working
 
 describe('houseDAOnft:', () => {
-  // async function createToken(totalSupply: BigNumber) {
-  //   const { artToken } = tokenFixture
-  // }
 
   beforeEach(async function () {
     wallet = (await ethers.getSigners())[0]
@@ -30,16 +27,11 @@ describe('houseDAOnft:', () => {
   	let wallet_1 = (await ethers.getSigners())[0]
     const { safe } = daoFixture
 
-    // expect(await houseDAONFT.totalProposalCount()).to.equal(0)
-    // expect(await houseDAONFT.memberCount()).to.equal(1)
-    // expect(await houseDAONFT.proposalTime()).to.equal(86400)
-    // expect(await houseDAONFT.gracePeriod()).to.equal(259200)
-    // expect(await houseDAONFT.balance()).to.equal(0)
-    // expect(await houseDAONFT.threshold()).to.equal(5)
-    // expect(await houseDAONFT.nftPrice()).to.equal(ethers.utils.parseEther('0.5'))
-    // expect(await houseDAONFT.issuanceSupply()).to.equal(0)
-    // expect(await houseDAONFT.minimumProposalAmount()).to.equal(1)
-    // expect(await houseDAONFT.ERC721Address()).to.equal(multiNFT.address)
-    // expect(await houseDAONFT.WETH()).to.equal(weth.address)
+    const owners = await safe.getOwners()
+    const version = await safe.VERSION()
+    console.log(version)
+    console.log(wallet.address)
+    console.log(owners)
+    console.log(safe.address)
   })
 })
