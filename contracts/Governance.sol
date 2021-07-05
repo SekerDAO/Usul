@@ -220,7 +220,12 @@ contract Governance is IDAO {
     }
 
     // change role, commission art, request funding
-    function submitProposal(Role memory _role, address _recipient, uint _funding, uint8 _proposalType) onlyMember external {
+    function submitProposal(
+        Role memory _role,
+        address _recipient,
+        uint _funding,
+        uint8 _proposalType
+    ) onlyMember external {
         require(balance >= _funding, "more funds are request than the DAO currently has");
         require(members[msg.sender].activeProposal == false, "memeber has an active proposal already");
         require(IERC20(governanceToken).balanceOf(msg.sender) >= minimumProposalAmount, "submit proposal does not have enough gov tokens");
@@ -242,8 +247,8 @@ contract Governance is IDAO {
     function submitModularProposal(
         address _to,
         uint256 _value,
-        bytes memory _data,
-        Enum.Operation _operation
+        bytes memory _data
+        //Enum.Operation _operation
     ) public {
         // store calldata for tx to be executed
         members[msg.sender].activeProposal = true;
@@ -255,7 +260,7 @@ contract Governance is IDAO {
         proposals[totalProposalCount].hasVoted[msg.sender] = true;
         proposals[totalProposalCount].targetAddress = _to; // can switch target to contract and provide call data
         proposals[totalProposalCount].data = _data;
-        proposals[totalProposalCount].operation = _operation;
+        proposals[totalProposalCount].operation = Enum.Operation.Call;
 
         totalProposalCount++;
         emit ProposalCreated(totalProposalCount-1);

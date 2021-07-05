@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 import { ethers, network, waffle } from 'hardhat'
 import { DAOFixture, getFixtureWithParams } from './shared/fixtures'
-import { executeContractCallWithSigners } from './shared/utils'
+import { executeContractCallWithSigners, buildContractCall  } from './shared/utils'
 import { keccak256 } from 'ethereumjs-util'
 import { defaultSender, provider, web3, contract } from '@openzeppelin/test-environment';
 
@@ -50,7 +50,7 @@ describe('houseDAOnft:', () => {
     console.log(owners)
   })
 
-  it.only('gnosis safe enable gov module', async () => {
+  it('gnosis safe enable gov module', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
     const { safe, DAOGov } = daoFixture
@@ -59,5 +59,32 @@ describe('houseDAOnft:', () => {
     console.log(owners)
     //await safe.addOwnerWithThreshold(wallet_2.address, 1)
     await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
+  })
+
+  it.only('gnosis safe update owner proposal', async () => {
+    let wallet_1 = (await ethers.getSigners())[0]
+    let wallet_2 = (await ethers.getSigners())[1]
+    const { safe, DAOGov } = daoFixture
+
+    let owners = await safe.getOwners()
+    console.log(owners)
+    //await safe.addOwnerWithThreshold(wallet_2.address, 1)
+    await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
+    // build transaction to update owner on safe module for proposal
+    let test = buildContractCall(safe, "addOwnerWithThreshold", [user2.address, 1], await safe.nonce())
+    //console.log(test)
+    await DAOGov.submitModularProposal(safe.address, 0, test.data)
+    await network.provider.send("evm_increaseTime", [60])
+    await DAOGov.startModularGracePeriod(0)
+    await network.provider.send("evm_increaseTime", [60])
+    await DAOGov.executeModularProposal(0)
+    let proposal = await DAOGov.proposals(0)
+    //console.log(proposal)
+    owners = await safe.getOwners()
+    console.log(owners)
+    let thresh = await DAOGov.threshold()
+    console.log(thresh.toString())
+    let test2 = buildContractCall(DAOGov, "updateThreshold", [10000], await safe.nonce())
+    //console.log(test2)
   })
 })
