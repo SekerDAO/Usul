@@ -16,7 +16,7 @@ import { Contract } from 'ethers'
 
 export interface DAOFixture {
   weth: Contract,
-  houseDAOGov: Contract,
+  DAOGov: Contract,
   houseDAONFT: Contract,
   multiNFT: Contract,
   govToken: Contract,
@@ -48,23 +48,6 @@ export async function getFixtureWithParams(
   await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
   await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
   await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
-
-  // const houseGovContract = await ethers.getContractFactory("HouseDAOGovernance")
-  const houseDAOGov = await wethContract.deploy()
-  // const houseDAOGov = await houseGovContract.deploy(
-  //  [wallet.address], // head of house
-  //  govToken.address, // gov token addres
-  //  //ethers.BigNumber.from(1000000), // min entry fee in gov tokens
-  //  ethers.BigNumber.from(1), // number of days proposals are active
-  //  ethers.BigNumber.from('50000000000000000000000'), // total gov tokens supplied to contract
-  //  ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
-  //  ethers.BigNumber.from('10000'), // min proposal gov token amt
-  //  //ethers.BigNumber.from('1000000000000000000'), // reward for entry in gov token
-  //  weth.address
-  // )
-  // console.log('deployed House ERC20 DAO: ', houseDAOGov.address)
-  // await govToken.approve(houseDAOGov.address, ethers.BigNumber.from('50000000000000000000000'))
-  // await houseDAOGov.init()
 
   // const houseNFTContract = await ethers.getContractFactory("HouseDAONFT")
   const houseDAONFT = await wethContract.deploy()
@@ -125,9 +108,23 @@ export async function getFixtureWithParams(
   // console.log(ownerCount)
   console.log("Gnosis Safe is setup")
 
+  const daoGovContract = await ethers.getContractFactory("Governance")
+  const DAOGov = await daoGovContract.deploy(
+    [wallet.address], // head of house
+    govToken.address, // gov token addres
+    safe.address,
+    ethers.BigNumber.from(1), // number of days proposals are active
+    ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
+    ethers.BigNumber.from('10000'), // min proposal gov token amt
+    weth.address
+  )
+  console.log('deployed House ERC20 DAO: ', DAOGov.address)
+  await govToken.transfer(safe.address, ethers.BigNumber.from('50000000000000000000000'))
+  // await houseDAOGov.init()
+
   return {
     weth,
-    houseDAOGov,
+    DAOGov,
     houseDAONFT,
     multiNFT,
     govToken,

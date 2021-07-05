@@ -2,7 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-interface IHouseDAO {
+import "../common/Enum.sol";
+
+interface IDAO {
 	struct Role {
 		bool headOfHouse;
 		bool member;
@@ -17,7 +19,6 @@ interface IHouseDAO {
     struct Proposal {
     	uint256 fundsRequested;
     	uint8 proposalType; // 0 = funding proposal // 1 = commission art etc
-    	address targetAddress;
         Role role; // role change proposed
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal        
@@ -28,5 +29,8 @@ interface IHouseDAO {
         bool canceled;
         uint gracePeriod;
         mapping(address => bool) hasVoted;
+        address targetAddress;
+        bytes data;
+        Enum.Operation operation;
     }
 }

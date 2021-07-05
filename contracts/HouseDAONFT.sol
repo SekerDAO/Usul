@@ -5,13 +5,13 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
-import './interfaces/IHouseDAO.sol';
+import './interfaces/IDAO.sol';
 
 interface IMultiArtToken {
     function mintEdition(string[] memory _tokenURI, uint _editionNumbers, address _to) external;
 }
 
-contract HouseDAONFT is IHouseDAO {
+contract HouseDAONFT is IDAO {
 	using SafeMath for uint;
 
     string public name;

@@ -53,11 +53,11 @@ describe('houseDAOnft:', () => {
   it.only('gnosis safe enable gov module', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
-    const { safe, houseDAOGov } = daoFixture
+    const { safe, DAOGov } = daoFixture
 
     let owners = await safe.getOwners()
     console.log(owners)
     //await safe.addOwnerWithThreshold(wallet_2.address, 1)
-    await executeContractCallWithSigners(safe, safe, "enableModule", [houseDAOGov.address], [user1])
+    await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
   })
 })

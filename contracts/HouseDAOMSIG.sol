@@ -5,9 +5,9 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
-import './interfaces/IHouseDAO.sol';
+import './interfaces/IDAO.sol';
 
-contract HouseDAOMSIG is IHouseDAO {
+contract HouseDAOMSIG is IDAO {
 	using SafeMath for uint;
 
 	mapping(address => Member) private members;
