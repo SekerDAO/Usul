@@ -11,7 +11,7 @@ interface IMultiArtToken {
     function mintEdition(string[] memory _tokenURI, uint _editionNumbers, address _to) external;
 }
 
-contract HouseDAONFT is IDAO {
+contract NFTGovernance is IDAO {
 	using SafeMath for uint;
 
     string public name;
@@ -157,7 +157,7 @@ contract HouseDAONFT is IDAO {
         require(members[msg.sender].activeProposal == false, "memeber has an active proposal already");
 
         members[msg.sender].activeProposal = true;
-        proposals[totalProposalCount].fundsRequested = _funding;
+        proposals[totalProposalCount].value = _funding;
         proposals[totalProposalCount].role = _role;
         proposals[totalProposalCount].proposalType = _proposalType; // 0 = funding proposal // 1 = change role // 2 = entry
         proposals[totalProposalCount].yesVotes = IERC721(ERC721Address).balanceOf(msg.sender);    
@@ -179,14 +179,14 @@ contract HouseDAONFT is IDAO {
     }
 
     function executeFundingProposal(uint _proposalId) isPassed(_proposalId) external {
-        require(balance >= proposals[_proposalId].fundsRequested, "not enough funds on the DAO to finalize");
+        require(balance >= proposals[_proposalId].value, "not enough funds on the DAO to finalize");
         require(block.timestamp >= proposals[_proposalId].gracePeriod, "grace period has not elapsed");
 
         members[proposals[_proposalId].proposer].activeProposal = false;
-        balance = balance.sub(proposals[_proposalId].fundsRequested);
+        balance = balance.sub(proposals[_proposalId].value);
         proposals[_proposalId].executed = true;
         fundedProjects++;
-        require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].fundsRequested));
+        require(IERC20(WETH).transferFrom(address(this), proposals[_proposalId].targetAddress, proposals[_proposalId].value));
     }
 
     //TODO: combine common requires to a modifier

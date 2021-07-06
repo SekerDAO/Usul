@@ -14,3 +14,15 @@ something's happening here i think
 - Governance Module
 - safe.executeContractCallWithSigners(safe, safe, "registerModule", [Governance.address])
 ``` 
+
+## DAO
+
+### DAO Executable Examples
+```
+- Send NFT
+- Send Any ERC20 Tokens
+- Mint Governance Tokens
+- Update Voting Threshold
+- Update Minimum Proposal Amount
+- Update Roles
+```

@@ -68,8 +68,12 @@ describe('houseDAOnft:', () => {
 
     let owners = await safe.getOwners()
     console.log(owners)
+    let nonce = await safe.nonce()
+    console.log(nonce)
     //await safe.addOwnerWithThreshold(wallet_2.address, 1)
     await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
+    nonce = await safe.nonce()
+    console.log(nonce)
     // build transaction to update owner on safe module for proposal
     let test = buildContractCall(safe, "addOwnerWithThreshold", [user2.address, 1], await safe.nonce())
     await DAOGov.submitModularProposal(safe.address, 0, test.data)
@@ -93,5 +97,7 @@ describe('houseDAOnft:', () => {
     await DAOGov.executeModularProposal(1)
     thresh = await DAOGov.threshold()
     console.log(thresh.toString())
+    nonce = await safe.nonce()
+    console.log(nonce)
   })
 })

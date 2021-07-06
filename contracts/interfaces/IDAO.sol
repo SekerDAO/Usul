@@ -11,13 +11,12 @@ interface IDAO {
 	}
 
     struct Member {
-        uint256 shares; // the # of voting shares assigned to this member
         Role roles;
         bool activeProposal;
     }
 
     struct Proposal {
-    	uint256 fundsRequested;
+    	uint256 value;
     	uint8 proposalType; // 0 = funding proposal // 1 = commission art etc
         Role role; // role change proposed
         uint256 yesVotes; // the total number of YES votes for this proposal
