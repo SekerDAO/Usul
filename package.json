@@ -1,7 +1,6 @@
 {
-  "name": "gallery-dao",
+  "name": "@tokenwalk/governance-module",
   "version": "1.0.0",
-  "description": "something's happening here i think",
   "main": "index.js",
   "scripts": {
     "lint": "yarn prettier ./test/*.ts --check",
@@ -43,7 +42,8 @@
     "hardhat-deploy": "^0.7.5",
     "solidity-coverage": "^0.7.16",
     "ts-node": "9.0.0",
-    "typescript": "^4.2.3"
+    "typescript": "^4.2.3",
+    "@zoralabs/auction-house": "^1.1.1"
   },
   "dependencies": {
     "@openzeppelin/contracts": "4.0.0"

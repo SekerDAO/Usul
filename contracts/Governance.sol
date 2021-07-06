@@ -113,6 +113,11 @@ contract Governance is IDAO {
     	minimumProposalAmount = _minimumProposalAmount;
     }
 
+    // for now allow heads of house to update minimumProposalAmount
+    function updateProposalTime(uint _newTime) onlySafe external {
+        proposalTime = _newTime;
+    }
+
     // make this the easy multisig version, split out
     function headOfHouseEnterMember(address _member) onlySafe external {
         require(IERC20(governanceToken).balanceOf(_member) >= minimumProposalAmount, "sponsor does not have enough gov tokens");
