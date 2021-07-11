@@ -17,7 +17,6 @@ interface IDAO {
 
     struct Proposal {
     	uint256 value;
-    	uint8 proposalType; // 0 = funding proposal // 1 = commission art etc
         Role role; // role change proposed
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal        

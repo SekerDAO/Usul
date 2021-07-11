@@ -20,44 +20,40 @@ interface ISafe {
 contract Governance is IDAO {
     using SafeMath for uint;
 
-    string public name;
+    // DAO name
+    uint private _totalProposalCount;
+    uint private _memberCount;
+    uint private _proposalTime;
+    uint private _gracePeriod = 60 seconds; //3 days;
+    uint private _threshold;
+    uint private _minimumProposalAmount; // amount of gov tokens needed to participate
+    address private _safe;
+    address private _governanceToken;
 
-    mapping(address => Member) public members;
-    mapping(uint => Proposal) public proposals;
-
-    uint public totalProposalCount;
-    uint public memberCount;
-    uint public proposalTime;
-    uint public gracePeriod = 60 seconds; //3 days;
-
-    uint public threshold;
-    uint public minimumProposalAmount; // amount of gov tokens needed to participate
-
-    address public safe;
-    address public governanceToken;
-    address public WETH = address(0);
+    mapping(address => Member) public _members;
+    mapping(uint => Proposal) public _proposals;
 
     // TODO: Create a role module that is updatable and programable
     modifier onlySafe {
-        require(msg.sender == safe, "only gnosis safe may enter");
+        require(msg.sender == _safe, "only gnosis safe may enter");
         _;
     }
 
     modifier onlyMember {
-        require(members[msg.sender].roles.member == true, "not a member");
+        require(_members[msg.sender].roles.member == true, "not a member");
         _;
     }
 
     modifier onlyHeadOfHouse {
-        require(members[msg.sender].roles.headOfHouse == true, "not a head of house");
+        require(_members[msg.sender].roles.headOfHouse == true, "not a head of house");
         _;
     }
 
-    modifier isPassed(uint _proposalId) {
-        require(proposals[_proposalId].canceled == false, "proposal was canceled");
-        require(proposals[_proposalId].executed == false, "proposal already executed");
-        require(proposals[_proposalId].yesVotes >= threshold, "proposal does not meet vote threshold");
-        require(proposals[_proposalId].yesVotes >= proposals[_proposalId].noVotes, "no votes outweigh yes");
+    modifier isPassed(uint proposalId) {
+        require(_proposals[proposalId].canceled == false, "proposal was canceled");
+        require(_proposals[proposalId].executed == false, "proposal already executed");
+        require(_proposals[proposalId].yesVotes >= _threshold, "proposal does not meet vote threshold");
+        require(_proposals[proposalId].yesVotes >= _proposals[proposalId].noVotes, "no votes outweigh yes");
     	_;
     }
 
@@ -65,125 +61,154 @@ contract Governance is IDAO {
     event GracePeriodStarted(uint endDate);
 
     constructor(
-        address[] memory heads,
-        address _governanceToken,
-        address _safe,
-        uint _proposalTime,
-        uint _threshold,
-        uint _minimumProposalAmount,
-        address _weth //finance token... hard code as ether for v0
+        address[] memory heads_,
+        address governanceToken_,
+        address safe_,
+        uint proposalTime_,
+        uint threshold_,
+        uint minimumProposalAmount_
     ) {
-        for(uint i=0; i<heads.length; i++) {
+        for(uint i=0; i<heads_.length; i++) {
             // create head of house member struct
-            require(heads[i] != address(0));
-            members[heads[i]].roles.headOfHouse = true;
-            members[heads[i]].roles.member = true;
-            memberCount++;
+            require(heads_[i] != address(0));
+            _members[heads_[i]].roles.headOfHouse = true;
+            _members[heads_[i]].roles.member = true;
+            _memberCount++;
         }
-        safe = _safe;
-        governanceToken = _governanceToken;
-        proposalTime = _proposalTime * 1 minutes;//days;
-        threshold = _threshold;
-        minimumProposalAmount = _minimumProposalAmount;
-        WETH = _weth;
+        _safe = safe_;
+        _governanceToken = governanceToken_;
+        _proposalTime = proposalTime_ * 1 minutes;//days;
+        _threshold = threshold_;
+        _minimumProposalAmount = minimumProposalAmount_;
     }
 
-    function vote(uint _proposalId, bool _vote) onlyMember external {
-        require(proposals[_proposalId].hasVoted[msg.sender] == false, "already voted");
-        require(proposals[_proposalId].canceled == false, "proposal has been canceled");
-        require(proposals[_proposalId].executed == false, "proposal is already executed");
-        require(proposals[_proposalId].deadline >= block.timestamp, "proposal is past the deadline");
+    // getters
+    function threshold() public view virtual returns (uint) {
+        return _threshold;
+    }
 
-        proposals[_proposalId].hasVoted[msg.sender] = true;
+    function totalProposalCount() public view virtual returns (uint) {
+        return _totalProposalCount;
+    }
 
-        if(_vote == false){
-            proposals[_proposalId].noVotes = proposals[_proposalId].noVotes.add(IERC20(governanceToken).balanceOf(msg.sender));
+    function memberCount() public view virtual returns (uint) {
+        return _memberCount;
+    }
+
+    function gracePeriod() public view virtual returns (uint) {
+        return _gracePeriod;
+    }
+
+    function minimumProposalAmount() public view virtual returns (uint) {
+        return _minimumProposalAmount;
+    }
+
+    // function members(uint id) public view virtual returns (Member memory) {
+    //     return _members[id];
+    // }
+
+    // function proposals(uint id) public view virtual returns (Proposal memory) {
+    //     return _proposals[id];
+    // }
+
+    function vote(uint proposalId, bool vote) onlyMember external {
+        require(_proposals[proposalId].hasVoted[msg.sender] == false, "already voted");
+        require(_proposals[proposalId].canceled == false, "proposal has been canceled");
+        require(_proposals[proposalId].executed == false, "proposal is already executed");
+        require(_proposals[proposalId].deadline >= block.timestamp, "proposal is past the deadline");
+
+        _proposals[proposalId].hasVoted[msg.sender] = true;
+
+        if(vote == false){
+            _proposals[proposalId].noVotes = _proposals[proposalId].noVotes.add(IERC20(_governanceToken).balanceOf(msg.sender));
         } else {
-            proposals[_proposalId].yesVotes = proposals[_proposalId].yesVotes.add(IERC20(governanceToken).balanceOf(msg.sender));
+            _proposals[proposalId].yesVotes = _proposals[proposalId].yesVotes.add(IERC20(_governanceToken).balanceOf(msg.sender));
         }
     }
 
     // for now allow heads of house to update threshold
-    function updateThreshold(uint _threshold) onlySafe external {
-    	threshold = _threshold;
+    function updateThreshold(uint threshold) onlySafe external {
+    	_threshold = threshold;
     }
 
     // for now allow heads of house to update minimumProposalAmount
-    function updateMinimumProposalAmount(uint _minimumProposalAmount) onlySafe external {
-    	minimumProposalAmount = _minimumProposalAmount;
+    function updateMinimumProposalAmount(uint minimumProposalAmount) onlySafe external {
+    	_minimumProposalAmount = minimumProposalAmount;
     }
 
-    // for now allow heads of house to update minimumProposalAmount
-    function updateProposalTime(uint _newTime) onlySafe external {
-        proposalTime = _newTime;
+    // for now allow heads of house to update proposalTime
+    function updateProposalTime(uint newTime) onlySafe external {
+        _proposalTime = newTime;
+    }
+
+    // for now allow heads of house to update gracePeriod
+    function updateGracePeriod(uint gracePeriod) onlySafe external {
+        _gracePeriod = gracePeriod;
     }
 
     // make this the easy multisig version, split out
-    function headOfHouseEnterMember(address _member) onlySafe external {
-        require(IERC20(governanceToken).balanceOf(_member) >= minimumProposalAmount, "sponsor does not have enough gov tokens");
-        members[_member].roles.member = true;
-        memberCount++;
+    function headOfHouseEnterMember(address member) onlySafe external {
+        require(IERC20(_governanceToken).balanceOf(member) >= _minimumProposalAmount, "sponsor does not have enough gov tokens");
+        _members[member].roles.member = true;
+        _memberCount++;
     }
 
-    function headOfHouseRemoveMember(address _member) onlySafe external {
-        require(IERC20(governanceToken).balanceOf(_member) >= minimumProposalAmount, "sponsor does not have enough gov tokens");
-        members[_member].roles.member = false;
-        members[_member].roles.headOfHouse = false;
-        memberCount--;
+    function headOfHouseRemoveMember(address member) onlySafe external {
+        require(IERC20(_governanceToken).balanceOf(member) >= _minimumProposalAmount, "sponsor does not have enough gov tokens");
+        _members[member].roles.member = false;
+        _members[member].roles.headOfHouse = false;
+        _memberCount--;
     }
 
     function submitModularProposal(
-        address _to,
-        uint256 _value,
-        bytes memory _data
+        address to,
+        uint256 value,
+        bytes memory data
         //Enum.Operation _operation
     ) public {
-        require(members[msg.sender].activeProposal == false, "memeber has an active proposal already");
-        require(IERC20(governanceToken).balanceOf(msg.sender) >= minimumProposalAmount, "submit proposal does not have enough gov tokens");
+        require(_members[msg.sender].activeProposal == false, "memeber has an active proposal already");
+        require(IERC20(_governanceToken).balanceOf(msg.sender) >= _minimumProposalAmount, "submit proposal does not have enough gov tokens");
         // store calldata for tx to be executed
-        members[msg.sender].activeProposal = true;
-        proposals[totalProposalCount].value = _value;
-        proposals[totalProposalCount].proposalType = 3; // 0 = funding proposal // 1 = change role // 2 = entry
-        proposals[totalProposalCount].yesVotes = IERC20(governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
-        proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
-        proposals[totalProposalCount].proposer = msg.sender;
-        proposals[totalProposalCount].hasVoted[msg.sender] = true;
-        proposals[totalProposalCount].targetAddress = _to; // can switch target to contract and provide call data
-        proposals[totalProposalCount].data = _data;
-        proposals[totalProposalCount].operation = Enum.Operation.Call;
+        _members[msg.sender].activeProposal = true;
+        _proposals[_totalProposalCount].value = value;
+        _proposals[_totalProposalCount].yesVotes = IERC20(_governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
+        _proposals[_totalProposalCount].deadline = block.timestamp + _proposalTime;
+        _proposals[_totalProposalCount].proposer = msg.sender;
+        _proposals[_totalProposalCount].hasVoted[msg.sender] = true;
+        _proposals[_totalProposalCount].targetAddress = to; // can switch target to contract and provide call data
+        _proposals[_totalProposalCount].data = data;
+        _proposals[_totalProposalCount].operation = Enum.Operation.Call;
 
-        totalProposalCount++;
-        emit ProposalCreated(totalProposalCount-1);
+        _totalProposalCount++;
+        emit ProposalCreated(_totalProposalCount-1);
     }
 
     // Execute proposals
-    function startModularGracePeriod(uint _proposalId) isPassed(_proposalId) external {
-        require(proposals[_proposalId].proposalType == 3, "proposal is not a funding type");
-        require(proposals[_proposalId].gracePeriod == 0, "proposal already entered grace period");
-        require(proposals[_proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
-        proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
-        emit GracePeriodStarted(proposals[_proposalId].gracePeriod);
+    function startModularGracePeriod(uint proposalId) isPassed(proposalId) external {
+        require(_proposals[proposalId].gracePeriod == 0, "proposal already entered grace period");
+        require(_proposals[proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
+        _proposals[proposalId].gracePeriod = block.timestamp + _gracePeriod;
+        emit GracePeriodStarted(_proposals[proposalId].gracePeriod);
     }
 
-    function executeModularProposal(uint _proposalId) isPassed(_proposalId) external {
-        require(proposals[_proposalId].proposalType == 3, "proposal is not change role type");
-        require(block.timestamp >= proposals[_proposalId].gracePeriod && proposals[_proposalId].gracePeriod != 0, "grace period has not elapsed");
-        members[proposals[_proposalId].proposer].activeProposal = false;
-        proposals[_proposalId].executed = true;
-        ISafe(safe).execTransactionFromModule(
-            proposals[_proposalId].targetAddress,
-            proposals[_proposalId].value,
-            proposals[_proposalId].data,
-            proposals[_proposalId].operation
+    function executeModularProposal(uint proposalId) isPassed(proposalId) external {
+        require(block.timestamp >= _proposals[proposalId].gracePeriod && _proposals[proposalId].gracePeriod != 0, "grace period has not elapsed");
+        _members[_proposals[proposalId].proposer].activeProposal = false;
+        _proposals[proposalId].executed = true;
+        ISafe(_safe).execTransactionFromModule(
+            _proposals[proposalId].targetAddress,
+            _proposals[proposalId].value,
+            _proposals[proposalId].data,
+            _proposals[proposalId].operation
         );
     }
 
-    function cancelProposal(uint _proposalId) external {
-        require(proposals[_proposalId].canceled == false);
-        require(proposals[_proposalId].executed == false);
-        require(proposals[_proposalId].deadline >= block.timestamp);
-        require(proposals[_proposalId].proposer == msg.sender);
-        proposals[_proposalId].canceled = true;
-        members[proposals[_proposalId].proposer].activeProposal = false;
+    function cancelProposal(uint proposalId) external {
+        require(_proposals[proposalId].canceled == false);
+        require(_proposals[proposalId].executed == false);
+        require(_proposals[proposalId].deadline >= block.timestamp);
+        require(_proposals[proposalId].proposer == msg.sender);
+        _proposals[proposalId].canceled = true;
+        _members[_proposals[proposalId].proposer].activeProposal = false;
     }
 }

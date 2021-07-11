@@ -159,7 +159,7 @@ contract NFTGovernance is IDAO {
         members[msg.sender].activeProposal = true;
         proposals[totalProposalCount].value = _funding;
         proposals[totalProposalCount].role = _role;
-        proposals[totalProposalCount].proposalType = _proposalType; // 0 = funding proposal // 1 = change role // 2 = entry
+        //proposals[totalProposalCount].proposalType = _proposalType; // 0 = funding proposal // 1 = change role // 2 = entry
         proposals[totalProposalCount].yesVotes = IERC721(ERC721Address).balanceOf(msg.sender);    
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
@@ -172,7 +172,7 @@ contract NFTGovernance is IDAO {
     // Execute proposals
     // todo: maybe check if over threshold on every vote, if so start grace period
     function startFundingProposalGracePeriod(uint _proposalId) isPassed(_proposalId) external {
-        require(proposals[_proposalId].proposalType == 0, "proposal is not a funding type");
+        //require(proposals[_proposalId].proposalType == 0, "proposal is not a funding type");
         require(proposals[_proposalId].gracePeriod == 0, "proposal already entered grace period");
 		
         proposals[_proposalId].gracePeriod = block.timestamp + gracePeriod;
@@ -191,7 +191,7 @@ contract NFTGovernance is IDAO {
 
     //TODO: combine common requires to a modifier
     function executeChangeRoleProposal(uint _proposalId) isPassed(_proposalId) external {
-        require(proposals[_proposalId].proposalType == 1, "proposal is not change role type");
+        //require(proposals[_proposalId].proposalType == 1, "proposal is not change role type");
 
         members[proposals[_proposalId].targetAddress].roles = proposals[_proposalId].role;
         members[proposals[_proposalId].proposer].activeProposal = false;
