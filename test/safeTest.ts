@@ -3,7 +3,7 @@ import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 import { ethers, network, waffle } from 'hardhat'
 import { DAOFixture, getFixtureWithParams } from './shared/fixtures'
-import { executeContractCallWithSigners, buildContractCall  } from './shared/utils'
+import { executeContractCallWithSigners, buildContractCall, safeSignMessage, executeTx } from './shared/utils'
 import { keccak256 } from 'ethereumjs-util'
 import { defaultSender, provider, web3, contract } from '@openzeppelin/test-environment';
 
@@ -46,6 +46,25 @@ describe('houseDAOnft:', () => {
     console.log(owners)
     //await safe.addOwnerWithThreshold(wallet_2.address, 1)
     await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [user2.address, 1], [user1])
+    owners = await safe.getOwners()
+    console.log(owners)
+  })
+
+  it.only('gnosis safe multi-sig tx', async () => {
+    let wallet_1 = (await ethers.getSigners())[0]
+    let wallet_2 = (await ethers.getSigners())[1]
+    const { safe } = daoFixture
+
+    let owners = await safe.getOwners()
+    console.log(owners)
+    //await safe.addOwnerWithThreshold(wallet_2.address, 1)
+    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [user2.address, 2], [user1])
+    owners = await safe.getOwners()
+    console.log(owners)
+    let call = buildContractCall(safe, "addOwnerWithThreshold", [user3.address, 3], await safe.nonce())
+    let signedCall_1 = await safeSignMessage(user1, safe, call)
+    let signedCall_2 = await safeSignMessage(user2, safe, call)
+    await executeTx(safe, call, [signedCall_1, signedCall_2])
     owners = await safe.getOwners()
     console.log(owners)
   })
@@ -131,7 +150,7 @@ describe('houseDAOnft:', () => {
     console.log(isOwner)
   })
 
-  it.only('gnosis safe can execute zora auction', async () => {
+  it('gnosis safe can execute zora auction', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
     const { safe, DAOGov, multiNFT, auction, weth } = daoFixture
