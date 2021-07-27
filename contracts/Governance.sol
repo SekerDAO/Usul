@@ -22,30 +22,20 @@ contract Governance is IDAO {
 
     // DAO name
     uint private _totalProposalCount;
-    uint private _memberCount;
     uint private _proposalTime;
     uint private _gracePeriod = 60 seconds; //3 days;
     uint private _threshold;
     uint private _minimumProposalAmount; // amount of gov tokens needed to participate
     address private _safe;
     address private _governanceToken;
+    address private _recoveryGuardian;
 
-    mapping(address => Member) public _members;
     mapping(uint => Proposal) public _proposals;
+    mapping(address => Delegation) public _delegations;
 
     // TODO: Create a role module that is updatable and programable
     modifier onlySafe {
         require(msg.sender == _safe, "only gnosis safe may enter");
-        _;
-    }
-
-    modifier onlyMember {
-        require(_members[msg.sender].roles.member == true, "not a member");
-        _;
-    }
-
-    modifier onlyHeadOfHouse {
-        require(_members[msg.sender].roles.headOfHouse == true, "not a head of house");
         _;
     }
 
@@ -61,20 +51,12 @@ contract Governance is IDAO {
     event GracePeriodStarted(uint endDate);
 
     constructor(
-        address[] memory heads_,
         address governanceToken_,
         address safe_,
         uint proposalTime_,
         uint threshold_,
         uint minimumProposalAmount_
     ) {
-        for(uint i=0; i<heads_.length; i++) {
-            // create head of house member struct
-            require(heads_[i] != address(0));
-            _members[heads_[i]].roles.headOfHouse = true;
-            _members[heads_[i]].roles.member = true;
-            _memberCount++;
-        }
         _safe = safe_;
         _governanceToken = governanceToken_;
         _proposalTime = proposalTime_ * 1 minutes;//days;
@@ -89,10 +71,6 @@ contract Governance is IDAO {
 
     function totalProposalCount() public view virtual returns (uint) {
         return _totalProposalCount;
-    }
-
-    function memberCount() public view virtual returns (uint) {
-        return _memberCount;
     }
 
     function gracePeriod() public view virtual returns (uint) {
@@ -111,7 +89,12 @@ contract Governance is IDAO {
     //     return _proposals[id];
     // }
 
-    function vote(uint proposalId, bool vote) onlyMember external {
+    function delegate() external {
+        // lock tokens
+        // find a way to ensure only one proposal at a time
+    }
+
+    function vote(uint proposalId, bool vote) external {
         require(_proposals[proposalId].hasVoted[msg.sender] == false, "already voted");
         require(_proposals[proposalId].canceled == false, "proposal has been canceled");
         require(_proposals[proposalId].executed == false, "proposal is already executed");
@@ -146,30 +129,16 @@ contract Governance is IDAO {
         _gracePeriod = gracePeriod;
     }
 
-    // make this the easy multisig version, split out
-    function headOfHouseEnterMember(address member) onlySafe external {
-        require(IERC20(_governanceToken).balanceOf(member) >= _minimumProposalAmount, "sponsor does not have enough gov tokens");
-        _members[member].roles.member = true;
-        _memberCount++;
-    }
-
-    function headOfHouseRemoveMember(address member) onlySafe external {
-        require(IERC20(_governanceToken).balanceOf(member) >= _minimumProposalAmount, "sponsor does not have enough gov tokens");
-        _members[member].roles.member = false;
-        _members[member].roles.headOfHouse = false;
-        _memberCount--;
-    }
-
     function submitModularProposal(
         address to,
         uint256 value,
         bytes memory data
         //Enum.Operation _operation
     ) public {
-        require(_members[msg.sender].activeProposal == false, "memeber has an active proposal already");
+        //require(_members[msg.sender].activeProposal == false, "memeber has an active proposal already");
         require(IERC20(_governanceToken).balanceOf(msg.sender) >= _minimumProposalAmount, "submit proposal does not have enough gov tokens");
         // store calldata for tx to be executed
-        _members[msg.sender].activeProposal = true;
+        //_members[msg.sender].activeProposal = true;
         _proposals[_totalProposalCount].value = value;
         _proposals[_totalProposalCount].yesVotes = IERC20(_governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
         _proposals[_totalProposalCount].deadline = block.timestamp + _proposalTime;
@@ -193,7 +162,7 @@ contract Governance is IDAO {
 
     function executeModularProposal(uint proposalId) isPassed(proposalId) external {
         require(block.timestamp >= _proposals[proposalId].gracePeriod && _proposals[proposalId].gracePeriod != 0, "grace period has not elapsed");
-        _members[_proposals[proposalId].proposer].activeProposal = false;
+        //_members[_proposals[proposalId].proposer].activeProposal = false;
         _proposals[proposalId].executed = true;
         ISafe(_safe).execTransactionFromModule(
             _proposals[proposalId].targetAddress,
@@ -209,6 +178,19 @@ contract Governance is IDAO {
         require(_proposals[proposalId].deadline >= block.timestamp);
         require(_proposals[proposalId].proposer == msg.sender);
         _proposals[proposalId].canceled = true;
-        _members[_proposals[proposalId].proposer].activeProposal = false;
+        //_members[_proposals[proposalId].proposer].activeProposal = false;
+    }
+
+    // todo: consider putting this in roles, and requiring roles module to burn federation
+    function burnFederation(address lastAdmin) external {
+        // require sender is last admin
+        _recoveryGuardian = lastAdmin;
+        // construct calldata for setting last safe admin to burn address
+    }
+
+    function restoreFederation() external {
+        // only recoveryGuardian
+        // replace burn admin with guardian
+        // remove dao module
     }
 }
