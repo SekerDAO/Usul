@@ -50,7 +50,7 @@ describe('houseDAOnft:', () => {
     console.log(owners)
   })
 
-  it.only('gnosis safe multi-sig tx', async () => {
+  it('gnosis safe multi-sig tx', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
     const { safe } = daoFixture
@@ -62,6 +62,7 @@ describe('houseDAOnft:', () => {
     owners = await safe.getOwners()
     console.log(owners)
     let call = buildContractCall(safe, "addOwnerWithThreshold", [user3.address, 3], await safe.nonce())
+    console.log(call)
     let signedCall_1 = await safeSignMessage(user1, safe, call)
     let signedCall_2 = await safeSignMessage(user2, safe, call)
     await executeTx(safe, call, [signedCall_1, signedCall_2])
@@ -150,7 +151,7 @@ describe('houseDAOnft:', () => {
     console.log(isOwner)
   })
 
-  it('gnosis safe can execute zora auction', async () => {
+  it.only('gnosis safe can execute zora auction', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
     const { safe, DAOGov, multiNFT, auction, weth } = daoFixture

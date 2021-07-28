@@ -8,7 +8,7 @@ import ZoraAuction from "../../node_modules/@zoralabs/auction-house/dist/artifac
 export interface DAOFixture {
   weth: Contract,
   DAOGov: Contract,
-  houseDAONFT: Contract,
+  //houseDAONFT: Contract,
   multiNFT: Contract,
   govToken: Contract,
   safe: Contract,
@@ -41,20 +41,20 @@ export async function getFixtureWithParams(
   await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
   await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
 
-  const NFTGovernanceContract = await ethers.getContractFactory("NFTGovernance")
-  const NFTGovernance = await NFTGovernanceContract.deploy(
-   [wallet.address], // head of house
-   multiNFT.address, // gov token addres
-   ethers.BigNumber.from(1), // number of days proposals are active
-   ethers.BigNumber.from(5), // number of votes wieghted to pass
-   ethers.BigNumber.from(1), // min proposal gov token amt
-   weth.address,
-   ethers.utils.parseEther('0.5'), // price of gov token
-  )
-  console.log('NFTDAO Deploy Cost ' + NFTGovernance.deployTransaction.gasLimit.toString())
-  console.log('deployed NFT DAO: ', NFTGovernance.address)
-  await multiNFT.setDAOAddress(NFTGovernance.address)
-  console.log('house nft dao is initialized')
+  // const NFTGovernanceContract = await ethers.getContractFactory("NFTGovernance")
+  // const NFTGovernance = await NFTGovernanceContract.deploy(
+  //  [wallet.address], // head of house
+  //  multiNFT.address, // gov token addres
+  //  ethers.BigNumber.from(1), // number of days proposals are active
+  //  ethers.BigNumber.from(5), // number of votes wieghted to pass
+  //  ethers.BigNumber.from(1), // min proposal gov token amt
+  //  weth.address,
+  //  ethers.utils.parseEther('0.5'), // price of gov token
+  // )
+  // console.log('NFTDAO Deploy Cost ' + NFTGovernance.deployTransaction.gasLimit.toString())
+  // console.log('deployed NFT DAO: ', NFTGovernance.address)
+  // await multiNFT.setDAOAddress(NFTGovernance.address)
+  // console.log('house nft dao is initialized')
 
 
   const GnosisSafeL2 = await hre.ethers.getContractFactory("@gnosis.pm/safe-contracts/contracts/GnosisSafeL2.sol:GnosisSafeL2")
@@ -70,7 +70,6 @@ export async function getFixtureWithParams(
 
   const daoGovContract = await ethers.getContractFactory("Governance")
   const DAOGov = await daoGovContract.deploy(
-    [wallet.address], // head of house
     govToken.address, // gov token addres
     safe.address,
     ethers.BigNumber.from(1), // number of days proposals are active
@@ -85,7 +84,7 @@ export async function getFixtureWithParams(
   return {
     weth,
     DAOGov,
-    NFTGovernance,
+    //NFTGovernance,
     multiNFT,
     govToken,
     safe,
