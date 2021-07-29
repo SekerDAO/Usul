@@ -28,7 +28,7 @@ contract Governance is IDAO {
     uint private _minimumProposalAmount; // amount of gov tokens needed to participate
     address private _safe;
     address private _governanceToken;
-    address private _recoveryGuardian;
+    address private _guardian;
 
     mapping(uint => Proposal) public _proposals;
     mapping(address => Delegation) public _delegations;
@@ -55,13 +55,15 @@ contract Governance is IDAO {
         address safe_,
         uint proposalTime_,
         uint threshold_,
-        uint minimumProposalAmount_
+        uint minimumProposalAmount_,
+        address guardian_
     ) {
         _safe = safe_;
         _governanceToken = governanceToken_;
         _proposalTime = proposalTime_ * 1 minutes;//days;
         _threshold = threshold_;
         _minimumProposalAmount = minimumProposalAmount_;
+        _guardian = guardian_;
     }
 
     // getters
@@ -80,14 +82,6 @@ contract Governance is IDAO {
     function minimumProposalAmount() public view virtual returns (uint) {
         return _minimumProposalAmount;
     }
-
-    // function members(uint id) public view virtual returns (Member memory) {
-    //     return _members[id];
-    // }
-
-    // function proposals(uint id) public view virtual returns (Proposal memory) {
-    //     return _proposals[id];
-    // }
 
     function delegate() external {
         // lock tokens
@@ -176,21 +170,22 @@ contract Governance is IDAO {
         require(_proposals[proposalId].canceled == false);
         require(_proposals[proposalId].executed == false);
         require(_proposals[proposalId].deadline >= block.timestamp);
-        require(_proposals[proposalId].proposer == msg.sender);
+        require(_proposals[proposalId].proposer == msg.sender || _guardian == msg.sender);
         _proposals[proposalId].canceled = true;
         //_members[_proposals[proposalId].proposer].activeProposal = false;
     }
 
-    // todo: consider putting this in roles, and requiring roles module to burn federation
-    function burnFederation(address lastAdmin) external {
-        // require sender is last admin
-        _recoveryGuardian = lastAdmin;
-        // construct calldata for setting last safe admin to burn address
-    }
+    // function restoreFederation(bytes memory data) external {
+    //     // only recoveryGuardian
+    //     require(msg.sender == _recoveryGuardian);
 
-    function restoreFederation() external {
-        // only recoveryGuardian
-        // replace burn admin with guardian
-        // remove dao module
-    }
+    //     // replace burn admin with guardian
+    //     // remove dao module
+    //     ISafe(_safe).execTransactionFromModule(
+    //         _safe,
+    //         0,
+    //         data,
+    //         Enum.Operation.Call
+    //     );
+    // }
 }

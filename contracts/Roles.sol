@@ -65,4 +65,11 @@ contract Roles {
         _memberCount--;
     }
 
+    // create a function that registers (address to method sig and target) that they are allowed to bypass on the safe
+    // use memory lib to ensure data being passed is equal to what is register
+
+    // use same proposal structure
+
+    // members vote on role registration and deregistration
+
 }

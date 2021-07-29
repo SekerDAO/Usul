@@ -74,7 +74,8 @@ export async function getFixtureWithParams(
     safe.address,
     ethers.BigNumber.from(1), // number of days proposals are active
     ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
-    ethers.BigNumber.from('10000') // min proposal gov token amt
+    ethers.BigNumber.from('10000'), // min proposal gov token amt
+    wallet.address
   )
   console.log('deployed House ERC20 DAO: ', DAOGov.address)
   await govToken.transfer(safe.address, ethers.BigNumber.from('50000000000000000000000'))

@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address'
 import { expect } from 'chai'
-import { BigNumber, Contract } from 'ethers'
+import { BigNumber, Contract, constants } from 'ethers'
 import { ethers, network, waffle } from 'hardhat'
 import { DAOFixture, getFixtureWithParams } from './shared/fixtures'
 import { executeContractCallWithSigners, buildContractCall, safeSignMessage, executeTx } from './shared/utils'
@@ -18,7 +18,7 @@ let wallet: SignerWithAddress
 // - figure out how to get expect reverts working
 
 describe('houseDAOnft:', () => {
-  const [user1, user2, user3] = waffle.provider.getWallets();
+  const [user1, user2, user3, user4] = waffle.provider.getWallets();
 
   beforeEach(async function () {
     wallet = (await ethers.getSigners())[0]
@@ -151,7 +151,7 @@ describe('houseDAOnft:', () => {
     console.log(isOwner)
   })
 
-  it.only('gnosis safe can execute zora auction', async () => {
+  it('gnosis safe can execute zora auction', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
     const { safe, DAOGov, multiNFT, auction, weth } = daoFixture
@@ -199,5 +199,48 @@ describe('houseDAOnft:', () => {
     console.log(a1)
     let proposal = await DAOGov._proposals(0)
     //console.log(proposal)
+  })
+
+  it.only('gnosis safe can burn last owner', async () => {
+    let wallet_1 = (await ethers.getSigners())[0]
+    let wallet_2 = (await ethers.getSigners())[1]
+    const { safe, DAOGov } = daoFixture
+
+    await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
+
+    let owners = await safe.getOwners()
+    console.log(owners)
+    //await safe.addOwnerWithThreshold(wallet_2.address, 1)
+    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [user2.address, 1], [user1])
+    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [user3.address, 1], [user1])
+    owners = await safe.getOwners()
+    console.log(owners)
+
+    let swap = buildContractCall(safe, "swapOwner", [user2.address, user2.address, user4.address], await safe.nonce())
+    await executeContractCallWithSigners(safe, safe, "swapOwner", [user2.address, user1.address, "0x0000000000000000000000000000000000001337"], [user1])
+    owners = await safe.getOwners()
+    console.log(owners)
+
+    let burn = buildContractCall(safe, "removeOwner", [user3.address, user2.address, 1], await safe.nonce())
+    await executeContractCallWithSigners(safe, safe, "removeOwner", [user3.address, user2.address, 2], [user3])
+    owners = await safe.getOwners()
+    console.log(owners)
+
+    //expect revert
+    //await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [user1.address, 1], [user3])
+
+    let restore = buildContractCall(safe, "changeThreshold", [1], await safe.nonce())
+    console.log(restore)
+    // can use proposal to restore
+    //await DAOGov.restoreFederation(restore.data)
+    await DAOGov.submitModularProposal(safe.address, 0, restore.data)
+    await network.provider.send("evm_increaseTime", [60])
+    await DAOGov.startModularGracePeriod(0)
+    await network.provider.send("evm_increaseTime", [60])
+    await DAOGov.executeModularProposal(0)
+
+    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [user1.address, 1], [user3])
+    owners = await safe.getOwners()
+    console.log(owners)
   })
 })
