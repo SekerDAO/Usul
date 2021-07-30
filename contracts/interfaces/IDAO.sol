@@ -6,9 +6,10 @@ import "../common/Enum.sol";
 
 interface IDAO {
     struct Delegation {
-        address owner;
         address delegate;
-        uint amount;
+        uint total;
+        mapping(address => uint) amount;
+        uint blockNumber;
     }
 
     struct Proposal {

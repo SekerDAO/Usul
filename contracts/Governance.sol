@@ -83,9 +83,26 @@ contract Governance is IDAO {
         return _minimumProposalAmount;
     }
 
-    function delegate() external {
+    function delegateVotes(address delegate, uint amount) external {
         // lock tokens
         // find a way to ensure only one proposal at a time
+        IERC20(_governanceToken).transferFrom(msg.sender, address(this), amount);
+        if (delegate == msg.sender) {
+            _delegations[msg.sender].owner = msg.sender;
+            _delegations[msg.sender].delegate = delegate;
+            _delegations[msg.sender].amount = _delegations[msg.sender].amount.add(amount);
+            _delegations[msg.sender].blockNumber = block.number;
+        } else {
+            
+        }
+    }
+
+    function undelegateVotes(uint amount) external {
+        require(_delegations[msg.sender].amount >= amount);
+        require(_delegations[msg.sender].owner == msg.sender);
+        _delegations[msg.sender].amount = _delegations[msg.sender].amount.sub(amount);
+        _delegations[msg.sender].blockNumber = 0;
+        IERC20(_governanceToken).transfer(msg.sender, amount);
     }
 
     function vote(uint proposalId, bool vote) external {
@@ -93,6 +110,7 @@ contract Governance is IDAO {
         require(_proposals[proposalId].canceled == false, "proposal has been canceled");
         require(_proposals[proposalId].executed == false, "proposal is already executed");
         require(_proposals[proposalId].deadline >= block.timestamp, "proposal is past the deadline");
+        require(_delegations[msg.sender].blockNumber < block.number && _delegations[msg.sender].blockNumber != 0, "delegation is not in previous block");
 
         _proposals[proposalId].hasVoted[msg.sender] = true;
 
