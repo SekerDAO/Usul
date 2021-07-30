@@ -30,8 +30,8 @@ contract Governance is IDAO {
     address private _governanceToken;
     address private _guardian;
 
-    mapping(uint => Proposal) public _proposals;
-    mapping(address => Delegation) public _delegations;
+    mapping(uint => Proposal) public proposals;
+    mapping(address => Delegation) delegations;
 
     // TODO: Create a role module that is updatable and programable
     modifier onlySafe {
@@ -40,10 +40,10 @@ contract Governance is IDAO {
     }
 
     modifier isPassed(uint proposalId) {
-        require(_proposals[proposalId].canceled == false, "proposal was canceled");
-        require(_proposals[proposalId].executed == false, "proposal already executed");
-        require(_proposals[proposalId].yesVotes >= _threshold, "proposal does not meet vote threshold");
-        require(_proposals[proposalId].yesVotes >= _proposals[proposalId].noVotes, "no votes outweigh yes");
+        require(proposals[proposalId].canceled == false, "proposal was canceled");
+        require(proposals[proposalId].executed == false, "proposal already executed");
+        require(proposals[proposalId].yesVotes >= _threshold, "proposal does not meet vote threshold");
+        require(proposals[proposalId].yesVotes >= proposals[proposalId].noVotes, "no votes outweigh yes");
     	_;
     }
 
@@ -83,41 +83,34 @@ contract Governance is IDAO {
         return _minimumProposalAmount;
     }
 
-    function delegateVotes(address delegate, uint amount) external {
+    function delegateVotes(address delegatee, uint amount) external {
         // lock tokens
         // find a way to ensure only one proposal at a time
         IERC20(_governanceToken).transferFrom(msg.sender, address(this), amount);
-        if (delegate == msg.sender) {
-            _delegations[msg.sender].owner = msg.sender;
-            _delegations[msg.sender].delegate = delegate;
-            _delegations[msg.sender].amount = _delegations[msg.sender].amount.add(amount);
-            _delegations[msg.sender].blockNumber = block.number;
-        } else {
-            
-        }
+        delegations[delegatee].votes[msg.sender] = amount;
+        delegations[delegatee].lastBlock = block.number;
+        delegations[delegatee].total = delegations[delegatee].total.add(amount);
     }
 
-    function undelegateVotes(uint amount) external {
-        require(_delegations[msg.sender].amount >= amount);
-        require(_delegations[msg.sender].owner == msg.sender);
-        _delegations[msg.sender].amount = _delegations[msg.sender].amount.sub(amount);
-        _delegations[msg.sender].blockNumber = 0;
+    function undelegateVotes(address delegatee, uint amount) external {
+        require(delegations[delegatee].votes[msg.sender] >= amount);
         IERC20(_governanceToken).transfer(msg.sender, amount);
+        delegations[delegatee].votes[msg.sender] = delegations[delegatee].votes[msg.sender].sub(amount);
     }
 
     function vote(uint proposalId, bool vote) external {
-        require(_proposals[proposalId].hasVoted[msg.sender] == false, "already voted");
-        require(_proposals[proposalId].canceled == false, "proposal has been canceled");
-        require(_proposals[proposalId].executed == false, "proposal is already executed");
-        require(_proposals[proposalId].deadline >= block.timestamp, "proposal is past the deadline");
-        require(_delegations[msg.sender].blockNumber < block.number && _delegations[msg.sender].blockNumber != 0, "delegation is not in previous block");
+        require(proposals[proposalId].hasVoted[msg.sender] == false, "already voted");
+        require(proposals[proposalId].canceled == false, "proposal has been canceled");
+        require(proposals[proposalId].executed == false, "proposal is already executed");
+        require(proposals[proposalId].deadline >= block.timestamp, "proposal is past the deadline");
+        require(delegations[msg.sender].lastBlock < block.number, "cannot vote in the same block as delegation");
 
-        _proposals[proposalId].hasVoted[msg.sender] = true;
+        proposals[proposalId].hasVoted[msg.sender] = true;
 
         if(vote == false){
-            _proposals[proposalId].noVotes = _proposals[proposalId].noVotes.add(IERC20(_governanceToken).balanceOf(msg.sender));
+            proposals[proposalId].noVotes = proposals[proposalId].noVotes.add(delegations[msg.sender].total);
         } else {
-            _proposals[proposalId].yesVotes = _proposals[proposalId].yesVotes.add(IERC20(_governanceToken).balanceOf(msg.sender));
+            proposals[proposalId].yesVotes = proposals[proposalId].yesVotes.add(delegations[msg.sender].total);
         }
     }
 
@@ -151,14 +144,14 @@ contract Governance is IDAO {
         require(IERC20(_governanceToken).balanceOf(msg.sender) >= _minimumProposalAmount, "submit proposal does not have enough gov tokens");
         // store calldata for tx to be executed
         //_members[msg.sender].activeProposal = true;
-        _proposals[_totalProposalCount].value = value;
-        _proposals[_totalProposalCount].yesVotes = IERC20(_governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
-        _proposals[_totalProposalCount].deadline = block.timestamp + _proposalTime;
-        _proposals[_totalProposalCount].proposer = msg.sender;
-        _proposals[_totalProposalCount].hasVoted[msg.sender] = true;
-        _proposals[_totalProposalCount].targetAddress = to; // can switch target to contract and provide call data
-        _proposals[_totalProposalCount].data = data;
-        _proposals[_totalProposalCount].operation = Enum.Operation.Call;
+        proposals[_totalProposalCount].value = value;
+        proposals[_totalProposalCount].yesVotes = IERC20(_governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
+        proposals[_totalProposalCount].deadline = block.timestamp + _proposalTime;
+        proposals[_totalProposalCount].proposer = msg.sender;
+        proposals[_totalProposalCount].hasVoted[msg.sender] = true;
+        proposals[_totalProposalCount].targetAddress = to; // can switch target to contract and provide call data
+        proposals[_totalProposalCount].data = data;
+        proposals[_totalProposalCount].operation = Enum.Operation.Call;
 
         _totalProposalCount++;
         emit ProposalCreated(_totalProposalCount-1);
@@ -166,31 +159,31 @@ contract Governance is IDAO {
 
     // Execute proposals
     function startModularGracePeriod(uint proposalId) isPassed(proposalId) external {
-        require(_proposals[proposalId].gracePeriod == 0, "proposal already entered grace period");
-        require(_proposals[proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
-        _proposals[proposalId].gracePeriod = block.timestamp + _gracePeriod;
-        emit GracePeriodStarted(_proposals[proposalId].gracePeriod);
+        require(proposals[proposalId].gracePeriod == 0, "proposal already entered grace period");
+        require(proposals[proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
+        proposals[proposalId].gracePeriod = block.timestamp + _gracePeriod;
+        emit GracePeriodStarted(proposals[proposalId].gracePeriod);
     }
 
     function executeModularProposal(uint proposalId) isPassed(proposalId) external {
-        require(block.timestamp >= _proposals[proposalId].gracePeriod && _proposals[proposalId].gracePeriod != 0, "grace period has not elapsed");
-        //_members[_proposals[proposalId].proposer].activeProposal = false;
-        _proposals[proposalId].executed = true;
+        require(block.timestamp >= proposals[proposalId].gracePeriod && proposals[proposalId].gracePeriod != 0, "grace period has not elapsed");
+        //_members[proposals[proposalId].proposer].activeProposal = false;
+        proposals[proposalId].executed = true;
         ISafe(_safe).execTransactionFromModule(
-            _proposals[proposalId].targetAddress,
-            _proposals[proposalId].value,
-            _proposals[proposalId].data,
-            _proposals[proposalId].operation
+            proposals[proposalId].targetAddress,
+            proposals[proposalId].value,
+            proposals[proposalId].data,
+            proposals[proposalId].operation
         );
     }
 
     function cancelProposal(uint proposalId) external {
-        require(_proposals[proposalId].canceled == false);
-        require(_proposals[proposalId].executed == false);
-        require(_proposals[proposalId].deadline >= block.timestamp);
-        require(_proposals[proposalId].proposer == msg.sender || _guardian == msg.sender);
-        _proposals[proposalId].canceled = true;
-        //_members[_proposals[proposalId].proposer].activeProposal = false;
+        require(proposals[proposalId].canceled == false);
+        require(proposals[proposalId].executed == false);
+        require(proposals[proposalId].deadline >= block.timestamp);
+        require(proposals[proposalId].proposer == msg.sender || _guardian == msg.sender);
+        proposals[proposalId].canceled = true;
+        //_members[proposals[proposalId].proposer].activeProposal = false;
     }
 
     // function restoreFederation(bytes memory data) external {
