@@ -1,9 +1,0 @@
-// SPDX-License-Identifier: MIT
-
-pragma solidity ^0.8.0;
-
-import './interfaces/IDAObase.sol';
-
-contract DAObase is IDAObase {
-
-}
