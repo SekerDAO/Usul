@@ -49,7 +49,6 @@ contract Governance {
     uint private _minimumProposalAmount; // amount of gov tokens needed to participate
     address private _safe;
     address private _governanceToken;
-    address private _guardian;
 
     mapping(uint => Proposal) public proposals;
     mapping(address => Delegation) delegations;
@@ -76,15 +75,13 @@ contract Governance {
         address safe_,
         uint proposalTime_,
         uint threshold_,
-        uint minimumProposalAmount_,
-        address guardian_
+        uint minimumProposalAmount_
     ) {
         _safe = safe_;
         _governanceToken = governanceToken_;
         _proposalTime = proposalTime_ * 1 minutes;//days;
         _threshold = threshold_;
         _minimumProposalAmount = minimumProposalAmount_;
-        _guardian = guardian_;
     }
 
     // getters
@@ -200,7 +197,7 @@ contract Governance {
         require(proposals[proposalId].executed == false);
         require(proposals[proposalId].deadline >= block.timestamp);
         // proposal guardian can be put in the roles module
-        require(proposals[proposalId].proposer == msg.sender || _guardian == msg.sender);
+        require(proposals[proposalId].proposer == msg.sender || msg.sender == _safe);
         proposals[proposalId].canceled = true;
     }
 }
