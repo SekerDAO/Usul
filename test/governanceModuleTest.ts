@@ -26,6 +26,8 @@ describe('DAOGov:', () => {
     daoFixture = await getFixtureWithParams(wallet, true)
   })
 
+  // can use the safe and a cancel proposal role 
+
   it('house dao is initialized', async () => {
     const { DAOGov, govToken, weth } = daoFixture
     expect(await DAOGov.initialized()).to.equal(true)

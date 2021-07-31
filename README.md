@@ -24,4 +24,6 @@
 - Update Voting Threshold
 - Update Minimum Proposal Amount
 - Update Roles
+- Start Zora Auction
+- Anything the EVM can do
 ```
