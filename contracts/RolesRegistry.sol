@@ -72,4 +72,6 @@ contract Roles {
 
     // members vote on role registration and deregistration
 
+    // put proposal pause guardian bypass here
+
 }

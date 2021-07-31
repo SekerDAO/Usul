@@ -5,7 +5,6 @@ pragma solidity ^0.8.0;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
-import './interfaces/IDAO.sol';
 import "./common/Enum.sol";
 
 interface ISafe {
@@ -17,8 +16,30 @@ interface ISafe {
     ) external returns (bool success);
 }
 
-contract Governance is IDAO {
+contract Governance {
     using SafeMath for uint;
+
+    struct Delegation {
+        mapping(address => uint) votes;
+        uint lastBlock;
+        uint total;
+    }
+
+    struct Proposal {
+        uint256 value;
+        uint256 yesVotes; // the total number of YES votes for this proposal
+        uint256 noVotes; // the total number of NO votes for this proposal        
+        bool executed;
+        bool queued;
+        uint deadline;
+        address proposer;
+        bool canceled;
+        uint gracePeriod;
+        mapping(address => bool) hasVoted;
+        address targetAddress;
+        bytes data;
+        Enum.Operation operation;
+    }
 
     // DAO name
     uint private _totalProposalCount;
@@ -140,10 +161,8 @@ contract Governance is IDAO {
         bytes memory data
         //Enum.Operation _operation
     ) public {
-        //require(_members[msg.sender].activeProposal == false, "memeber has an active proposal already");
         require(IERC20(_governanceToken).balanceOf(msg.sender) >= _minimumProposalAmount, "submit proposal does not have enough gov tokens");
         // store calldata for tx to be executed
-        //_members[msg.sender].activeProposal = true;
         proposals[_totalProposalCount].value = value;
         proposals[_totalProposalCount].yesVotes = IERC20(_governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
         proposals[_totalProposalCount].deadline = block.timestamp + _proposalTime;
@@ -167,7 +186,6 @@ contract Governance is IDAO {
 
     function executeModularProposal(uint proposalId) isPassed(proposalId) external {
         require(block.timestamp >= proposals[proposalId].gracePeriod && proposals[proposalId].gracePeriod != 0, "grace period has not elapsed");
-        //_members[proposals[proposalId].proposer].activeProposal = false;
         proposals[proposalId].executed = true;
         ISafe(_safe).execTransactionFromModule(
             proposals[proposalId].targetAddress,
@@ -181,22 +199,8 @@ contract Governance is IDAO {
         require(proposals[proposalId].canceled == false);
         require(proposals[proposalId].executed == false);
         require(proposals[proposalId].deadline >= block.timestamp);
+        // proposal guardian can be put in the roles module
         require(proposals[proposalId].proposer == msg.sender || _guardian == msg.sender);
         proposals[proposalId].canceled = true;
-        //_members[proposals[proposalId].proposer].activeProposal = false;
     }
-
-    // function restoreFederation(bytes memory data) external {
-    //     // only recoveryGuardian
-    //     require(msg.sender == _recoveryGuardian);
-
-    //     // replace burn admin with guardian
-    //     // remove dao module
-    //     ISafe(_safe).execTransactionFromModule(
-    //         _safe,
-    //         0,
-    //         data,
-    //         Enum.Operation.Call
-    //     );
-    // }
 }
