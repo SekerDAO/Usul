@@ -16,14 +16,20 @@ interface ISafe {
     ) external returns (bool success);
 }
 
-contract Governance {
+interface IVoting {
+    function calculateWeight(
+        address delegate
+    ) external view returns (uint);
+}
+
+contract ProposalModule {
     using SafeMath for uint;
 
-    struct Delegation {
-        mapping(address => uint) votes;
-        uint lastBlock;
-        uint total;
-    }
+    // struct Delegation {
+    //     mapping(address => uint) votes;
+    //     uint lastBlock;
+    //     uint total;
+    // }
 
     struct Proposal {
         uint256 value;
@@ -49,9 +55,11 @@ contract Governance {
     uint private _minimumProposalAmount; // amount of gov tokens needed to participate
     address private _safe;
     address private _governanceToken;
+    address private _votingModule;
 
     mapping(uint => Proposal) public proposals;
-    mapping(address => Delegation) delegations;
+    mapping(address => bool) private _activeProposal;
+    //mapping(address => Delegation) delegations;
 
     // TODO: Create a role module that is updatable and programable
     modifier onlySafe {
@@ -101,34 +109,43 @@ contract Governance {
         return _minimumProposalAmount;
     }
 
-    function delegateVotes(address delegatee, uint amount) external {
-        // lock tokens
-        // find a way to ensure only one proposal at a time
-        IERC20(_governanceToken).transferFrom(msg.sender, address(this), amount);
-        delegations[delegatee].votes[msg.sender] = amount;
-        delegations[delegatee].lastBlock = block.number;
-        delegations[delegatee].total = delegations[delegatee].total.add(amount);
+    function registerVoteModule(address module) onlySafe external {
+        _votingModule = module;
     }
 
-    function undelegateVotes(address delegatee, uint amount) external {
-        require(delegations[delegatee].votes[msg.sender] >= amount);
-        IERC20(_governanceToken).transfer(msg.sender, amount);
-        delegations[delegatee].votes[msg.sender] = delegations[delegatee].votes[msg.sender].sub(amount);
-    }
+    // function delegateVotes(address delegatee, uint amount) external {
+    //     // lock tokens
+    //     // find a way to ensure only one proposal at a time
+    //     IERC20(_governanceToken).transferFrom(msg.sender, address(this), amount);
+    //     delegations[delegatee].votes[msg.sender] = amount;
+    //     delegations[delegatee].lastBlock = block.number;
+    //     delegations[delegatee].total = delegations[delegatee].total.add(amount);
+    // }
+
+    // function undelegateVotes(address delegatee, uint amount) external {
+    //     require(delegations[delegatee].votes[msg.sender] >= amount);
+    //     IERC20(_governanceToken).transfer(msg.sender, amount);
+    //     delegations[delegatee].votes[msg.sender] = delegations[delegatee].votes[msg.sender].sub(amount);
+    // }
 
     function vote(uint proposalId, bool vote) external {
+        require(_votingModule != address(0), "vote module does not exist");
         require(proposals[proposalId].hasVoted[msg.sender] == false, "already voted");
         require(proposals[proposalId].canceled == false, "proposal has been canceled");
         require(proposals[proposalId].executed == false, "proposal is already executed");
         require(proposals[proposalId].deadline >= block.timestamp, "proposal is past the deadline");
-        require(delegations[msg.sender].lastBlock < block.number, "cannot vote in the same block as delegation");
+        //require(delegations[msg.sender].lastBlock < block.number, "cannot vote in the same block as delegation");
 
+        // delegatecall to voting module
+        // require voting module is registered
         proposals[proposalId].hasVoted[msg.sender] = true;
 
         if(vote == false){
-            proposals[proposalId].noVotes = proposals[proposalId].noVotes.add(delegations[msg.sender].total);
+            //proposals[proposalId].noVotes = proposals[proposalId].noVotes.add(delegations[msg.sender].total);
+            proposals[proposalId].noVotes = IVoting(_votingModule).calculateWeight(msg.sender);
         } else {
-            proposals[proposalId].yesVotes = proposals[proposalId].yesVotes.add(delegations[msg.sender].total);
+            //proposals[proposalId].yesVotes = proposals[proposalId].yesVotes.add(delegations[msg.sender].total);
+            proposals[proposalId].noVotes = IVoting(_votingModule).calculateWeight(msg.sender);
         }
     }
 
@@ -158,10 +175,12 @@ contract Governance {
         bytes memory data
         //Enum.Operation _operation
     ) public {
-        require(IERC20(_governanceToken).balanceOf(msg.sender) >= _minimumProposalAmount, "submit proposal does not have enough gov tokens");
+        uint total = IVoting(_votingModule).calculateWeight(msg.sender);
+        require(_activeProposal[msg.sender] = false);
+        require(total >= _minimumProposalAmount, "submit proposal does not have enough gov tokens");
         // store calldata for tx to be executed
         proposals[_totalProposalCount].value = value;
-        proposals[_totalProposalCount].yesVotes = IERC20(_governanceToken).balanceOf(msg.sender); // the total number of YES votes for this proposal    
+        proposals[_totalProposalCount].yesVotes = total; // the total number of YES votes for this proposal    
         proposals[_totalProposalCount].deadline = block.timestamp + _proposalTime;
         proposals[_totalProposalCount].proposer = msg.sender;
         proposals[_totalProposalCount].hasVoted[msg.sender] = true;
@@ -169,6 +188,7 @@ contract Governance {
         proposals[_totalProposalCount].data = data;
         proposals[_totalProposalCount].operation = Enum.Operation.Call;
 
+        _activeProposal[msg.sender] = true;
         _totalProposalCount++;
         emit ProposalCreated(_totalProposalCount-1);
     }
@@ -184,6 +204,7 @@ contract Governance {
     function executeModularProposal(uint proposalId) isPassed(proposalId) external {
         require(block.timestamp >= proposals[proposalId].gracePeriod && proposals[proposalId].gracePeriod != 0, "grace period has not elapsed");
         proposals[proposalId].executed = true;
+        _activeProposal[proposals[proposalId].proposer] = false;
         ISafe(_safe).execTransactionFromModule(
             proposals[proposalId].targetAddress,
             proposals[proposalId].value,
@@ -199,5 +220,6 @@ contract Governance {
         // proposal guardian can be put in the roles module
         require(proposals[proposalId].proposer == msg.sender || msg.sender == _safe);
         proposals[proposalId].canceled = true;
+        _activeProposal[proposals[proposalId].proposer] = false;
     }
 }

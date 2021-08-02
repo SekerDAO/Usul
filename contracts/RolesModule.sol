@@ -65,6 +65,17 @@ contract Roles {
         _memberCount--;
     }
 
+    // function executeModularByRole(uint proposalId) isPassed(proposalId) external {
+    //     // require sender has registered role
+    //     // build the safe tx based on allowed bytes
+    //     ISafe(_safe).execTransactionFromModule(
+    //         proposals[proposalId].targetAddress,
+    //         proposals[proposalId].value,
+    //         proposals[proposalId].data,
+    //         proposals[proposalId].operation
+    //     );
+    // }
+
     // create a function that registers (address to method sig and target) that they are allowed to bypass on the safe
     // use memory lib to ensure data being passed is equal to what is register
 
