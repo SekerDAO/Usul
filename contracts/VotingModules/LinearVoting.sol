@@ -3,7 +3,6 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import "../common/Enum.sol";
 
@@ -18,7 +17,6 @@ contract LinearVoting {
 
     // DAO name
     address private _governanceToken;
-    address private _proposalModule;
 
     mapping(address => Delegation) delegations;
 
@@ -29,7 +27,6 @@ contract LinearVoting {
         address proposalModule_
     ) {
         _governanceToken = governanceToken_;
-        _proposalModule = proposalModule_;
     }
 
     function delegateVotes(address delegatee, uint amount) external {
@@ -46,6 +43,7 @@ contract LinearVoting {
         require(delegations[delegatee].votes[msg.sender] >= amount);
         IERC20(_governanceToken).transfer(msg.sender, amount);
         delegations[delegatee].votes[msg.sender] = delegations[delegatee].votes[msg.sender].sub(amount);
+        delegations[delegatee].total = delegations[delegatee].total.sub(amount);
     }
 
     function calculateWeight(address delegate) external view returns (uint) {

@@ -3,8 +3,6 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
-import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import "./common/Enum.sol";
 
 interface ISafe {
@@ -23,13 +21,6 @@ interface IVoting {
 }
 
 contract ProposalModule {
-    using SafeMath for uint;
-
-    // struct Delegation {
-    //     mapping(address => uint) votes;
-    //     uint lastBlock;
-    //     uint total;
-    // }
 
     struct Proposal {
         uint256 value;
@@ -54,7 +45,6 @@ contract ProposalModule {
     uint private _threshold;
     uint private _minimumProposalAmount; // amount of gov tokens needed to participate
     address private _safe;
-    address private _governanceToken;
     address private _votingModule;
 
     mapping(uint => Proposal) public proposals;
@@ -86,7 +76,6 @@ contract ProposalModule {
         uint minimumProposalAmount_
     ) {
         _safe = safe_;
-        _governanceToken = governanceToken_;
         _proposalTime = proposalTime_ * 1 minutes;//days;
         _threshold = threshold_;
         _minimumProposalAmount = minimumProposalAmount_;
@@ -112,21 +101,6 @@ contract ProposalModule {
     function registerVoteModule(address module) onlySafe external {
         _votingModule = module;
     }
-
-    // function delegateVotes(address delegatee, uint amount) external {
-    //     // lock tokens
-    //     // find a way to ensure only one proposal at a time
-    //     IERC20(_governanceToken).transferFrom(msg.sender, address(this), amount);
-    //     delegations[delegatee].votes[msg.sender] = amount;
-    //     delegations[delegatee].lastBlock = block.number;
-    //     delegations[delegatee].total = delegations[delegatee].total.add(amount);
-    // }
-
-    // function undelegateVotes(address delegatee, uint amount) external {
-    //     require(delegations[delegatee].votes[msg.sender] >= amount);
-    //     IERC20(_governanceToken).transfer(msg.sender, amount);
-    //     delegations[delegatee].votes[msg.sender] = delegations[delegatee].votes[msg.sender].sub(amount);
-    // }
 
     function vote(uint proposalId, bool vote) external {
         require(_votingModule != address(0), "vote module does not exist");
