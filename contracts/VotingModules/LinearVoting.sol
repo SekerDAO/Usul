@@ -43,14 +43,14 @@ contract LinearVoting {
     }
 
     function undelegateVotes(address delegatee, uint amount) external {
-        require(delegations[delegatee].votes[msg.sender] >= amount);
+        require(delegations[delegatee].votes[msg.sender] >= amount, "TW020");
         IERC20(_governanceToken).safeTransfer(msg.sender, amount);
         delegations[delegatee].votes[msg.sender] = delegations[delegatee].votes[msg.sender].sub(amount);
         delegations[delegatee].total = delegations[delegatee].total.sub(amount);
     }
 
     function calculateWeight(address delegate) external view returns (uint) {
-        require(delegations[delegate].lastBlock < block.number, "cannot vote in the same block as delegation");
+        require(delegations[delegate].lastBlock < block.number, "TW021");
         // can return quadtric here
         return delegations[delegate].total;
     }

@@ -50,15 +50,15 @@ contract ProposalModule {
     mapping(address => bool) private _activeProposal;
 
     modifier onlySafe {
-        require(msg.sender == _safe, "only gnosis safe may enter");
+        require(msg.sender == _safe, "TW001");
         _;
     }
 
     modifier isPassed(uint proposalId) {
-        require(proposals[proposalId].canceled == false, "proposal was canceled");
-        require(proposals[proposalId].executed == false, "proposal already executed");
-        require(proposals[proposalId].yesVotes >= _threshold, "proposal does not meet vote threshold");
-        require(proposals[proposalId].yesVotes >= proposals[proposalId].noVotes, "no votes outweigh yes");
+        require(proposals[proposalId].canceled == false, "TW002");
+        require(proposals[proposalId].executed == false, "TW003");
+        require(proposals[proposalId].yesVotes >= _threshold, "TW004");
+        require(proposals[proposalId].yesVotes >= proposals[proposalId].noVotes, "TW005");
     	_;
     }
 
@@ -104,17 +104,21 @@ contract ProposalModule {
         return _safe;
     }
 
+    function votingModule() public view virtual returns(address) {
+        return _votingModule;
+    }
+
     function registerVoteModule(address module) onlySafe external {
         _votingModule = module;
     }
 
 
     function vote(uint proposalId, bool vote) external {
-        require(_votingModule != address(0), "vote module does not exist");
-        require(proposals[proposalId].hasVoted[msg.sender] == false, "already voted");
-        require(proposals[proposalId].canceled == false, "proposal has been canceled");
-        require(proposals[proposalId].executed == false, "proposal is already executed");
-        require(proposals[proposalId].deadline >= block.timestamp, "proposal is past the deadline");
+        require(_votingModule != address(0), "TW006");
+        require(proposals[proposalId].hasVoted[msg.sender] == false, "TW007");
+        require(proposals[proposalId].canceled == false, "TW008");
+        require(proposals[proposalId].executed == false, "TW009");
+        require(proposals[proposalId].deadline >= block.timestamp, "TW010");
 
         // require voting module is registered
         proposals[proposalId].hasVoted[msg.sender] = true;
@@ -153,8 +157,8 @@ contract ProposalModule {
         //Enum.Operation _operation
     ) public {
         uint total = IVoting(_votingModule).calculateWeight(msg.sender);
-        require(_activeProposal[msg.sender] = false);
-        require(total >= _minimumProposalAmount, "submit proposal does not have enough gov tokens");
+        require(_activeProposal[msg.sender] = false, "TW011");
+        require(total >= _minimumProposalAmount, "TW012");
         // store calldata for tx to be executed
         proposals[_totalProposalCount].value = value;
         proposals[_totalProposalCount].yesVotes = total; // the total number of YES votes for this proposal    
@@ -171,15 +175,15 @@ contract ProposalModule {
     }
 
     // Execute proposals
-    function startModularGracePeriod(uint proposalId) isPassed(proposalId) external {
-        require(proposals[proposalId].gracePeriod == 0, "proposal already entered grace period");
-        require(proposals[proposalId].deadline <= block.timestamp, "proposal deadline has not passed yet");
+    function startModularQueue(uint proposalId) isPassed(proposalId) external {
+        require(proposals[proposalId].gracePeriod == 0, "TW013");
+        require(proposals[proposalId].deadline <= block.timestamp, "TW014");
         proposals[proposalId].gracePeriod = block.timestamp + _gracePeriod;
         emit GracePeriodStarted(proposals[proposalId].gracePeriod);
     }
 
     function executeModularProposal(uint proposalId) isPassed(proposalId) external {
-        require(block.timestamp >= proposals[proposalId].gracePeriod && proposals[proposalId].gracePeriod != 0, "grace period has not elapsed");
+        require(block.timestamp >= proposals[proposalId].gracePeriod && proposals[proposalId].gracePeriod != 0, "TW015");
         proposals[proposalId].executed = true;
         _activeProposal[proposals[proposalId].proposer] = false;
         ISafe(_safe).execTransactionFromModule(
@@ -191,11 +195,11 @@ contract ProposalModule {
     }
 
     function cancelProposal(uint proposalId) external {
-        require(proposals[proposalId].canceled == false);
-        require(proposals[proposalId].executed == false);
-        require(proposals[proposalId].deadline >= block.timestamp);
+        require(proposals[proposalId].canceled == false, "TW016");
+        require(proposals[proposalId].executed == false, "TW017");
+        require(proposals[proposalId].deadline >= block.timestamp, "TW018");
         // proposal guardian can be put in the roles module
-        require(proposals[proposalId].proposer == msg.sender || msg.sender == _safe);
+        require(proposals[proposalId].proposer == msg.sender || msg.sender == _safe, "TW019");
         proposals[proposalId].canceled = true;
         _activeProposal[proposals[proposalId].proposer] = false;
     }
