@@ -73,49 +73,49 @@ describe('houseDAOnft:', () => {
   it('gnosis safe enable gov module', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
-    const { safe, DAOGov } = daoFixture
+    const { safe, proposalModule } = daoFixture
 
     let owners = await safe.getOwners()
     console.log(owners)
     //await safe.addOwnerWithThreshold(wallet_2.address, 1)
-    await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [user1])
   })
 
   it('gnosis safe update owner proposal', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
-    const { safe, DAOGov } = daoFixture
+    const { safe, proposalModule } = daoFixture
 
     let owners = await safe.getOwners()
     console.log(owners)
     let nonce = await safe.nonce()
     console.log(nonce)
     //await safe.addOwnerWithThreshold(wallet_2.address, 1)
-    await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [user1])
     nonce = await safe.nonce()
     console.log(nonce)
     // build transaction to update owner on safe module for proposal
     let test = buildContractCall(safe, "addOwnerWithThreshold", [user2.address, 1], await safe.nonce())
-    await DAOGov.submitModularProposal(safe.address, 0, test.data)
+    await proposalModule.submitModularProposal(safe.address, 0, test.data)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.startModularGracePeriod(0)
+    await proposalModule.startModularGracePeriod(0)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.executeModularProposal(0)
-    let proposal = await DAOGov._proposals(0)
+    await proposalModule.executeModularProposal(0)
+    let proposal = await proposalModule._proposals(0)
     //console.log(proposal)
     owners = await safe.getOwners()
     console.log(owners)
-    let thresh = await DAOGov.threshold()
+    let thresh = await proposalModule.threshold()
     console.log(thresh.toString())
-    let test2 = buildContractCall(DAOGov, "updateThreshold", [10000], await safe.nonce())
+    let test2 = buildContractCall(proposalModule, "updateThreshold", [10000], await safe.nonce())
     //console.log(test2)
-    await DAOGov.submitModularProposal(DAOGov.address, 0, test2.data)
-    proposal = await DAOGov._proposals(1)
+    await proposalModule.submitModularProposal(proposalModule.address, 0, test2.data)
+    proposal = await proposalModule._proposals(1)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.startModularGracePeriod(1)
+    await proposalModule.startModularGracePeriod(1)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.executeModularProposal(1)
-    thresh = await DAOGov.threshold()
+    await proposalModule.executeModularProposal(1)
+    thresh = await proposalModule.threshold()
     console.log(thresh.toString())
     nonce = await safe.nonce()
     console.log(nonce)
@@ -124,22 +124,22 @@ describe('houseDAOnft:', () => {
   it('gnosis safe can send nft', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
-    const { safe, DAOGov, multiNFT } = daoFixture
+    const { safe, proposalModule, multiNFT } = daoFixture
 
-    await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [user1])
     // build transaction to update owner on safe module for proposal
     let test = buildContractCall(safe, "addOwnerWithThreshold", [user2.address, 1], await safe.nonce())
-    await DAOGov.submitModularProposal(safe.address, 0, test.data)
+    await proposalModule.submitModularProposal(safe.address, 0, test.data)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.startModularGracePeriod(0)
+    await proposalModule.startModularGracePeriod(0)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.executeModularProposal(0)
-    let test2 = buildContractCall(DAOGov, "updateThreshold", [10000], await safe.nonce())
-    await DAOGov.submitModularProposal(DAOGov.address, 0, test2.data)
+    await proposalModule.executeModularProposal(0)
+    let test2 = buildContractCall(proposalModule, "updateThreshold", [10000], await safe.nonce())
+    await proposalModule.submitModularProposal(proposalModule.address, 0, test2.data)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.startModularGracePeriod(1)
+    await proposalModule.startModularGracePeriod(1)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.executeModularProposal(1)
+    await proposalModule.executeModularProposal(1)
 
     await multiNFT.transferFrom(wallet_1.address, safe.address, 1)
     let isOwner = await multiNFT.ownerOf(1)
@@ -154,9 +154,9 @@ describe('houseDAOnft:', () => {
   it('gnosis safe can execute zora auction', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
-    const { safe, DAOGov, multiNFT, auction, weth } = daoFixture
+    const { safe, proposalModule, multiNFT, auction, weth } = daoFixture
 
-    await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [user1])
     // build transaction to update owner on safe module for proposal
     await multiNFT.transferFrom(wallet_1.address, safe.address, 1)
     let isOwner = await multiNFT.ownerOf(1)
@@ -168,11 +168,11 @@ describe('houseDAOnft:', () => {
         [auction.address, 1],
         await safe.nonce()
     )
-    await DAOGov.submitModularProposal(multiNFT.address, 0, call.data)
+    await proposalModule.submitModularProposal(multiNFT.address, 0, call.data)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.startModularGracePeriod(0)
+    await proposalModule.startModularGracePeriod(0)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.executeModularProposal(0)
+    await proposalModule.executeModularProposal(0)
     let approved = await multiNFT.getApproved(1)
     console.log(approved)
     console.log(auction.address)
@@ -190,23 +190,23 @@ describe('houseDAOnft:', () => {
         [1, multiNFT.address, 86400, reservePrice, safe.address, 10, weth.address],
         await safe.nonce()
     )
-    await DAOGov.submitModularProposal(auction.address, 0, call.data)
+    await proposalModule.submitModularProposal(auction.address, 0, call.data)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.startModularGracePeriod(1)
+    await proposalModule.startModularGracePeriod(1)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.executeModularProposal(1)
+    await proposalModule.executeModularProposal(1)
     let a1 = await auction.auctions(0)
     console.log(a1)
-    let proposal = await DAOGov._proposals(0)
+    let proposal = await proposalModule._proposals(0)
     //console.log(proposal)
   })
 
-  it.only('gnosis safe can burn last owner', async () => {
+  it('gnosis safe can burn last owner', async () => {
     let wallet_1 = (await ethers.getSigners())[0]
     let wallet_2 = (await ethers.getSigners())[1]
-    const { safe, DAOGov } = daoFixture
+    const { safe, proposalModule } = daoFixture
 
-    await executeContractCallWithSigners(safe, safe, "enableModule", [DAOGov.address], [user1])
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [user1])
 
     let owners = await safe.getOwners()
     console.log(owners)
@@ -232,12 +232,12 @@ describe('houseDAOnft:', () => {
     let restore = buildContractCall(safe, "changeThreshold", [1], await safe.nonce())
     console.log(restore)
     // can use proposal to restore
-    //await DAOGov.restoreFederation(restore.data)
-    await DAOGov.submitModularProposal(safe.address, 0, restore.data)
+    //await proposalModule.restoreFederation(restore.data)
+    await proposalModule.submitModularProposal(safe.address, 0, restore.data)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.startModularGracePeriod(0)
+    await proposalModule.startModularGracePeriod(0)
     await network.provider.send("evm_increaseTime", [60])
-    await DAOGov.executeModularProposal(0)
+    await proposalModule.executeModularProposal(0)
 
     await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [user1.address, 1], [user3])
     owners = await safe.getOwners()

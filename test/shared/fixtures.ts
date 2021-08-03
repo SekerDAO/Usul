@@ -7,7 +7,8 @@ import ZoraAuction from "../../node_modules/@zoralabs/auction-house/dist/artifac
 
 export interface DAOFixture {
   weth: Contract,
-  DAOGov: Contract,
+  proposalModule: Contract,
+  linearVoting: Contract,
   multiNFT: Contract,
   govToken: Contract,
   safe: Contract,
@@ -51,23 +52,27 @@ export async function getFixtureWithParams(
   safe.setup([wallet.address], 1, AddressZero, "0x", AddressZero, AddressZero, 0, AddressZero)
   console.log("Gnosis Safe is setup")
 
-  const daoGovContract = await ethers.getContractFactory("Governance")
-  const DAOGov = await daoGovContract.deploy(
+  const proposalContract = await ethers.getContractFactory("ProposalModule")
+  const proposalModule = await proposalContract.deploy(
     govToken.address, // gov token addres
     safe.address,
     ethers.BigNumber.from(1), // number of days proposals are active
     ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
     ethers.BigNumber.from('10000'), // min proposal gov token amt
-    wallet.address
   )
-  console.log('deployed House ERC20 DAO: ', DAOGov.address)
+  console.log('deployed House ERC20 DAO: ', proposalModule.address)
+
+  const linearContract = await ethers.getContractFactory("LinearVoting")
+  const linearVoting = await linearContract.deploy(govToken.address)
+
   await govToken.transfer(safe.address, ethers.BigNumber.from('50000000000000000000000'))
 
   const auction = await deployContract(wallet as any, ZoraAuction, [multiNFT.address, weth.address]) //await hre.ethers.getContractFactory(ZoraAuction)
 
   return {
     weth,
-    DAOGov,
+    proposalModule,
+    linearVoting,
     multiNFT,
     govToken,
     safe,

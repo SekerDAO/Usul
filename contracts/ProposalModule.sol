@@ -38,7 +38,6 @@ contract ProposalModule {
         Enum.Operation operation;
     }
 
-    // DAO name
     uint private _totalProposalCount;
     uint private _proposalTime;
     uint private _gracePeriod = 60 seconds; //3 days;
@@ -49,9 +48,7 @@ contract ProposalModule {
 
     mapping(uint => Proposal) public proposals;
     mapping(address => bool) private _activeProposal;
-    //mapping(address => Delegation) delegations;
 
-    // TODO: Create a role module that is updatable and programable
     modifier onlySafe {
         require(msg.sender == _safe, "only gnosis safe may enter");
         _;
@@ -67,6 +64,7 @@ contract ProposalModule {
 
     event ProposalCreated(uint number);
     event GracePeriodStarted(uint endDate);
+    event ProposalExecuted(uint id);
 
     constructor(
         address governanceToken_,
@@ -94,13 +92,22 @@ contract ProposalModule {
         return _gracePeriod;
     }
 
+    function proposalTime() public view virtual returns (uint) {
+        return _proposalTime;
+    }
+
     function minimumProposalAmount() public view virtual returns (uint) {
         return _minimumProposalAmount;
+    }
+
+    function safe() public view virtual returns(address) {
+        return _safe;
     }
 
     function registerVoteModule(address module) onlySafe external {
         _votingModule = module;
     }
+
 
     function vote(uint proposalId, bool vote) external {
         require(_votingModule != address(0), "vote module does not exist");
@@ -108,17 +115,13 @@ contract ProposalModule {
         require(proposals[proposalId].canceled == false, "proposal has been canceled");
         require(proposals[proposalId].executed == false, "proposal is already executed");
         require(proposals[proposalId].deadline >= block.timestamp, "proposal is past the deadline");
-        //require(delegations[msg.sender].lastBlock < block.number, "cannot vote in the same block as delegation");
 
-        // delegatecall to voting module
         // require voting module is registered
         proposals[proposalId].hasVoted[msg.sender] = true;
 
         if(vote == false){
-            //proposals[proposalId].noVotes = proposals[proposalId].noVotes.add(delegations[msg.sender].total);
             proposals[proposalId].noVotes = IVoting(_votingModule).calculateWeight(msg.sender);
         } else {
-            //proposals[proposalId].yesVotes = proposals[proposalId].yesVotes.add(delegations[msg.sender].total);
             proposals[proposalId].noVotes = IVoting(_votingModule).calculateWeight(msg.sender);
         }
     }
