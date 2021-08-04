@@ -10,7 +10,11 @@ contract StorageAccessible {
      * @param length - the number of words (32 bytes) of data to read
      * @return the bytes that were read.
      */
-    function getStorageAt(uint256 offset, uint256 length) public view returns (bytes memory) {
+    function getStorageAt(uint256 offset, uint256 length)
+        public
+        view
+        returns (bytes memory)
+    {
         bytes memory result = new bytes(length * 32);
         for (uint256 index = 0; index < length; index++) {
             // solhint-disable-next-line no-inline-assembly
@@ -33,10 +37,20 @@ contract StorageAccessible {
      * @param targetContract Address of the contract containing the code to execute.
      * @param calldataPayload Calldata that should be sent to the target contract (encoded method name and arguments).
      */
-    function simulateAndRevert(address targetContract, bytes memory calldataPayload) external {
+    function simulateAndRevert(
+        address targetContract,
+        bytes memory calldataPayload
+    ) external {
         // solhint-disable-next-line no-inline-assembly
         assembly {
-            let success := delegatecall(gas(), targetContract, add(calldataPayload, 0x20), mload(calldataPayload), 0, 0)
+            let success := delegatecall(
+                gas(),
+                targetContract,
+                add(calldataPayload, 0x20),
+                mload(calldataPayload),
+                0,
+                0
+            )
 
             mstore(0x00, success)
             mstore(0x20, returndatasize())

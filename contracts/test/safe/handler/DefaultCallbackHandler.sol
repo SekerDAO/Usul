@@ -8,7 +8,12 @@ import "../interfaces/IERC165.sol";
 
 /// @title Default Callback Handler - returns true for known token callbacks
 /// @author Richard Meissner - <richard@gnosis.pm>
-contract DefaultCallbackHandler is ERC1155TokenReceiver, ERC777TokensRecipient, ERC721TokenReceiver, IERC165 {
+contract DefaultCallbackHandler is
+    ERC1155TokenReceiver,
+    ERC777TokensRecipient,
+    ERC721TokenReceiver,
+    IERC165
+{
     string public constant NAME = "Default Callback Handler";
     string public constant VERSION = "1.0.0";
 
@@ -52,7 +57,13 @@ contract DefaultCallbackHandler is ERC1155TokenReceiver, ERC777TokensRecipient, 
         // We implement this for completeness, doesn't really have any value
     }
 
-    function supportsInterface(bytes4 interfaceId) external view virtual override returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        external
+        view
+        virtual
+        override
+        returns (bool)
+    {
         return
             interfaceId == type(ERC1155TokenReceiver).interfaceId ||
             interfaceId == type(ERC721TokenReceiver).interfaceId ||

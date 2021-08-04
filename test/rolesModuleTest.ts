@@ -26,7 +26,7 @@
 //     daoFixture = await getFixtureWithParams(wallet, true)
 //   })
 
-//   // can use the safe and a cancel proposal role 
+//   // can use the safe and a cancel proposal role
 
 //   it('head of house can enter a member', async () => {
 //     const { weth, proposalModule, govToken } = daoFixture
@@ -129,7 +129,7 @@
 //     expect(await govToken.balanceOf(wallet_3.address)).to.equal(10000)
 
 //     expect(proposal.yesVotes).to.equal(20000) // if they buy on the market this will be non-zero
-//     expect(proposal.noVotes).to.equal(0) 
+//     expect(proposal.noVotes).to.equal(0)
 //   })
 
 //   it('can execute enter DAO proposal', async () => {

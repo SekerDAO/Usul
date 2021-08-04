@@ -2,17 +2,17 @@
 
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/utils/math/SafeMath.sol';
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../common/Enum.sol";
 
 contract SingleVoting {
-    using SafeMath for uint;
+    using SafeMath for uint256;
 
     struct Delegation {
         mapping(address => bool) isDelegated;
-        uint lastBlock;
-        uint total;
+        uint256 lastBlock;
+        uint256 total;
         bool votingActive;
     }
 
@@ -21,18 +21,15 @@ contract SingleVoting {
 
     mapping(address => Delegation) delegations;
 
-    modifier onlyProposalModule {
+    modifier onlyProposalModule() {
         require(msg.sender == _proposalModule, "TW023");
         _;
     }
 
-    event VotesDelegated(uint number);
-    event VotesUndelegated(uint number);
+    event VotesDelegated(uint256 number);
+    event VotesUndelegated(uint256 number);
 
-    constructor(
-        address governanceToken_,
-        address proposalModule_
-    ) {
+    constructor(address governanceToken_, address proposalModule_) {
         _governanceToken = governanceToken_;
         _proposalModule = proposalModule_;
     }
@@ -52,16 +49,19 @@ contract SingleVoting {
         delegations[delegatee].total--;
     }
 
-    function startVoting(address delegatee) onlyProposalModule external {
+    function startVoting(address delegatee) external onlyProposalModule {
         delegations[delegatee].votingActive == true;
     }
 
-    function endVoting(address delegatee) onlyProposalModule external {
+    function endVoting(address delegatee) external onlyProposalModule {
         delegations[delegatee].votingActive == false;
     }
 
-    function calculateWeight(address delegate) external view returns (uint) {
-        require(delegations[delegate].lastBlock < block.number, "cannot vote in the same block as delegation");
+    function calculateWeight(address delegate) external view returns (uint256) {
+        require(
+            delegations[delegate].lastBlock < block.number,
+            "cannot vote in the same block as delegation"
+        );
         return delegations[delegate].total;
     }
 }

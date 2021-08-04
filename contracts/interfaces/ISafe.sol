@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import '../common/Enum.sol';
+import "../common/Enum.sol";
 
 interface ISafe {
     function execTransactionFromModule(

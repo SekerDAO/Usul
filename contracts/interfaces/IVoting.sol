@@ -3,7 +3,9 @@
 pragma solidity ^0.8.0;
 
 interface IVoting {
-    function calculateWeight(address delegatee) external view returns (uint);
+    function calculateWeight(address delegatee) external view returns (uint256);
+
     function startVoting(address delegatee) external;
+
     function endVoting(address delegatee) external;
 }

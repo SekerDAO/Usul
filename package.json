@@ -5,6 +5,7 @@
   "scripts": {
     "lint": "yarn prettier ./test/*.ts --check",
     "lint:fix": "yarn prettier ./test/*.ts --write",
+    "prettier:solidity": "./node_modules/.bin/prettier --write contracts/**/*.sol",
     "clean": "rimraf ./build/",
     "precompile": "yarn clean",
     "compile": "npx hardhat compile",
@@ -33,17 +34,20 @@
     "@types/chai": "^4.2.18",
     "@types/mocha": "^8.2.2",
     "@types/node": "^14.17.0",
+    "@zoralabs/auction-house": "^1.1.1",
     "chai": "^4.3.4",
     "eth-sig-util": "^3.0.1",
     "ethereum-waffle": "^3.3.0",
     "ethereumjs-util": "^7.0.10",
     "ethers": "^5.2.0",
-    "hardhat": "^2.3.0",
+    "hardhat": "^2.5.0",
     "hardhat-deploy": "^0.7.5",
+    "prettier": "^2.3.2",
+    "prettier-plugin-solidity": "^1.0.0-beta.17",
+    "solhint-plugin-prettier": "0.0.5",
     "solidity-coverage": "^0.7.16",
     "ts-node": "9.0.0",
-    "typescript": "^4.2.3",
-    "@zoralabs/auction-house": "^1.1.1"
+    "typescript": "^4.2.3"
   },
   "dependencies": {
     "@openzeppelin/contracts": "4.0.0"
