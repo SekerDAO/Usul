@@ -4,11 +4,17 @@
 
 Welcome to TokenWalk's Gnosis Safe DAO Module.
 
-This OS is an attempt at building fully decentralized DAO contracts that make the least opinions that will prevent those who use this OS from being siloed into a technology choice. This works with standard erc20 tokens rather than specializd DeFi tokens. The contracts are modular and extensible, built on top of the Gnosis Safe that many already have deployed. All of the state remains on the Gnosis safe which is upgradeable. If new logic is desired on the proposal module a new module may be voted into the gnosis safe by the old proposal module. Roles and membership use a byte code registry that allows DAOs to enable any specific permission that they can think of, remove them later, and stay flexible over time.
+This OS is an attempt at building fully decentralized DAO contracts that make the least opinions that will prevent those who use this OS from being siloed into a technology choice. By building on the Gnosis Safe, this OS allows an organization to start with a trusted federation in the early days and eventually move to a fully decentralized community owned DAO. A safe admin can be kept as a failsafe against attacks by bypassing the proposal module and removing it at the gnosis safe core. If this is too trusted a specific role can be created to only be allowed to cancel proposals. Eventually, given propor community building and token distribution, all Safe admins can be burned, and no roles registed that can cancel proposals.
+
+This works with standard erc20 tokens rather than specializd DeFi tokens. Any standard erc20 token can be used as the fully decentralized token weighted vote. We have specifically chosen not to support erc721 as a voting token. 
+
+The contracts are modular and extensible, built on top of the Gnosis Safe that many already have deployed. All of the state remains on the Gnosis safe which is upgradeable. If new logic is desired on the proposal module a new module may be voted into the gnosis safe by the old proposal module. 
+
+Roles and membership use a byte code registry that allows DAOs to enable any specific permission that they can think of, remove them later, and stay flexible over time.
 
 ### Proposal Module
 
-This is the core module that is registed with the Gnosis Safe. 
+This is the core module that is registed with the Gnosis Safe. This module operates in a similar way as the Compound.Finance DAOs with token weighted votes on proposals. These proposals can have a minimum token delegation threshold for being accepted to the contract. Voting is passed by having more votes than an updateable (by governance vote)
 
 ### Voting Modules
 
@@ -19,6 +25,10 @@ These are external modules that allow DAOs to chose and change the voting strate
 This module defines membership and specific permissions over actions on the Gnosis safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire communities vote.
 
 This module uses a registery of byte code to enable all possible roles that a DAO can think of in the future.
+
+## Admin Burning
+
+Admin burning is the mechanism by which this OS allows for a gradual move from centralized, to federated, to decentralized. 
 
 ## Deploy 
 
