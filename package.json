@@ -1,5 +1,5 @@
 {
-  "name": "@tokenwalk/governance-module",
+  "name": "@tokenwalk/safe-dao",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nginnever/gallery-dao.git"
+    "url": "git+https://github.com/TokenWalk/SafeDAO.git"
   },
   "keywords": [],
   "author": "",
