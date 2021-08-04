@@ -22,7 +22,7 @@
 - TW004 "proposal does not meet vote threshold"
 - TW005 "no votes outweigh yes"
 - TW006 "vote module does not exist"
-- TW007 "already voted"
+- TW007 "already voted on proposal"
 - TW008 "voting on canceled proposal"
 - TW009 "voting on executed proposal"
 - TW010 "voting on proposal past the deadline"

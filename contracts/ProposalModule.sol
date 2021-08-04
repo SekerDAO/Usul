@@ -176,8 +176,8 @@ contract ProposalModule {
 
     // Execute proposals
     function startModularQueue(uint proposalId) isPassed(proposalId) external {
-        require(proposals[proposalId].gracePeriod == 0, "TW013");
         require(proposals[proposalId].deadline <= block.timestamp, "TW014");
+        require(proposals[proposalId].canceled == false, "TW023");
         proposals[proposalId].gracePeriod = block.timestamp + _gracePeriod;
         proposals[proposalId].queued = true;
         emit GracePeriodStarted(proposals[proposalId].gracePeriod);
