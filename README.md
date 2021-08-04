@@ -14,7 +14,7 @@ Roles and membership use a byte code registry that allows DAOs to enable any spe
 
 ### Proposal Module
 
-This is the core module that is registed with the Gnosis Safe. This module operates in a similar way as the Compound.Finance DAOs with token weighted votes on proposals. These proposals can have a minimum token delegation threshold for being accepted to the contract. Voting is passed by having more votes than an updateable (by governance vote)
+This is the core module that is registed with the Gnosis Safe. This module operates in a similar way as the Compound.Finance DAOs with token weighted votes on proposals. These proposals can have a minimum token delegation threshold for being accepted to the contract. Voting is passed by having more votes than an updateable (by governance vote) voting threshold and more yes votes than no votes. Once passed proposals enter a queue period for safety where a trusted role can have time to prevent attacks, allowing for more comfortable distribution of tokens that do not end up only in the hands of investors and founders.
 
 ### Voting Modules
 
