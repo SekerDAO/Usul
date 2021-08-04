@@ -121,9 +121,9 @@ roles.executeModuleByRole
 
 Admin burning is the mechanism by which this OS allows for a gradual move from centralized, to federated, to decentralized.
 
-The process to burn the Gnosis Safe is to remove all owners. Due to the linked list approach that Gnosis uses to remove owners, only owner added after to previous owner may remove the previous owner. This means that the last owner cannot be removed from the Safe.
+The process to burn the Gnosis Safe is to remove all owners. Due to the linked list approach that Gnosis uses to remove owners, only the owner added after the previous owner may remove the previous owner. This means that the last owner cannot be removed from the Safe.
 
-To get around this, we remove all owners but the last place a burn address as the second address and increase the threshold of signers to two. This ensures that there are no known signatures that can reach the threshold.
+To get around this, we remove all owners but the last and place a burn address as the second address and increase the threshold of signers to two. This ensures that there are no known signatures that can reach the threshold.
 
 ## Deploy 
 
