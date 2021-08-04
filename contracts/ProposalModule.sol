@@ -112,7 +112,6 @@ contract ProposalModule {
         _votingModule = module;
     }
 
-
     function vote(uint proposalId, bool vote) external {
         require(_votingModule != address(0), "TW006");
         require(proposals[proposalId].hasVoted[msg.sender] == false, "TW007");
@@ -129,22 +128,18 @@ contract ProposalModule {
         }
     }
 
-    // for now allow heads of house to update threshold
     function updateThreshold(uint threshold) onlySafe external {
     	_threshold = threshold;
     }
 
-    // for now allow heads of house to update minimumProposalAmount
     function updateMinimumProposalAmount(uint minimumProposalAmount) onlySafe external {
     	_minimumProposalAmount = minimumProposalAmount;
     }
 
-    // for now allow heads of house to update proposalTime
     function updateProposalTime(uint newTime) onlySafe external {
         _proposalTime = newTime;
     }
 
-    // for now allow heads of house to update gracePeriod
     function updateGracePeriod(uint gracePeriod) onlySafe external {
         _gracePeriod = gracePeriod;
     }
