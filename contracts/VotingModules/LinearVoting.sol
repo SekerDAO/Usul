@@ -19,7 +19,7 @@ contract LinearVoting {
 
     address private _governanceToken;
 
-    mapping(address => Delegation) delegations;
+    mapping(address => Delegation) public delegations;
 
     event VotesDelegated(uint number);
     event VotesUndelegated(uint number);
@@ -50,7 +50,7 @@ contract LinearVoting {
     }
 
     function calculateWeight(address delegate) external view returns (uint) {
-        require(delegations[delegate].lastBlock < block.number, "TW021");
+        require(delegations[delegate].lastBlock < block.number, "TW021"); // todo move this to a check function
         // can return quadtric here
         return delegations[delegate].total;
     }

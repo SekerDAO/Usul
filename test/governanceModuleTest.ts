@@ -54,49 +54,209 @@ describe('proposalModule:', () => {
     await proposalModule.registerVoteModule(linearVoting.address)
   })
 
-  it.only('can delegate votes to self', async () => {
+  it('can delegate votes to self', async () => {
     const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture
-    await linearVoting.delegate()
+    const bal = await govToken.balanceOf(wallet_0.address)
+    await govToken.approve(linearVoting.address, 1000)
+    await linearVoting.delegateVotes(wallet_0.address, 1000)
+    const delegatation = await linearVoting.delegations(wallet_0.address)
+    expect(delegatation.total).to.equal(1000)
+    expect(await govToken.balanceOf(linearVoting.address)).to.equal(1000)
   })
 
-  it('can execute enter safe admin DAO proposal', async () => {
+  it('can undelegate votes to self', async () => {
+    const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture
+    const bal = await govToken.balanceOf(wallet_0.address)
+    await govToken.approve(linearVoting.address, 1000)
+    await linearVoting.delegateVotes(wallet_0.address, 1000)
+    const delegatation = await linearVoting.delegations(wallet_0.address)
+    expect(delegatation.total).to.equal(1000)
+    expect(await govToken.balanceOf(linearVoting.address)).to.equal(1000)
+    await linearVoting.undelegateVotes(wallet_0.address, 1000)
+    const undelegatation = await linearVoting.delegations(wallet_0.address)
+    expect(undelegatation.total).to.equal(0)
+    expect(await govToken.balanceOf(linearVoting.address)).to.equal(0)
+  })
+
+  it('can delegate votes to others', async () => {
+    const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture
+    const bal = await govToken.balanceOf(wallet_0.address)
+    await govToken.approve(linearVoting.address, 1000)
+    await linearVoting.delegateVotes(wallet_0.address, 1000)
+    await govToken.connect(wallet_1).approve(linearVoting.address, 1000)
+    await linearVoting.connect(wallet_1).delegateVotes(wallet_0.address, 1000)
+    await govToken.connect(wallet_2).approve(linearVoting.address, 1000)
+    await linearVoting.connect(wallet_2).delegateVotes(wallet_0.address, 1000)
+    const delegatation = await linearVoting.delegations(wallet_0.address)
+    expect(delegatation.total).to.equal(3000)
+    expect(await govToken.balanceOf(linearVoting.address)).to.equal(3000)
+  })
+
+  it('can undelegate votes to others', async () => {
+    const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture
+    const bal = await govToken.balanceOf(wallet_0.address)
+    await govToken.approve(linearVoting.address, 1000)
+    await linearVoting.delegateVotes(wallet_0.address, 1000)
+    await govToken.connect(wallet_1).approve(linearVoting.address, 1000)
+    await linearVoting.connect(wallet_1).delegateVotes(wallet_0.address, 1000)
+    await govToken.connect(wallet_2).approve(linearVoting.address, 1000)
+    await linearVoting.connect(wallet_2).delegateVotes(wallet_0.address, 1000)
+    const delegatation = await linearVoting.delegations(wallet_0.address)
+    expect(delegatation.total).to.equal(3000)
+    expect(await govToken.balanceOf(linearVoting.address)).to.equal(3000)
+    await linearVoting.connect(wallet_2).undelegateVotes(wallet_0.address, 1000)
+    const undelegatation = await linearVoting.delegations(wallet_0.address)
+    expect(undelegatation.total).to.equal(2000)
+    expect(await govToken.balanceOf(linearVoting.address)).to.equal(2000)
+  })
+
+  it('can execute add safe admin DAO proposal', async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture
-
-    let addCall = buildContractCall(safe, "addOwner", [wallet_2.address, 1], await safe.nonce())
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [wallet_0])
+    await executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [linearVoting.address], [wallet_0])
+    await govToken.approve(linearVoting.address, ethers.BigNumber.from('1000000000000000000'))
+    await linearVoting.delegateVotes(wallet_0.address, ethers.BigNumber.from('1000000000000000000'))
+    let addCall = buildContractCall(safe, "addOwnerWithThreshold", [wallet_2.address, 1], await safe.nonce())
     await proposalModule.submitModularProposal(safe.address, 0, addCall.data)
-
+    let proposal = await proposalModule.proposals(0)
+    expect(proposal.value).to.equal(0)
+    expect(proposal.yesVotes).to.equal(ethers.BigNumber.from('1000000000000000000'))
+    expect(proposal.noVotes).to.equal(0)
+    expect(proposal.proposer).to.equal(wallet_0.address)
+    expect(proposal.canceled).to.equal(false)
+    expect(proposal.targetAddress).to.equal(safe.address)
+    expect(proposal.data).to.equal(addCall.data)
     await network.provider.send("evm_increaseTime", [60])
-    await proposalModule.startModularGracePeriod(0)
+    await proposalModule.startModularQueue(0)
+    proposal = await proposalModule.proposals(0)
+    expect(proposal.queued).to.equal(true)
     await network.provider.send("evm_increaseTime", [60])
     await proposalModule.executeModularProposal(0)
-    let owners = await safe.getOwners()
-    console.log(owners)
-
-    await proposalModule.headOfHouseEnterMember(wallet_3.address)
-    expect(await proposalModule.memberCount()).to.equal(2)
-    let role = {
-      headOfHouse: false,
-      member: true
-    }
-    await proposalModule.connect(wallet_2).joinDAOProposal(role)
-    await proposalModule.connect(wallet_3).vote(0, true)
-    let proposal = await proposalModule.proposals(0)
-    expect(proposal.yesVotes).to.equal('1000000000000010000') // if they buy on the market this will be non-zero
-    expect(proposal.noVotes).to.equal(0)
-    expect(await govToken.balanceOf(wallet_2.address)).to.equal('1000000000000000000')
-    expect(await govToken.balanceOf(proposalModule.address)).to.equal('50000000000000000000000')
-    await network.provider.send("evm_increaseTime", [259200])
-    await proposalModule.connect(wallet_2).executeEnterDAOProposal(0)
-    expect(await govToken.balanceOf(wallet_2.address)).to.equal('1000000000000000000')
     proposal = await proposalModule.proposals(0)
     expect(proposal.executed).to.equal(true)
+    const owners = await safe.getOwners()
+    expect(owners[0]).to.equal(wallet_2.address)
+    expect(owners[1]).to.equal(wallet_0.address)
+  })
+
+  it.skip('cannot create proposal with out delegation threshold', async () => {
+    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [wallet_0])
+    await executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [linearVoting.address], [wallet_0])
+    let addCall = buildContractCall(safe, "addOwnerWithThreshold", [wallet_2.address, 1], await safe.nonce())
+    await proposalModule.submitModularProposal(safe.address, 0, addCall.data)
+  })
+
+  it('can vote past the threshold with delegation', async () => {
+    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [wallet_0])
+    await executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [linearVoting.address], [wallet_0])
+    await govToken.approve(linearVoting.address, ethers.BigNumber.from('500000000000000000'))
+    await linearVoting.delegateVotes(wallet_0.address, ethers.BigNumber.from('500000000000000000'))
+    await govToken.connect(wallet_1).approve(linearVoting.address, ethers.BigNumber.from('500000000000000000'))
+    await linearVoting.connect(wallet_1).delegateVotes(wallet_0.address, ethers.BigNumber.from('500000000000000000'))
+    let addCall = buildContractCall(safe, "addOwnerWithThreshold", [wallet_2.address, 1], await safe.nonce())
+    await proposalModule.submitModularProposal(safe.address, 0, addCall.data)
+    let proposal = await proposalModule.proposals(0)
+    expect(proposal.value).to.equal(0)
+    expect(proposal.yesVotes).to.equal(ethers.BigNumber.from('1000000000000000000'))
+    expect(proposal.noVotes).to.equal(0)
+    expect(proposal.proposer).to.equal(wallet_0.address)
     expect(proposal.canceled).to.equal(false)
-    let member = await proposalModule.members(wallet_2.address)
-    expect(member.shares).to.equal(0)
-    expect(member.roles.member).to.equal(true)
-    expect(await proposalModule.balance()).to.equal(0)
-    expect(await proposalModule.totalContribution()).to.equal(0)
-    expect(await proposalModule.memberCount()).to.equal(3)
+    expect(proposal.targetAddress).to.equal(safe.address)
+    expect(proposal.data).to.equal(addCall.data)
+    await network.provider.send("evm_increaseTime", [60])
+    await proposalModule.startModularQueue(0)
+    proposal = await proposalModule.proposals(0)
+    expect(proposal.queued).to.equal(true)
+    await network.provider.send("evm_increaseTime", [60])
+    await proposalModule.executeModularProposal(0)
+    proposal = await proposalModule.proposals(0)
+    expect(proposal.executed).to.equal(true)
+    const owners = await safe.getOwners()
+    expect(owners[0]).to.equal(wallet_2.address)
+    expect(owners[1]).to.equal(wallet_0.address)
+  })
+
+  it.skip('can vote in same block as delegatation', async () => {
+    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [wallet_0])
+    await executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [linearVoting.address], [wallet_0])
+    await govToken.approve(linearVoting.address, ethers.BigNumber.from('500000000000000000'))
+    await linearVoting.delegateVotes(wallet_0.address, ethers.BigNumber.from('500000000000000000'))
+    await govToken.connect(wallet_1).approve(linearVoting.address, ethers.BigNumber.from('500000000000000000'))
+    await linearVoting.connect(wallet_1).delegateVotes(wallet_1.address, ethers.BigNumber.from('500000000000000000'))
+    const weight = await linearVoting.calculateWeight(wallet_1.address)
+  })
+
+
+  it.only('can vote past the threshold with independent delegatation', async () => {
+    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [wallet_0])
+    await executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [linearVoting.address], [wallet_0])
+    await govToken.approve(linearVoting.address, ethers.BigNumber.from('500000000000000000'))
+    await linearVoting.delegateVotes(wallet_0.address, ethers.BigNumber.from('500000000000000000'))
+    await govToken.connect(wallet_1).approve(linearVoting.address, ethers.BigNumber.from('500000000000000000'))
+    await linearVoting.connect(wallet_1).delegateVotes(wallet_1.address, ethers.BigNumber.from('500000000000000000'))
+    await network.provider.send("evm_mine")
+    const weight = await linearVoting.calculateWeight(wallet_1.address)
+    expect(weight).to.equal(ethers.BigNumber.from('500000000000000000'))
+    let addCall = buildContractCall(safe, "addOwnerWithThreshold", [wallet_2.address, 1], await safe.nonce())
+    await proposalModule.submitModularProposal(safe.address, 0, addCall.data)
+    let proposal = await proposalModule.proposals(0)
+    expect(proposal.value).to.equal(0)
+    expect(proposal.yesVotes).to.equal(ethers.BigNumber.from('500000000000000000'))
+    expect(proposal.noVotes).to.equal(0)
+    expect(proposal.proposer).to.equal(wallet_0.address)
+    expect(proposal.canceled).to.equal(false)
+    expect(proposal.targetAddress).to.equal(safe.address)
+    expect(proposal.data).to.equal(addCall.data)
+    await proposalModule.connect(wallet_1).vote(0, true)
+    proposal = await proposalModule.proposals(0)
+    expect(proposal.yesVotes).to.equal(ethers.BigNumber.from('1000000000000000000'))
+    await network.provider.send("evm_increaseTime", [60])
+    await proposalModule.startModularQueue(0)
+    proposal = await proposalModule.proposals(0)
+    expect(proposal.queued).to.equal(true)
+    await network.provider.send("evm_increaseTime", [60])
+    await proposalModule.executeModularProposal(0)
+    proposal = await proposalModule.proposals(0)
+    expect(proposal.executed).to.equal(true)
+    const owners = await safe.getOwners()
+    expect(owners[0]).to.equal(wallet_2.address)
+    expect(owners[1]).to.equal(wallet_0.address)
+  })
+
+  it('can only vote once per proposal', async () => {
+    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [wallet_0])
+    await executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [linearVoting.address], [wallet_0])
+    await govToken.approve(linearVoting.address, ethers.BigNumber.from('500000000000000000'))
+    await linearVoting.delegateVotes(wallet_0.address, ethers.BigNumber.from('500000000000000000'))
+    await govToken.connect(wallet_1).approve(linearVoting.address, ethers.BigNumber.from('500000000000000000'))
+    await linearVoting.connect(wallet_1).delegateVotes(wallet_1.address, ethers.BigNumber.from('500000000000000000'))
+    let addCall = buildContractCall(safe, "addOwnerWithThreshold", [wallet_2.address, 1], await safe.nonce())
+    await proposalModule.submitModularProposal(safe.address, 0, addCall.data)
+    await proposalModule.connect(wallet_1).vote(0, true)
+    await proposalModule.connect(wallet_1).vote(0, true)
+  })
+
+  it.skip('cannot enter queue if not past threshold', async () => {
+    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture
+    await executeContractCallWithSigners(safe, safe, "enableModule", [proposalModule.address], [wallet_0])
+    await executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [linearVoting.address], [wallet_0])
+    await govToken.approve(linearVoting.address, ethers.BigNumber.from('500000000000000000'))
+    await linearVoting.delegateVotes(wallet_0.address, ethers.BigNumber.from('500000000000000000'))
+    let addCall = buildContractCall(safe, "addOwnerWithThreshold", [wallet_2.address, 1], await safe.nonce())
+    await proposalModule.submitModularProposal(safe.address, 0, addCall.data)
+    let proposal = await proposalModule.proposals(0)
+    expect(proposal.yesVotes).to.equal(ethers.BigNumber.from('500000000000000000'))
+    await network.provider.send("evm_increaseTime", [60])
+    await proposalModule.startModularQueue(0)
+  })
+
+  it('cannot enter queue if not past deadline', async () => {
+
   })
 
   it('can have only one DAO proposal at a time', async () => {

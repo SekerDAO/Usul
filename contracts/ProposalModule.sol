@@ -120,13 +120,12 @@ contract ProposalModule {
         require(proposals[proposalId].executed == false, "TW009");
         require(proposals[proposalId].deadline >= block.timestamp, "TW010");
 
-        // require voting module is registered
         proposals[proposalId].hasVoted[msg.sender] = true;
 
-        if(vote == false){
-            proposals[proposalId].noVotes = IVoting(_votingModule).calculateWeight(msg.sender);
+        if(vote == true){
+            proposals[proposalId].yesVotes = proposals[proposalId].yesVotes + IVoting(_votingModule).calculateWeight(msg.sender);
         } else {
-            proposals[proposalId].noVotes = IVoting(_votingModule).calculateWeight(msg.sender);
+            proposals[proposalId].noVotes = proposals[proposalId].noVotes + IVoting(_votingModule).calculateWeight(msg.sender);
         }
     }
 
@@ -156,8 +155,9 @@ contract ProposalModule {
         bytes memory data
         //Enum.Operation _operation
     ) public {
+        require(_votingModule != address(0), "TW022");
         uint total = IVoting(_votingModule).calculateWeight(msg.sender);
-        require(_activeProposal[msg.sender] = false, "TW011");
+        require(_activeProposal[msg.sender] == false, "TW011");
         require(total >= _minimumProposalAmount, "TW012");
         // store calldata for tx to be executed
         proposals[_totalProposalCount].value = value;
@@ -179,6 +179,7 @@ contract ProposalModule {
         require(proposals[proposalId].gracePeriod == 0, "TW013");
         require(proposals[proposalId].deadline <= block.timestamp, "TW014");
         proposals[proposalId].gracePeriod = block.timestamp + _gracePeriod;
+        proposals[proposalId].queued = true;
         emit GracePeriodStarted(proposals[proposalId].gracePeriod);
     }
 

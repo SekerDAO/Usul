@@ -20,7 +20,7 @@ export async function getFixtureWithParams(
   wallet: SignerWithAddress,
   fromWallet: boolean = true
 ): Promise<any> {
-
+  const [wallet_0, wallet_1, wallet_2, wallet_3] = waffle.provider.getWallets();
   const wethContract = await ethers.getContractFactory("WETH9")
   // deploy tokens
   const weth = await wethContract.deploy() 
@@ -29,6 +29,9 @@ export async function getFixtureWithParams(
 
   const govTokenContract = await ethers.getContractFactory("GovernanceToken")
   const govToken = await govTokenContract.deploy("GovToken", "GT", ethers.BigNumber.from('100000000000000000000000'))
+  await govToken.transfer(wallet_1.address, ethers.BigNumber.from('1000000000000000000'))
+  await govToken.transfer(wallet_2.address, ethers.BigNumber.from('1000000000000000000'))
+  await govToken.transfer(wallet_3.address, ethers.BigNumber.from('1000000000000000000'))
   console.log('Gov Token Deploy Cost ' + govToken.deployTransaction.gasLimit.toString())
   console.log("deployed governance token: ", govToken.address)
 
