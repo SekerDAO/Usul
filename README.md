@@ -14,7 +14,7 @@ Roles and membership use a byte code registry that allows DAOs to enable any spe
 
 ### Proposal Module
 
-This is the core module that is registed with the Gnosis Safe. This module operates in a similar way as the [Compound.Finance](https://github.com/compound-finance/compound-protocol/tree/master/contracts/Governance) DAOs with token weighted votes on proposals. These proposals can have a minimum token delegation threshold for being accepted to the contract. Voting is passed by having more votes than the voting threshold and mahority of yes votes. Once passed proposals enter a queue period for safety where a trusted role can have time to prevent attacks. All thresholds are updatable by governance proposal or role bypass if desired.
+This is the core module that is registed with the Gnosis Safe. This module operates in a similar way as the [Compound.Finance](https://github.com/compound-finance/compound-protocol/tree/master/contracts/Governance) DAOs with token weighted votes on proposals. These proposals can have a minimum token delegation threshold for being accepted to the contract. Voting is passed by having more votes than the voting threshold and majority of yes votes. Once passed proposals enter a queue period for safety where a trusted role can have time to prevent attacks. All thresholds are updatable by governance proposal or role bypass if desired.
 
 #### Proposal Structure
 ```
