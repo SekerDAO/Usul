@@ -88,13 +88,33 @@ voting.calculateWeight
 
 ### Roles Module
 
-This module defines membership and specific permissions over actions on the Gnosis Safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire community's vote.
+This a second GNosis Safe module that defines membership and specific permissions over actions on the Gnosis Safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire community's vote.
 
 This module uses a registry of byte code to enable all possible roles that a DAO can think of in the future.
 
 #### Roles API
 ```
-TBD
+roles.safeEnterMember
+/// @param address The address of the member to add
+
+roles.safeRemoveMember
+/// @param address The address of the member to remove
+
+roles.safeAddRole
+/// @param address The address of the member to a role to
+/// @param Role The role structure contain the allowed bytes to execute
+
+roles.safeRemoveRole
+/// @param address The address of the member to remove a role from
+/// @param uint The role ID to remove from the member registery
+
+roles.executeModuleByRole
+/// @param uint The role ID to use for execution permissions
+/// @param address The target address for execution
+/// @param uint The ether value to pass during exectution
+/// @param bytes The method signature that is allowed by this role
+/// @param bytes The parameters data that is allowed by this role
+/// @param operation The enumarated call or delegatecall option
 ```
 
 ## Admin Burning
@@ -117,8 +137,10 @@ To get around this, we remove all owners but the last place a burn address as th
 - token.transfer(safe, (1-foundersPortion))
 - Deploy Proposal Module
 - Deploy Desired Voting Module
+- Deploy Roles module (if desired)
 - safe.executeContractCallWithSigners(safe, safe, "registerModule", [Proposal.address])
 - safe.executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [voteModule.address])
+- safe.executeContractCallWithSigners(safe, safe, "registerModule", [Roles.address])
 ``` 
 
 ## Error Codes
@@ -149,4 +171,7 @@ To get around this, we remove all owners but the last place a burn address as th
 - TW024 "cannot undelegate votes until all proposals are finalized"
 - TW025 "cannot end voting if proposal is not finalized"
 - TW026 "voter has already ended voting for proposal"
+- TW027 "only the Gnosis Safe may enter Roles function"
+- TW028 "must be a member to execute role module"
+- TW029 "target address is not authorized for role"
 ```

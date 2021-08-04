@@ -3,32 +3,12 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import "./common/Enum.sol";
+import './common/Enum.sol';
+import './interfaces/ISafe.sol';
+import './interfaces/IVoting.sol';
 
 /// @title Gnosis Safe DAO Extension - A gnosis wallet module for introducing fully decentralized token weighted governance.
 /// @author Nathan Ginnever - <team@tokenwalk.com>
-
-interface ISafe {
-    function execTransactionFromModule(
-        address to,
-        uint256 value,
-        bytes memory data,
-        Enum.Operation operation
-    ) external returns (bool success);
-}
-
-interface IVoting {
-    function calculateWeight(
-        address delegatee
-    ) external view returns (uint);
-    function startVoting(
-        address delegatee
-    ) external;
-    function endVoting(
-        address delegatee
-    ) external;
-}
-
 contract ProposalModule {
 
     struct Proposal {

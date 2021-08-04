@@ -2,14 +2,22 @@
 
 pragma solidity ^0.8.0;
 
+import './common/Enum.sol';
+import './interfaces/ISafe.sol';
+import './interfaces/IVoting.sol';
+
 contract Roles {
 	struct Role {
-		bool headOfHouse;
-		bool member;
+        bytes allowedMethodSignature;
+        address target;
+        bytes params;
 	}
 
     struct Member {
-        Role roles;
+        mapping(uint => Role) roles;
+        uint numberOfRoles;
+        bool headOfHouse;
+        bool member;
         bool activeProposal;
     }
 
@@ -17,33 +25,15 @@ contract Roles {
     uint private _memberCount;
     address private _safe;
 
-    modifier onlyMember {
-        require(_members[msg.sender].roles.member == true, "not a member");
-        _;
-    }
-
-    modifier onlyHeadOfHouse {
-        require(_members[msg.sender].roles.headOfHouse == true, "not a head of house");
-        _;
-    }
-
     modifier onlySafe {
-        require(msg.sender == _safe, "only gnosis safe may enter");
+        require(msg.sender == _safe, "TW027");
         _;
     }
 
 
     constructor(
-        address[] memory heads_,
         address safe_
     ) {
-        for(uint i=0; i<heads_.length; i++) {
-            // create head of house member struct
-            require(heads_[i] != address(0));
-            _members[heads_[i]].roles.headOfHouse = true;
-            _members[heads_[i]].roles.member = true;
-            _memberCount++;
-        }
         _safe = safe_;
     }
 
@@ -51,38 +41,46 @@ contract Roles {
         return _memberCount;
     }
 
-    // make this the easy multisig version, split out
-    function headOfHouseEnterMember(address member) onlySafe external {
-        //require(IERC20(_governanceToken).balanceOf(member) >= _minimumProposalAmount, "sponsor does not have enough gov tokens");
-        _members[member].roles.member = true;
+    function safeEnterMember(address member) onlySafe external {
+        _members[member].member = true;
         _memberCount++;
     }
 
-    function headOfHouseRemoveMember(address member) onlySafe external {
-        //require(IERC20(_governanceToken).balanceOf(member) >= _minimumProposalAmount, "sponsor does not have enough gov tokens");
-        _members[member].roles.member = false;
-        _members[member].roles.headOfHouse = false;
+    function safeRemoveMember(address member) onlySafe external {
+        _members[member].member = false;
         _memberCount--;
     }
 
-    // function executeModularByRole(uint proposalId) isPassed(proposalId) external {
-    //     // require sender has registered role
-    //     // build the safe tx based on allowed bytes
-    //     ISafe(_safe).execTransactionFromModule(
-    //         proposals[proposalId].targetAddress,
-    //         proposals[proposalId].value,
-    //         proposals[proposalId].data,
-    //         proposals[proposalId].operation
-    //     );
-    // }
+    function safeAddRole(address member, Role memory role) onlySafe external {
+        _members[member].roles[_members[member].numberOfRoles++] = role;
+        _members[member].numberOfRoles++;
+    }
 
-    // create a function that registers (address to method sig and target) that they are allowed to bypass on the safe
-    // use memory lib to ensure data being passed is equal to what is register
+    function safeRemoveRole(address member, uint roleId) onlySafe external {
+        delete _members[member].roles[roleId];
+        _members[member].numberOfRoles--;
+    }
 
-    // use same proposal structure
-
-    // members vote on role registration and deregistration
-
-    // put proposal pause guardian bypass here
-
+    function executeModuleByRole(
+        uint roleId,
+        address member,
+        address targetAddress,
+        uint value,
+        bytes memory data,
+        bytes memory methodSignature,
+        bytes memory parameters
+        //Enum.Operation _operation
+    ) external {
+        require(_members[member].member == true, "TW028");
+        require(_members[member].roles[roleId].target == targetAddress, "TW029");
+        // TODO bytes lib for data equality check
+        // TODO combine methodsig and params to make call
+        // build the safe tx based on allowed bytes
+        ISafe(_safe).execTransactionFromModule(
+            targetAddress,
+            value,
+            data,
+            Enum.Operation.Call
+        );
+    }
 }
