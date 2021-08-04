@@ -22,7 +22,6 @@ export async function getFixtureWithParams(
 ): Promise<any> {
   const [wallet_0, wallet_1, wallet_2, wallet_3] = waffle.provider.getWallets();
   const wethContract = await ethers.getContractFactory("WETH9")
-  // deploy tokens
   const weth = await wethContract.deploy() 
   console.log('WETH Deploy Cost ' + weth.deployTransaction.gasLimit.toString())
   console.log('deployed weth: ', weth.address)

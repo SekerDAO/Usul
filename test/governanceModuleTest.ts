@@ -14,10 +14,6 @@ const MaxUint256 = ethers.constants.MaxUint256
 let daoFixture: DAOFixture
 let wallet: SignerWithAddress
 
-// TODOs:
-// - figure out how to inspect nested mappings
-// - figure out how to get expect reverts working
-
 describe('proposalModule:', () => {
   const [wallet_0, wallet_1, wallet_2, wallet_3] = waffle.provider.getWallets();
   beforeEach(async function () {

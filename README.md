@@ -1,17 +1,29 @@
 # TokenWalk-DAO-OS-Contracts
 
+## About
+
+Welcome to TokenWalk's Gnosis Safe DAO Module.
+
+### Proposal Module
+
+### Voting Modules
+
+### Roles Module
+
 ## Deploy 
 
 ```
 - Proxy Factory
 - Safe Singleton
-- factory.createProxy(signleton, '0x')
+- factory.createProxy(signleton, '0x') // TODO: use with salt
 - safe = Safe.attach(proxy)
 - safe.setup([owners])
 - ERC20 Governance token
 - token.transfer(safe, (1-foundersPortion))
-- Governance Module
-- safe.executeContractCallWithSigners(safe, safe, "registerModule", [Governance.address])
+- Deploy Proposal Module
+- Deploy Desired Voting Module
+- safe.executeContractCallWithSigners(safe, safe, "registerModule", [Proposal.address])
+- safe.executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [voteModule.address])
 ``` 
 
 ## Error Codes

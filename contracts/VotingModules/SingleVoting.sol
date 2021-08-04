@@ -15,7 +15,6 @@ contract SingleVoting {
         uint total;
     }
 
-    // DAO name
     address private _governanceToken;
 
     mapping(address => Delegation) delegations;
@@ -30,8 +29,6 @@ contract SingleVoting {
     }
 
     function delegateVotes(address delegatee) external {
-        // lock tokens
-        // find a way to ensure only one proposal at a time
         require(IERC20(_governanceToken).balanceOf(msg.sender) >= 1);
         require(delegations[delegatee].isDelegated[delegatee] == false);
         delegations[delegatee].lastBlock = block.number;
@@ -48,7 +45,6 @@ contract SingleVoting {
 
     function calculateWeight(address delegate) external view returns (uint) {
         require(delegations[delegate].lastBlock < block.number, "cannot vote in the same block as delegation");
-        // can return quadtric here
         return delegations[delegate].total;
     }
 }
