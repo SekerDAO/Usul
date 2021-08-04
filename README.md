@@ -4,33 +4,106 @@
 
 Welcome to TokenWalk's Gnosis Safe DAO Module.
 
-This OS is an attempt at building fully decentralized DAO contracts that make the least opinions that will prevent those who use this OS from being siloed into a technology choice. By building on the Gnosis Safe, this OS allows an organization to start with a trusted federation in the early days and eventually move to a fully decentralized community owned DAO. A safe admin can be kept as a failsafe against attacks by bypassing the proposal module and removing it at the gnosis safe core. If this is too trusted a specific role can be created to only be allowed to cancel proposals. Eventually, given propor community building and token distribution, all Safe admins can be burned, and no roles registed that can cancel proposals.
+This OS was built with the intention of creating fully decentralized DAO contracts that make the least opinions to prevent DAOs that use this OS from being siloed into a technology choice. By building on the [Gnosis Safe](https://github.com/gnosis/safe-contracts), this OS allows an organization to start with a trusted federation in the early days and eventually move to a fully decentralized community owned DAO. A Safe admin or federation of owners that can be kept as a fail safe against attacks by bypassing the proposal module and removing it at the Gnosis Safe core if necessary. If this is too trusted, a specific role can be created to only be allowed to cancel proposals. Eventually, given proper community building and token distribution, all Safe admins can be burned and no roles registered that can cancel proposals.
 
-This works with standard erc20 tokens rather than specializd DeFi tokens. Any standard erc20 token can be used as the fully decentralized token weighted vote. We have specifically chosen not to support erc721 as a voting token. 
+This works with standard ERC20 tokens rather than specialized DeFi tokens. Any standard ERC20 token can be used as the fully decentralized token weighted vote. We have specifically chosen not to support ERC721 as a voting token. 
 
-The contracts are modular and extensible, built on top of the Gnosis Safe that many already have deployed. All of the state remains on the Gnosis safe which is upgradeable. If new logic is desired on the proposal module a new module may be voted into the gnosis safe by the old proposal module. 
+The contracts are modular and extensible, built on top of the Gnosis Safe that many already have deployed. The state remains on the Gnosis safe which is upgradeable. If new logic is desired on the proposal module a new module may be voted into the Safe by the old proposal module. 
 
 Roles and membership use a byte code registry that allows DAOs to enable any specific permission that they can think of, remove them later, and stay flexible over time.
 
 ### Proposal Module
 
-This is the core module that is registed with the Gnosis Safe. This module operates in a similar way as the Compound.Finance DAOs with token weighted votes on proposals. These proposals can have a minimum token delegation threshold for being accepted to the contract. Voting is passed by having more votes than an updateable (by governance vote) voting threshold and more yes votes than no votes. Once passed proposals enter a queue period for safety where a trusted role can have time to prevent attacks, allowing for more comfortable distribution of tokens that do not end up only in the hands of investors and founders.
+This is the core module that is registed with the Gnosis Safe. This module operates in a similar way as the [Compound.Finance](https://github.com/compound-finance/compound-protocol/tree/master/contracts/Governance) DAOs with token weighted votes on proposals. These proposals can have a minimum token delegation threshold for being accepted to the contract. Voting is passed by having more votes than the voting threshold and mahority of yes votes. Once passed proposals enter a queue period for safety where a trusted role can have time to prevent attacks. All thresholds are updatable by governance proposal or role bypass if desired.
+
+#### Proposal Structure
+```
+    uint256 value; // Ether value to passed with the call
+    uint256 yesVotes; // the total number of YES votes for this proposal
+    uint256 noVotes; // the total number of NO votes for this proposal        
+    bool executed;
+    bool queued;
+    uint deadline; // voting deadline
+    address proposer;
+    bool canceled;
+    uint gracePeriod; // queue period for safety
+    mapping(address => bool) hasVoted; // mapping voter / delegator to boolean 
+    address targetAddress; // The target for execution from the gnosis safe
+    bytes data; // The data for the safe to execute
+    Enum.Operation operation; // Call or Delegatecall
+```
+
+#### Proposal API
+```
+proposalModule.submitModularProposal
+/// @param to The address that the Gnosis Safe targets execution to
+/// @param value The Ether value to pass to the execution
+/// @param data The data to be executed on the Gnosis Safe
+/// @param operation The enumarated call or delegatecall option
+
+proposalModule.startModularQueue
+/// @param proposalID The ID of the passed proposal to queue
+
+proposalModule.executeModularProposal
+/// @param proposalID The ID of the queued proposal to execute
+
+proposalModule.cancelProposal
+/// @param proposalID The ID of the proposal to be canceled by proposer, role bypass, or Safe admin bypass
+
+proposalModule.vote
+/// @param proposalID The ID of the proposal to vote on
+/// @param vote The boolean value of the vote
+
+proposalModule.endVoting
+/// @param proposalID The ID of the proposal to remove the lock on undelegation 
+```
 
 ### Voting Modules
 
-These are external modules that allow DAOs to chose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and choose swap to quadratic voting or any other strategy they would like to use.
+These are external modules that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and choose swap to quadratic voting or any other strategy they would like to use.
 
-If a delegate has a vote on an active proposal, no delegetors will be able to undelegate until the proposal is passed or canceled. A counter is incremented each time a delegtee votes on a proposal and must be decremented for each time a proposal is finalized.
+If a delegate has a vote on an active proposal, no delegetors will be able to undelegate until the proposal is passed or canceled. A counter is incremented each time a delegatee votes on a proposal and must be decremented for each time a proposal is finalized.
+
+#### Delegation Structure
+```
+    mapping(address => uint) votes; // number of tokens held for each delegator
+    uint lastBlock; // The last block at which delegation happened to prevent flash loans
+    uint total; // The total amount of delegation
+    uint proposalCount; // Number of open proposals being voted on
+```
+
+#### Voting API
+```
+voting.delegateVotes
+/// @param delegatee The account that is being delegated tokens to
+/// @param amount The amount of tokens to delegate
+
+voting.undelegateVotes
+/// @param delegatee The account that is being undelegated tokens from
+/// @param amount The amount of tokens to undelegate
+
+voting.calculateWeight
+/// @param delegatee The account that is to have the voting weight delegated from by voting method
+```
 
 ### Roles Module
 
-This module defines membership and specific permissions over actions on the Gnosis safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire communities vote.
+This module defines membership and specific permissions over actions on the Gnosis Safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire community's vote.
 
-This module uses a registery of byte code to enable all possible roles that a DAO can think of in the future.
+This module uses a registry of byte code to enable all possible roles that a DAO can think of in the future.
+
+#### Roles API
+```
+TBD
+```
 
 ## Admin Burning
 
-Admin burning is the mechanism by which this OS allows for a gradual move from centralized, to federated, to decentralized. 
+Admin burning is the mechanism by which this OS allows for a gradual move from centralized, to federated, to decentralized.
+
+The process to burn the Gnosis Safe is to remove all owners. Due to the linked list approach that Gnosis uses to remove owners, only owner added after to previous owner may remove the previous owner. This means that the last owner cannot be removed from the Safe.
+
+To get around this, we remove all owners but the last place a burn address as the second address and increase the threshold of signers to two. This ensures that there are no known signatures that can reach the threshold.
 
 ## Deploy 
 
