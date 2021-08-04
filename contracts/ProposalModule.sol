@@ -1,9 +1,12 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: LGPL-3.0-only
 
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import "./common/Enum.sol";
+
+/// @title Gnosis Safe DAO Extension - A gnosis wallet module for introducing fully decentralized token weighted governance.
+/// @author Nathan Ginnever - <team@tokenwalk.com>
 
 interface ISafe {
     function execTransactionFromModule(
@@ -16,26 +19,32 @@ interface ISafe {
 
 interface IVoting {
     function calculateWeight(
-        address delegate
+        address delegatee
     ) external view returns (uint);
+    function startVoting(
+        address delegatee
+    ) external;
+    function endVoting(
+        address delegatee
+    ) external;
 }
 
 contract ProposalModule {
 
     struct Proposal {
-        uint256 value;
+        uint256 value; // Ether value to passed with the call
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal        
         bool executed;
         bool queued;
-        uint deadline;
+        uint deadline; // voting deadline
         address proposer;
         bool canceled;
-        uint gracePeriod;
-        mapping(address => bool) hasVoted;
-        address targetAddress;
-        bytes data;
-        Enum.Operation operation;
+        uint gracePeriod; // queue period for safety
+        mapping(address => bool) hasVoted; // mapping voter / delegator to boolean 
+        address targetAddress; // The target for execution from the gnosis safe
+        bytes data; // The data for the safe to execute
+        Enum.Operation operation; // Call or Delegatecall
     }
 
     uint private _totalProposalCount;
@@ -46,7 +55,9 @@ contract ProposalModule {
     address private _safe;
     address private _votingModule;
 
+    // mapping of proposal id to proposal
     mapping(uint => Proposal) public proposals;
+    // mapping to track if a user has an open proposal
     mapping(address => bool) private _activeProposal;
 
     modifier onlySafe {
@@ -120,12 +131,20 @@ contract ProposalModule {
         require(proposals[proposalId].deadline >= block.timestamp, "TW010");
 
         proposals[proposalId].hasVoted[msg.sender] = true;
+        IVoting(_votingModule).startVoting(msg.sender);
 
         if(vote == true){
             proposals[proposalId].yesVotes = proposals[proposalId].yesVotes + IVoting(_votingModule).calculateWeight(msg.sender);
         } else {
             proposals[proposalId].noVotes = proposals[proposalId].noVotes + IVoting(_votingModule).calculateWeight(msg.sender);
         }
+    }
+
+    function endVoting(uint proposalId) external {
+        require(proposals[proposalId].canceled == true || proposals[proposalId].executed == true, "TW025");
+        require(proposals[proposalId].hasVoted[msg.sender] == true, "TW026");
+        proposals[proposalId].hasVoted[msg.sender] == false;
+        IVoting(_votingModule).endVoting(msg.sender);
     }
 
     function updateThreshold(uint threshold) onlySafe external {
@@ -154,6 +173,7 @@ contract ProposalModule {
         uint total = IVoting(_votingModule).calculateWeight(msg.sender);
         require(_activeProposal[msg.sender] == false, "TW011");
         require(total >= _minimumProposalAmount, "TW012");
+        IVoting(_votingModule).startVoting(msg.sender);
         // store calldata for tx to be executed
         proposals[_totalProposalCount].value = value;
         proposals[_totalProposalCount].yesVotes = total; // the total number of YES votes for this proposal    

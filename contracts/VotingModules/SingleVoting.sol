@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: LGPL-3.0-only
 
 pragma solidity ^0.8.0;
 
@@ -13,19 +13,28 @@ contract SingleVoting {
         mapping(address => bool) isDelegated;
         uint lastBlock;
         uint total;
+        bool votingActive;
     }
 
     address private _governanceToken;
+    address private _proposalModule;
 
     mapping(address => Delegation) delegations;
 
+    modifier onlyProposalModule {
+        require(msg.sender == _proposalModule, "TW023");
+        _;
+    }
+
     event VotesDelegated(uint number);
+    event VotesUndelegated(uint number);
 
     constructor(
         address governanceToken_,
         address proposalModule_
     ) {
         _governanceToken = governanceToken_;
+        _proposalModule = proposalModule_;
     }
 
     function delegateVotes(address delegatee) external {
@@ -41,6 +50,14 @@ contract SingleVoting {
         require(delegations[delegatee].total >= 1);
         delegations[delegatee].isDelegated[delegatee] = false;
         delegations[delegatee].total--;
+    }
+
+    function startVoting(address delegatee) onlyProposalModule external {
+        delegations[delegatee].votingActive == true;
+    }
+
+    function endVoting(address delegatee) onlyProposalModule external {
+        delegations[delegatee].votingActive == false;
     }
 
     function calculateWeight(address delegate) external view returns (uint) {

@@ -20,6 +20,8 @@ This is the core module that is registed with the Gnosis Safe. This module opera
 
 These are external modules that allow DAOs to chose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and choose swap to quadratic voting or any other strategy they would like to use.
 
+If a delegate has a vote on an active proposal, no delegetors will be able to undelegate until the proposal is passed or canceled. A counter is incremented each time a delegtee votes on a proposal and must be decremented for each time a proposal is finalized.
+
 ### Roles Module
 
 This module defines membership and specific permissions over actions on the Gnosis safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire communities vote.
@@ -70,4 +72,8 @@ Admin burning is the mechanism by which this OS allows for a gradual move from c
 - TW020 "linear voting: can't undelegate more votes than delegated"
 - TW021 "linear voting: cannot vote in the same block as delegation"
 - TW022 "must register voting module before submitting a proposal"
+- TW023 "only the proposal module may call startVoting and endVoting"
+- TW024 "cannot undelegate votes until all proposals are finalized"
+- TW025 "cannot end voting if proposal is not finalized"
+- TW026 "voter has already ended voting for proposal"
 ```

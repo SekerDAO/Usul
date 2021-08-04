@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: LGPL-3.0-only
 
 pragma solidity ^0.8.0;
 
@@ -15,19 +15,28 @@ contract LinearVoting {
         mapping(address => uint) votes;
         uint lastBlock;
         uint total;
+        uint proposalCount;
     }
 
     address private _governanceToken;
+    address private _proposalModule;
 
     mapping(address => Delegation) public delegations;
+
+    modifier onlyProposalModule {
+        require(msg.sender == _proposalModule, "TW023");
+        _;
+    }
 
     event VotesDelegated(uint number);
     event VotesUndelegated(uint number);
 
     constructor(
-        address governanceToken_
+        address governanceToken_,
+        address proposalModule_
     ) {
         _governanceToken = governanceToken_;
+        _proposalModule = proposalModule_;
     }
 
     function governanceToken() public view virtual returns (address) {
@@ -43,15 +52,24 @@ contract LinearVoting {
     }
 
     function undelegateVotes(address delegatee, uint amount) external {
+        require(delegations[delegatee].proposalCount == 0, "TW024");
         require(delegations[delegatee].votes[msg.sender] >= amount, "TW020");
         IERC20(_governanceToken).safeTransfer(msg.sender, amount);
         delegations[delegatee].votes[msg.sender] = delegations[delegatee].votes[msg.sender].sub(amount);
         delegations[delegatee].total = delegations[delegatee].total.sub(amount);
     }
 
-    function calculateWeight(address delegate) external view returns (uint) {
-        require(delegations[delegate].lastBlock < block.number, "TW021"); // todo move this to a check function
+    function startVoting(address delegatee) onlyProposalModule external {
+        delegations[delegatee].proposalCount = delegations[delegatee].proposalCount.add(1);
+    }
+
+    function endVoting(address delegatee) onlyProposalModule external {
+        delegations[delegatee].proposalCount = delegations[delegatee].proposalCount.sub(1);
+    }
+
+    function calculateWeight(address delegatee) external view returns (uint) {
+        require(delegations[delegatee].lastBlock < block.number, "TW021"); // todo move this to a check function
         // can return quadtric here
-        return delegations[delegate].total;
+        return delegations[delegatee].total;
     }
 }
