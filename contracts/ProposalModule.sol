@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./common/Enum.sol";
 import "./interfaces/ISafe.sol";
 import "./interfaces/IVoting.sol";
+import "./interfaces/IRoles.sol";
 
 /// @title Gnosis Safe DAO Extension - A gnosis wallet module for introducing fully decentralized token weighted governance.
 /// @author Nathan Ginnever - <team@tokenwalk.com>
@@ -33,6 +34,7 @@ contract ProposalModule {
     uint256 private _minimumProposalAmount; // amount of gov tokens needed to participate
     address private _safe;
     address private _votingModule;
+    address private _roleModule;
 
     // mapping of proposal id to proposal
     mapping(uint256 => Proposal) public proposals;
@@ -105,8 +107,14 @@ contract ProposalModule {
         _votingModule = module;
     }
 
+    function registerRoleModule(address module) external onlySafe {
+        _roleModule = module;
+    }
+
     function vote(uint256 proposalId, bool vote) external {
-        // todo check role module and only allow members
+        if (_roleModule != address(0)) {
+            require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
+        }
         require(_votingModule != address(0), "TW006");
         require(proposals[proposalId].hasVoted[msg.sender] == false, "TW007");
         require(proposals[proposalId].canceled == false, "TW008");

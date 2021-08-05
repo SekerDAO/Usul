@@ -88,7 +88,9 @@ voting.calculateWeight
 
 ### Roles Module
 
-This a second GNosis Safe module that defines membership and specific permissions over actions on the Gnosis Safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire community's vote.
+This a second Gnosis Safe module that defines membership and specific permissions over actions on the Gnosis Safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire community's vote.
+
+If a DAO wants a more gated community they can require that token holding voters must be granted membership before being able to vote on proposals. Anyone may still enter proposals to become members and only current members with their delegated token weight can vote them in.
 
 This module uses a registry of byte code to enable all possible roles that a DAO can think of in the future.
 
@@ -172,4 +174,5 @@ To get around this, we remove all owners but the last and place a burn address a
 - TW025 "only the Gnosis Safe may enter Roles function"
 - TW026 "must be a member to execute role module"
 - TW027 "target address is not authorized for role"
+- TW028 "must be a member to vote"
 ```

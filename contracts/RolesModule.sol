@@ -24,6 +24,7 @@ contract Roles {
     mapping(address => Member) public _members;
     uint256 private _memberCount;
     address private _safe;
+    bool private _mustBeMember;
 
     modifier onlySafe() {
         require(msg.sender == _safe, "TW025");
@@ -36,6 +37,23 @@ contract Roles {
 
     function memberCount() public view virtual returns (uint256) {
         return _memberCount;
+    }
+
+    function checkMembership(address member)
+        public
+        view
+        virtual
+        returns (bool)
+    {
+        if (!_mustBeMember) {
+            return true;
+        } else {
+            return _members[member].member;
+        }
+    }
+
+    function setMustBeMember(bool set) external onlySafe {
+        _mustBeMember = set;
     }
 
     function safeEnterMember(address member) external onlySafe {
