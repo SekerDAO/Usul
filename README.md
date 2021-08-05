@@ -4,7 +4,7 @@
 
 Welcome to TokenWalk's Gnosis Safe DAO Module.
 
-This OS was built with the intention of creating DAO contracts to fit all use cases and levels of trust requirements. These contracts make no opinions about how a DAO should operate to prevent being siloed into a technology choice. The contracts are modular and extensible, built on top of the Gnosis Safe that many already have deployed. The vast majority of state remains on the Gnosis safe which is upgradeable. If new logic is desired on the proposal module a new module may be voted into the Safe by the old proposal module with zero migration overhead. If a DAO decides that they prefer another voting module they can simply undelegate their tokens and continue using the Safe as if this OS never happened.
+This OS was built with the intention of creating DAO contracts to fit all use cases and levels of trust requirements. These contracts make no opinions about how a DAO should operate to prevent being siloed into a technology choice. The contracts are modular and extensible, built on top of the Gnosis Safe that many already have deployed. The vast majority of state remains on the Gnosis safe which is upgradeable. If new logic is desired on the proposal module a new module may be voted into the Safe by the old proposal module with minimal migration overhead. If a DAO decides that they prefer another voting mechanism they can simply undelegate their tokens and attach a different voting module.
 
 This works with standard ERC20 tokens rather than only specialized DeFi tokens. Any standard ERC20 token can be used as the fully decentralized token weighted vote. We have specifically chosen not to support ERC721 as a voting token. 
 
@@ -117,6 +117,9 @@ roles.executeModuleByRole
 /// @param bytes The method signature that is allowed by this role
 /// @param bytes The parameters data that is allowed by this role
 /// @param operation The enumarated call or delegatecall option
+
+roles.setMustBeMember
+/// @param bool Set to true to enforce the proposal module can only collect member votes
 ```
 
 ## Admin Burning
