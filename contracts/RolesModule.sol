@@ -26,7 +26,7 @@ contract Roles {
     address private _safe;
 
     modifier onlySafe() {
-        require(msg.sender == _safe, "TW027");
+        require(msg.sender == _safe, "TW025");
         _;
     }
 
@@ -65,13 +65,12 @@ contract Roles {
         uint256 value,
         bytes memory data,
         bytes memory methodSignature,
-        bytes memory parameters
-    ) external //Enum.Operation _operation
-    {
-        require(_members[member].member == true, "TW028");
+        bytes memory parameters //Enum.Operation _operation
+    ) external {
+        require(_members[member].member == true, "TW026");
         require(
             _members[member].roles[roleId].target == targetAddress,
-            "TW029"
+            "TW027"
         );
         // TODO bytes lib for data equality check
         // TODO combine methodsig and params to make call

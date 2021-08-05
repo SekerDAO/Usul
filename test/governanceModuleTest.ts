@@ -1006,7 +1006,7 @@ describe("proposalModule:", () => {
     );
   });
 
-  it("cannot undelegate if open proposals have been voted on", async () => {
+  it("cannot undelegate if not past timeout", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(
       safe,
@@ -1092,20 +1092,16 @@ describe("proposalModule:", () => {
     expect(delegation.total).to.equal(
       ethers.BigNumber.from("500000000000000000")
     );
-    expect(delegation.proposalCount).to.equal(3);
-    await proposalModule.endVoting(0);
-    await proposalModule.endVoting(1);
-    await proposalModule.endVoting(2);
     expect(await govToken.balanceOf(wallet_0.address)).to.equal(
       ethers.BigNumber.from("49996500000000000000000")
     );
+    await network.provider.send("evm_increaseTime", [60]);
     await linearVoting.undelegateVotes(
       wallet_0.address,
       ethers.BigNumber.from("500000000000000000")
     );
     delegation = await linearVoting.delegations(wallet_0.address);
     expect(delegation.total).to.equal(0);
-    expect(delegation.proposalCount).to.equal(0);
     expect(await govToken.balanceOf(wallet_0.address)).to.equal(
       ethers.BigNumber.from("49997000000000000000000")
     );

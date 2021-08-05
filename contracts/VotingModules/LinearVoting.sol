@@ -13,13 +13,14 @@ contract LinearVoting {
 
     struct Delegation {
         mapping(address => uint256) votes;
+        uint256 undelegateDelay;
         uint256 lastBlock;
         uint256 total;
-        uint256 proposalCount;
     }
 
     address private _governanceToken;
     address private _proposalModule;
+    uint256 private _undelegateDelay;
 
     mapping(address => Delegation) public delegations;
 
@@ -31,9 +32,14 @@ contract LinearVoting {
     event VotesDelegated(uint256 number);
     event VotesUndelegated(uint256 number);
 
-    constructor(address governanceToken_, address proposalModule_) {
+    constructor(
+        address governanceToken_,
+        address proposalModule_,
+        uint256 undelgateDelay_
+    ) {
         _governanceToken = governanceToken_;
         _proposalModule = proposalModule_;
+        _undelegateDelay = undelgateDelay_;
     }
 
     function governanceToken() public view virtual returns (address) {
@@ -53,7 +59,10 @@ contract LinearVoting {
     }
 
     function undelegateVotes(address delegatee, uint256 amount) external {
-        require(delegations[delegatee].proposalCount == 0, "TW024");
+        require(
+            delegations[delegatee].undelegateDelay <= block.timestamp,
+            "TW024"
+        );
         require(delegations[delegatee].votes[msg.sender] >= amount, "TW020");
         IERC20(_governanceToken).safeTransfer(msg.sender, amount);
         delegations[delegatee].votes[msg.sender] = delegations[delegatee]
@@ -63,15 +72,9 @@ contract LinearVoting {
     }
 
     function startVoting(address delegatee) external onlyProposalModule {
-        delegations[delegatee].proposalCount = delegations[delegatee]
-            .proposalCount
-            .add(1);
-    }
-
-    function endVoting(address delegatee) external onlyProposalModule {
-        delegations[delegatee].proposalCount = delegations[delegatee]
-            .proposalCount
-            .sub(1);
+        delegations[delegatee].undelegateDelay =
+            block.timestamp +
+            _undelegateDelay;
     }
 
     function calculateWeight(address delegatee)

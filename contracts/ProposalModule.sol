@@ -106,6 +106,7 @@ contract ProposalModule {
     }
 
     function vote(uint256 proposalId, bool vote) external {
+        // todo check role module and only allow members
         require(_votingModule != address(0), "TW006");
         require(proposals[proposalId].hasVoted[msg.sender] == false, "TW007");
         require(proposals[proposalId].canceled == false, "TW008");
@@ -124,17 +125,6 @@ contract ProposalModule {
                 proposals[proposalId].noVotes +
                 IVoting(_votingModule).calculateWeight(msg.sender);
         }
-    }
-
-    function endVoting(uint256 proposalId) external {
-        require(
-            proposals[proposalId].canceled == true ||
-                proposals[proposalId].executed == true,
-            "TW025"
-        );
-        require(proposals[proposalId].hasVoted[msg.sender] == true, "TW026");
-        proposals[proposalId].hasVoted[msg.sender] == false;
-        IVoting(_votingModule).endVoting(msg.sender);
     }
 
     function updateThreshold(uint256 threshold) external onlySafe {
@@ -159,9 +149,8 @@ contract ProposalModule {
     function submitModularProposal(
         address to,
         uint256 value,
-        bytes memory data
-    ) public //Enum.Operation _operation
-    {
+        bytes memory data //Enum.Operation _operation
+    ) public {
         require(_votingModule != address(0), "TW022");
         uint256 total = IVoting(_votingModule).calculateWeight(msg.sender);
         require(_activeProposal[msg.sender] == false, "TW011");
