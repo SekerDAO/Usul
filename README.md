@@ -167,7 +167,6 @@ To get around this, we remove all owners but the last and place a burn address a
 - TW015 "execute proposal grace period has not elapsed"
 - TW016 "cancel proposal already canceled"
 - TW017 "cancel proposal already executed"
-- TW018 "cancel proposal already past deadline"
 - TW019 "cancel proposal must be originator or Safe"
 - TW020 "linear voting: can't undelegate more votes than delegated"
 - TW021 "linear voting: cannot vote in the same block as delegation"

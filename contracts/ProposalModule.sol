@@ -215,7 +215,6 @@ contract ProposalModule {
     function cancelProposal(uint256 proposalId) external {
         require(proposals[proposalId].canceled == false, "TW016");
         require(proposals[proposalId].executed == false, "TW017");
-        require(proposals[proposalId].deadline >= block.timestamp, "TW018");
         // proposal guardian can be put in the roles module
         require(
             proposals[proposalId].proposer == msg.sender || msg.sender == _safe,
