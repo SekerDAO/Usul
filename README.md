@@ -88,7 +88,7 @@ voting.calculateWeight
 
 ### Roles Module
 
-This a second Gnosis Safe module that defines membership and specific permissions over actions on the Gnosis Safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire community's vote.
+This is a second Gnosis Safe module that defines membership and specific permissions over actions on the Gnosis Safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire community's vote.
 
 If a DAO wants a more gated community they can require that token holding voters must be granted membership before being able to vote on proposals. Anyone may still enter proposals to become members and only current members with their delegated token weight can vote them in.
 
