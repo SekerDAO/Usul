@@ -1106,4 +1106,77 @@ describe("proposalModule:", () => {
       ethers.BigNumber.from("49997000000000000000000")
     );
   });
+
+  it.only("can burn the safe admins", async () => {
+    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
+    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_1.address, 1], [wallet_0])
+    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_2.address, 1], [wallet_0])
+    await executeContractCallWithSigners(
+      safe,
+      safe,
+      "enableModule",
+      [proposalModule.address],
+      [wallet_0]
+    );
+    await executeContractCallWithSigners(
+      safe,
+      proposalModule,
+      "registerVoteModule",
+      [linearVoting.address],
+      [wallet_0]
+    );
+    await govToken.approve(
+      linearVoting.address,
+      ethers.BigNumber.from("500000000000000000")
+    );
+    await linearVoting.delegateVotes(
+      wallet_0.address,
+      ethers.BigNumber.from("500000000000000000")
+    );
+    await govToken
+      .connect(wallet_1)
+      .approve(
+        linearVoting.address,
+        ethers.BigNumber.from("500000000000000000")
+      );
+    await linearVoting
+      .connect(wallet_1)
+      .delegateVotes(
+        wallet_1.address,
+        ethers.BigNumber.from("500000000000000000")
+      );
+
+    console.log("address 0 "+ wallet_0.address)
+    console.log("address 1 "+ wallet_1.address)
+    console.log("address 2 "+ wallet_2.address)
+    let owners = await safe.getOwners()
+    console.log(owners)
+
+    await executeContractCallWithSigners(safe, safe, "removeOwner", [wallet_2.address, wallet_1.address, 1], [wallet_0])
+    owners = await safe.getOwners()
+    console.log(owners)
+
+    await executeContractCallWithSigners(safe, safe, "removeOwner", [wallet_2.address, wallet_0.address, 1], [wallet_0])
+    owners = await safe.getOwners()
+    console.log(owners)
+
+    let burnCall = buildContractCall(
+      safe,
+      "swapOwner",
+      ['0x0000000000000000000000000000000000000001', wallet_2.address, '0x0000000000000000000000000000000000000002'],
+      await safe.nonce()
+    );
+    await proposalModule.submitModularProposal(
+      safe.address,
+      0,
+      burnCall.data
+    );
+    await proposalModule.connect(wallet_1).vote(0, true);
+    await network.provider.send("evm_increaseTime", [60]);
+    await proposalModule.startModularQueue(0);
+    await network.provider.send("evm_increaseTime", [60]);
+    await proposalModule.executeModularProposal(0);
+    owners = await safe.getOwners()
+    console.log(owners)
+  });
 });

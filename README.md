@@ -8,7 +8,7 @@ This DAO technology stack was built with the intention of creating DAO contracts
 
 This works with standard ERC20 tokens rather than only specialized DeFi tokens. Any standard ERC20 token can be used as the fully decentralized token weighted vote. We have specifically chosen not to support ERC721 as a voting token, but it would be as easy creating a voting module and attaching it to the proposal module if anyone creates one. 
 
-By building on the [Gnosis Safe](https://github.com/gnosis/safe-contracts), this OS allows an organization to start with a trusted federation in the early days and eventually move to a fully decentralized community owned DAO. A Safe admin or federation of owners can be kept as a fail safe mechanism against attacks by bypassing the proposal module and removing it at the Gnosis Safe core if necessary. If this is too trusted, a specific role can be created to only be allowed to cancel proposals. Eventually, given proper community building and token distribution, all Safe admins can be burned and any roles registered that can cancel proposals can be removed.
+By building on the [Gnosis Safe](https://github.com/gnosis/safe-contracts), this stack allows an organization to start with a trusted federation in the early days and eventually move to a fully decentralized community owned DAO. A Safe admin or federation of owners can be kept as a fail safe mechanism against attacks by bypassing the proposal module and removing it at the Gnosis Safe core if necessary. If this is too trusted, a specific role can be created to only be allowed to cancel proposals. Eventually, given proper community building and token distribution, all Safe admins can be burned and any roles registered that can cancel proposals can be removed.
 
 Roles and membership use a byte code registry that allows DAOs to enable any specific permission that they can think of, remove them later, and stay flexible over time.
 
@@ -124,11 +124,13 @@ roles.setMustBeMember
 
 ## Admin Burning
 
-Admin burning is the mechanism by which this OS allows for a gradual move from centralized, to federated, to decentralized.
+Admin burning is the mechanism by which this DAO stack allows for a gradual move from centralized, to federated, to decentralized.
 
-The process to burn the Gnosis Safe is to remove all owners. Due to the linked list approach that Gnosis uses to remove owners, only the owner added after the previous owner may remove the previous owner. This means that the last owner cannot be removed from the Safe.
+The process to burn the Gnosis Safe is to remove all owners. Due to this, we simply remove all owners up to the last owner and the SENTINEL_OWNERS address. Finally we swap the last owner with a burn address that the GNosis safe will accept. 
 
-To get around this, we remove all owners but the last and place a burn address as the second address and increase the threshold of signers to two. This ensures that there are no known signatures that can reach the threshold.
+There should be sufficient guarantees that address `0x0000000000000000000000000000000000000002` will have no known associated private key.
+
+This swap is dangerous as it will lock the safe. To avoid accidental locking this burn mechanism should only be conducted through the SafeDAO proposal module.
 
 ## Deploy 
 
