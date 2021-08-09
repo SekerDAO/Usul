@@ -25,7 +25,18 @@ let daoFixture: DAOFixture;
 let wallet: SignerWithAddress;
 
 describe("proposalModule:", () => {
-  const [wallet_0, wallet_1, wallet_2, wallet_3] = waffle.provider.getWallets();
+  const [
+    wallet_0,
+    wallet_1,
+    wallet_2,
+    wallet_3,
+    wallet_4,
+    wallet_5,
+    wallet_6,
+    wallet_7,
+    wallet_8,
+    wallet_9,
+  ] = waffle.provider.getWallets();
   beforeEach(async function () {
     wallet = (await ethers.getSigners())[0];
     daoFixture = await getFixtureWithParams(wallet, true);
@@ -163,7 +174,11 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
+    await proposalModule.submitModularProposal(
+      [safe.address],
+      [0],
+      [addCall.data]
+    );
     let proposal = await proposalModule.proposals(0);
     expect(proposal.value).to.equal(0);
     expect(proposal.yesVotes).to.equal(
@@ -209,7 +224,11 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
+    await proposalModule.submitModularProposal(
+      [safe.address],
+      [0],
+      [addCall.data]
+    );
   });
 
   it("can vote past the threshold with delegation", async () => {
@@ -254,7 +273,11 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
+    await proposalModule.submitModularProposal(
+      [safe.address],
+      [0],
+      [addCall.data]
+    );
     let proposal = await proposalModule.proposals(0);
     expect(proposal.value).to.equal(0);
     expect(proposal.yesVotes).to.equal(
@@ -362,7 +385,11 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
+    await proposalModule.submitModularProposal(
+      [safe.address],
+      [0],
+      [addCall.data]
+    );
     let proposal = await proposalModule.proposals(0);
     expect(proposal.value).to.equal(0);
     expect(proposal.yesVotes).to.equal(
@@ -433,7 +460,11 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
+    await proposalModule.submitModularProposal(
+      [safe.address],
+      [0],
+      [addCall.data]
+    );
     await proposalModule.connect(wallet_1).vote(0, true);
     await proposalModule.connect(wallet_1).vote(0, true);
   });
@@ -468,7 +499,11 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
+    await proposalModule.submitModularProposal(
+      [safe.address],
+      [0],
+      [addCall.data]
+    );
     let proposal = await proposalModule.proposals(0);
     expect(proposal.yesVotes).to.equal(
       ethers.BigNumber.from("500000000000000000")
@@ -507,7 +542,11 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
+    await proposalModule.submitModularProposal(
+      [safe.address],
+      [0],
+      [addCall.data]
+    );
     let proposal = await proposalModule.proposals(0);
     await proposalModule.startModularQueue(0);
   });
@@ -542,8 +581,16 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
-    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
+    await proposalModule.submitModularProposal(
+      [safe.address],
+      [0],
+      [addCall.data]
+    );
+    await proposalModule.submitModularProposal(
+      [safe.address],
+      [0],
+      [addCall.data]
+    );
   });
 
   it("can complete a funding proposals", async () => {
@@ -658,11 +705,9 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1000],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(
-      [govToken.address],
-      0,
-      [transferCall.data]
-    );
+    await proposalModule.submitModularProposal([govToken.address], 0, [
+      transferCall.data,
+    ]);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.value).to.equal(0);
     expect(proposal.yesVotes).to.equal(
@@ -1109,8 +1154,20 @@ describe("proposalModule:", () => {
 
   it.only("can execute multiple", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_1.address, 1], [wallet_0])
-    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_2.address, 1], [wallet_0])
+    const wallets = [
+      wallet_0,
+      wallet_1,
+      wallet_2
+    ];
+    for (let i = 1; i < 3; i++) {
+      await executeContractCallWithSigners(
+        safe,
+        safe,
+        "addOwnerWithThreshold",
+        [wallets[i].address, 1],
+        [wallet_0]
+      );
+    }
     await executeContractCallWithSigners(
       safe,
       safe,
@@ -1146,25 +1203,28 @@ describe("proposalModule:", () => {
         ethers.BigNumber.from("500000000000000000")
       );
 
-    await executeContractCallWithSigners(safe, safe, "removeOwner", [wallet_2.address, wallet_1.address, 1], [wallet_0])
-    let owners = await safe.getOwners()
-    console.log(owners)
+    let owners = await safe.getOwners();
+    console.log(owners);
     const removeCall_0 = buildContractCall(
       safe,
       "removeOwner",
       [wallet_2.address, wallet_1.address, 1],
       await safe.nonce()
-    )
+    );
     const removeCall_1 = buildContractCall(
       safe,
       "removeOwner",
       [wallet_2.address, wallet_0.address, 1],
       await safe.nonce()
-    )
+    );
     const burnCall = buildContractCall(
       safe,
       "swapOwner",
-      ['0x0000000000000000000000000000000000000001', wallet_2.address, '0x0000000000000000000000000000000000000002'],
+      [
+        "0x0000000000000000000000000000000000000001",
+        wallet_2.address,
+        "0x0000000000000000000000000000000000000002",
+      ],
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
@@ -1177,14 +1237,26 @@ describe("proposalModule:", () => {
     await proposalModule.startModularQueue(0);
     await network.provider.send("evm_increaseTime", [60]);
     await proposalModule.executeModularProposal(0);
-    owners = await safe.getOwners()
-    console.log(owners)
+    owners = await safe.getOwners();
+    console.log(owners);
   });
 
   it("can burn the safe admins", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_1.address, 1], [wallet_0])
-    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_2.address, 1], [wallet_0])
+    await executeContractCallWithSigners(
+      safe,
+      safe,
+      "addOwnerWithThreshold",
+      [wallet_1.address, 1],
+      [wallet_0]
+    );
+    await executeContractCallWithSigners(
+      safe,
+      safe,
+      "addOwnerWithThreshold",
+      [wallet_2.address, 1],
+      [wallet_0]
+    );
     await executeContractCallWithSigners(
       safe,
       safe,
@@ -1220,24 +1292,40 @@ describe("proposalModule:", () => {
         ethers.BigNumber.from("500000000000000000")
       );
 
-    console.log("address 0 "+ wallet_0.address)
-    console.log("address 1 "+ wallet_1.address)
-    console.log("address 2 "+ wallet_2.address)
-    let owners = await safe.getOwners()
-    console.log(owners)
+    console.log("address 0 " + wallet_0.address);
+    console.log("address 1 " + wallet_1.address);
+    console.log("address 2 " + wallet_2.address);
+    let owners = await safe.getOwners();
+    console.log(owners);
 
-    await executeContractCallWithSigners(safe, safe, "removeOwner", [wallet_2.address, wallet_1.address, 1], [wallet_0])
-    owners = await safe.getOwners()
-    console.log(owners)
+    await executeContractCallWithSigners(
+      safe,
+      safe,
+      "removeOwner",
+      [wallet_2.address, wallet_1.address, 1],
+      [wallet_0]
+    );
+    owners = await safe.getOwners();
+    console.log(owners);
 
-    await executeContractCallWithSigners(safe, safe, "removeOwner", [wallet_2.address, wallet_0.address, 1], [wallet_0])
-    owners = await safe.getOwners()
-    console.log(owners)
+    await executeContractCallWithSigners(
+      safe,
+      safe,
+      "removeOwner",
+      [wallet_2.address, wallet_0.address, 1],
+      [wallet_0]
+    );
+    owners = await safe.getOwners();
+    console.log(owners);
 
     let burnCall = buildContractCall(
       safe,
       "swapOwner",
-      ['0x0000000000000000000000000000000000000001', wallet_2.address, '0x0000000000000000000000000000000000000002'],
+      [
+        "0x0000000000000000000000000000000000000001",
+        wallet_2.address,
+        "0x0000000000000000000000000000000000000002",
+      ],
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
@@ -1250,7 +1338,7 @@ describe("proposalModule:", () => {
     await proposalModule.startModularQueue(0);
     await network.provider.send("evm_increaseTime", [60]);
     await proposalModule.executeModularProposal(0);
-    owners = await safe.getOwners()
-    console.log(owners)
+    owners = await safe.getOwners();
+    console.log(owners);
   });
 });

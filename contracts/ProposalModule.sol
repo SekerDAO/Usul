@@ -12,19 +12,20 @@ import "./interfaces/IRoles.sol";
 /// @author Nathan Ginnever - <team@tokenwalk.com>
 contract ProposalModule {
     struct Proposal {
-        uint256[] values; // Ether value to passed with the call
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
-        bool executed;
         bool queued;
         uint256 deadline; // voting deadline
         address proposer;
         bool canceled;
         uint256 gracePeriod; // queue period for safety
         mapping(address => bool) hasVoted; // mapping voter / delegator to boolean
-        address[] targets; // The target for execution from the gnosis safe
-        bytes[] data; // The data for the safe to execute
-        Enum.Operation operation; // Call or Delegatecall
+        bool[] executed; // txindexes 
+        bytes32[] txHashes;
+        //uint256[] values; // Ether value to passed with the call
+        //address[] targets; // The target for execution from the gnosis safe
+        //bytes[] data; // The data for the safe to execute
+        //Enum.Operation operation; // Call or Delegatecall
     }
 
     uint256 private _totalProposalCount;
@@ -164,6 +165,11 @@ contract ProposalModule {
         uint256[] memory values,
         bytes[] memory data // TODO: split data into signatures and calldata Enum.Operation _operation
     ) public {
+        for(uint256 i; i < txHashes.length; i++){
+            proposals[_totalProposalCount].executed.push(0);
+            // or just accept an array of 0 as calldata risking a 1 slipping in
+        }
+
         //require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "");
         require(targets.length == values.length && targets.length == data.length, "TW029");
         require(targets.length != 0, "TW030");
@@ -214,11 +220,13 @@ contract ProposalModule {
         proposals[proposalId].executed = true;
         _activeProposal[proposals[proposalId].proposer] = false;
         for(uint256 i; i < proposals[proposalId].targets.length; i++) {
-            ISafe(_safe).execTransactionFromModule(
-                proposals[proposalId].targets[i],
-                proposals[proposalId].values[i],
-                proposals[proposalId].data[i],
-                proposals[proposalId].operation
+            require(
+                ISafe(_safe).execTransactionFromModule(
+                    proposals[proposalId].targets[i],
+                    proposals[proposalId].values[i],
+                    proposals[proposalId].data[i],
+                    proposals[proposalId].operation
+                )
             );
         }
     }

@@ -8,7 +8,7 @@ interface ISafe {
     function execTransactionFromModule(
         address to,
         uint256 value,
-        bytes memory data,
+        bytes calldata data,
         Enum.Operation operation
     ) external returns (bool success);
 }
