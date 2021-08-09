@@ -163,7 +163,7 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(safe.address, 0, addCall.data);
+    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.value).to.equal(0);
     expect(proposal.yesVotes).to.equal(
@@ -209,7 +209,7 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(safe.address, 0, addCall.data);
+    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
   });
 
   it("can vote past the threshold with delegation", async () => {
@@ -254,7 +254,7 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(safe.address, 0, addCall.data);
+    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.value).to.equal(0);
     expect(proposal.yesVotes).to.equal(
@@ -362,7 +362,7 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(safe.address, 0, addCall.data);
+    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.value).to.equal(0);
     expect(proposal.yesVotes).to.equal(
@@ -433,7 +433,7 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(safe.address, 0, addCall.data);
+    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
     await proposalModule.connect(wallet_1).vote(0, true);
     await proposalModule.connect(wallet_1).vote(0, true);
   });
@@ -468,7 +468,7 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(safe.address, 0, addCall.data);
+    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.yesVotes).to.equal(
       ethers.BigNumber.from("500000000000000000")
@@ -507,7 +507,7 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(safe.address, 0, addCall.data);
+    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
     let proposal = await proposalModule.proposals(0);
     await proposalModule.startModularQueue(0);
   });
@@ -542,8 +542,8 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(safe.address, 0, addCall.data);
-    await proposalModule.submitModularProposal(safe.address, 0, addCall.data);
+    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
+    await proposalModule.submitModularProposal([safe.address], [0], [addCall.data]);
   });
 
   it("can complete a funding proposals", async () => {
@@ -589,9 +589,9 @@ describe("proposalModule:", () => {
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
-      govToken.address,
-      0,
-      transferCall.data
+      [govToken.address],
+      [0],
+      [transferCall.data]
     );
     let proposal = await proposalModule.proposals(0);
     expect(proposal.value).to.equal(0);
@@ -659,9 +659,9 @@ describe("proposalModule:", () => {
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
-      govToken.address,
+      [govToken.address],
       0,
-      transferCall.data
+      [transferCall.data]
     );
     let proposal = await proposalModule.proposals(0);
     expect(proposal.value).to.equal(0);
@@ -736,9 +736,9 @@ describe("proposalModule:", () => {
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
-      govToken.address,
-      0,
-      transferCall.data
+      [govToken.address],
+      [0],
+      [transferCall.data]
     );
     await proposalModule.cancelProposal(0);
     let proposal = await proposalModule.proposals(0);
@@ -788,9 +788,9 @@ describe("proposalModule:", () => {
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
-      govToken.address,
-      0,
-      transferCall.data
+      [govToken.address],
+      [0],
+      [transferCall.data]
     );
     await executeContractCallWithSigners(
       safe,
@@ -846,9 +846,9 @@ describe("proposalModule:", () => {
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
-      govToken.address,
-      0,
-      transferCall.data
+      [govToken.address],
+      [0],
+      [transferCall.data]
     );
     await executeContractCallWithSigners(
       safe,
@@ -905,9 +905,9 @@ describe("proposalModule:", () => {
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
-      govToken.address,
-      0,
-      transferCall.data
+      [govToken.address],
+      [0],
+      [transferCall.data]
     );
     await network.provider.send("evm_increaseTime", [60]);
     await proposalModule.startModularQueue(0);
@@ -977,16 +977,16 @@ describe("proposalModule:", () => {
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
-      govToken.address,
-      0,
-      transferCall.data
+      [govToken.address],
+      [0],
+      [transferCall.data]
     );
     await proposalModule
       .connect(wallet_1)
-      .submitModularProposal(govToken.address, 0, transferCall.data);
+      .submitModularProposal([govToken.address], [0], [transferCall.data]);
     await proposalModule
       .connect(wallet_2)
-      .submitModularProposal(govToken.address, 0, transferCall.data);
+      .submitModularProposal([govToken.address], [0], [transferCall.data]);
     await proposalModule.vote(1, true);
     await proposalModule.vote(2, true);
     await proposalModule.connect(wallet_1).vote(0, true);
@@ -1067,10 +1067,10 @@ describe("proposalModule:", () => {
     );
     await proposalModule
       .connect(wallet_1)
-      .submitModularProposal(govToken.address, 0, transferCall.data);
+      .submitModularProposal([govToken.address], [0], [transferCall.data]);
     await proposalModule
       .connect(wallet_2)
-      .submitModularProposal(govToken.address, 0, transferCall.data);
+      .submitModularProposal([govToken.address], [0], [transferCall.data]);
     await proposalModule.vote(1, true);
     await proposalModule.vote(2, true);
     await proposalModule.connect(wallet_1).vote(0, true);
@@ -1167,9 +1167,9 @@ describe("proposalModule:", () => {
       await safe.nonce()
     );
     await proposalModule.submitModularProposal(
-      safe.address,
-      0,
-      burnCall.data
+      [safe.address],
+      [0],
+      [burnCall.data]
     );
     await proposalModule.connect(wallet_1).vote(0, true);
     await network.provider.send("evm_increaseTime", [60]);

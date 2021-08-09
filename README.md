@@ -169,6 +169,7 @@ This swap is dangerous as it will lock the safe. To avoid accidental locking thi
 - TW015 "execute proposal grace period has not elapsed"
 - TW016 "cancel proposal already canceled"
 - TW017 "cancel proposal already executed"
+- TW018 "proposal exceeds max execution limit"
 - TW019 "cancel proposal must be originator or Safe"
 - TW020 "linear voting: can't undelegate more votes than delegated"
 - TW021 "linear voting: cannot vote in the same block as delegation"
@@ -179,4 +180,6 @@ This swap is dangerous as it will lock the safe. To avoid accidental locking thi
 - TW026 "must be a member to execute role module"
 - TW027 "target address is not authorized for role"
 - TW028 "must be a member to vote"
+- TW029 "length of proposal execution data missmatch"
+- TW030 "proposal must contain at least one execution"
 ```

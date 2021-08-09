@@ -12,7 +12,7 @@ import "./interfaces/IRoles.sol";
 /// @author Nathan Ginnever - <team@tokenwalk.com>
 contract ProposalModule {
     struct Proposal {
-        uint256 value; // Ether value to passed with the call
+        uint256[] values; // Ether value to passed with the call
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
         bool executed;
@@ -22,12 +22,13 @@ contract ProposalModule {
         bool canceled;
         uint256 gracePeriod; // queue period for safety
         mapping(address => bool) hasVoted; // mapping voter / delegator to boolean
-        address targetAddress; // The target for execution from the gnosis safe
-        bytes data; // The data for the safe to execute
+        address[] targets; // The target for execution from the gnosis safe
+        bytes[] data; // The data for the safe to execute
         Enum.Operation operation; // Call or Delegatecall
     }
 
     uint256 private _totalProposalCount;
+    uint256 private _maxExecution = 10;
     uint256 private _proposalTime;
     uint256 private _gracePeriod = 60 seconds; //3 days;
     uint256 private _threshold;
@@ -154,25 +155,33 @@ contract ProposalModule {
         _gracePeriod = gracePeriod;
     }
 
+    function updateMaxExecution(uint256 maxExectuion) external onlySafe {
+        _maxExecution = maxExectuion;
+    }
+
     function submitModularProposal(
-        address to,
-        uint256 value,
-        bytes memory data //Enum.Operation _operation
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory data // TODO: split data into signatures and calldata Enum.Operation _operation
     ) public {
+        //require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "");
+        require(targets.length == values.length && targets.length == data.length, "TW029");
+        require(targets.length != 0, "TW030");
+        require(targets.length <= _maxExecution, "TW018");
         require(_votingModule != address(0), "TW022");
         uint256 total = IVoting(_votingModule).calculateWeight(msg.sender);
         require(_activeProposal[msg.sender] == false, "TW011");
         require(total >= _minimumProposalAmount, "TW012");
         IVoting(_votingModule).startVoting(msg.sender);
         // store calldata for tx to be executed
-        proposals[_totalProposalCount].value = value;
+        proposals[_totalProposalCount].values = values;
         proposals[_totalProposalCount].yesVotes = total; // the total number of YES votes for this proposal
         proposals[_totalProposalCount].deadline =
             block.timestamp +
             _proposalTime;
         proposals[_totalProposalCount].proposer = msg.sender;
         proposals[_totalProposalCount].hasVoted[msg.sender] = true;
-        proposals[_totalProposalCount].targetAddress = to; // can switch target to contract and provide call data
+        proposals[_totalProposalCount].targets = targets; // can switch target to contract and provide call data
         proposals[_totalProposalCount].data = data;
         proposals[_totalProposalCount].operation = Enum.Operation.Call;
 
@@ -204,12 +213,14 @@ contract ProposalModule {
         );
         proposals[proposalId].executed = true;
         _activeProposal[proposals[proposalId].proposer] = false;
-        ISafe(_safe).execTransactionFromModule(
-            proposals[proposalId].targetAddress,
-            proposals[proposalId].value,
-            proposals[proposalId].data,
-            proposals[proposalId].operation
-        );
+        for(uint256 i; i < proposals[proposalId].targets.length; i++) {
+            ISafe(_safe).execTransactionFromModule(
+                proposals[proposalId].targets[i],
+                proposals[proposalId].values[i],
+                proposals[proposalId].data[i],
+                proposals[proposalId].operation
+            );
+        }
     }
 
     function cancelProposal(uint256 proposalId) external {
