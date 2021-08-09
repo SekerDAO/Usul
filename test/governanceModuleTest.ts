@@ -1107,7 +1107,81 @@ describe("proposalModule:", () => {
     );
   });
 
-  it.only("can burn the safe admins", async () => {
+  it.only("can execute multiple", async () => {
+    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
+    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_1.address, 1], [wallet_0])
+    await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_2.address, 1], [wallet_0])
+    await executeContractCallWithSigners(
+      safe,
+      safe,
+      "enableModule",
+      [proposalModule.address],
+      [wallet_0]
+    );
+    await executeContractCallWithSigners(
+      safe,
+      proposalModule,
+      "registerVoteModule",
+      [linearVoting.address],
+      [wallet_0]
+    );
+    await govToken.approve(
+      linearVoting.address,
+      ethers.BigNumber.from("500000000000000000")
+    );
+    await linearVoting.delegateVotes(
+      wallet_0.address,
+      ethers.BigNumber.from("500000000000000000")
+    );
+    await govToken
+      .connect(wallet_1)
+      .approve(
+        linearVoting.address,
+        ethers.BigNumber.from("500000000000000000")
+      );
+    await linearVoting
+      .connect(wallet_1)
+      .delegateVotes(
+        wallet_1.address,
+        ethers.BigNumber.from("500000000000000000")
+      );
+
+    await executeContractCallWithSigners(safe, safe, "removeOwner", [wallet_2.address, wallet_1.address, 1], [wallet_0])
+    let owners = await safe.getOwners()
+    console.log(owners)
+    const removeCall_0 = buildContractCall(
+      safe,
+      "removeOwner",
+      [wallet_2.address, wallet_1.address, 1],
+      await safe.nonce()
+    )
+    const removeCall_1 = buildContractCall(
+      safe,
+      "removeOwner",
+      [wallet_2.address, wallet_0.address, 1],
+      await safe.nonce()
+    )
+    const burnCall = buildContractCall(
+      safe,
+      "swapOwner",
+      ['0x0000000000000000000000000000000000000001', wallet_2.address, '0x0000000000000000000000000000000000000002'],
+      await safe.nonce()
+    );
+    await proposalModule.submitModularProposal(
+      [safe.address, safe.address, safe.address],
+      [0, 0, 0],
+      [removeCall_0.data, removeCall_1.data, burnCall.data]
+    );
+    await proposalModule.connect(wallet_1).vote(0, true);
+    await network.provider.send("evm_increaseTime", [60]);
+    await proposalModule.startModularQueue(0);
+    await network.provider.send("evm_increaseTime", [60]);
+    await proposalModule.executeModularProposal(0);
+    owners = await safe.getOwners()
+    console.log(owners)
+  });
+
+  it("can burn the safe admins", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_1.address, 1], [wallet_0])
     await executeContractCallWithSigners(safe, safe, "addOwnerWithThreshold", [wallet_2.address, 1], [wallet_0])
