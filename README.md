@@ -160,7 +160,7 @@ This swap is dangerous as it will lock the safe. To avoid accidental locking thi
 - TW006 "vote module does not exist"
 - TW007 "already voted on proposal"
 - TW008 "voting on canceled proposal"
-- TW009 "voting on executed proposal"
+- TW009 ""
 - TW010 "voting on proposal past the deadline"
 - TW011 "submit proposal more than one proposal at a time"
 - TW012 "submit proposal does not have enough gov tokens"

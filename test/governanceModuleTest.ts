@@ -37,6 +37,7 @@ describe("proposalModule:", () => {
     wallet_8,
     wallet_9,
   ] = waffle.provider.getWallets();
+  const chainId = network.provider.chainId;
   beforeEach(async function () {
     wallet = (await ethers.getSigners())[0];
     daoFixture = await getFixtureWithParams(wallet, true);
@@ -174,6 +175,8 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
+    // ------------------------
+    const txHash = calculateSafeTransactionHash(safe, addCall, chainId)
     await proposalModule.submitModularProposal(
       [safe.address],
       [0],
