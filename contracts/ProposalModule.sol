@@ -264,6 +264,8 @@ contract ProposalModule {
             // TODO: allow nonces?
             bytes32 txHash = getTransactionHash(targets[i], values[i], data[i], Enum.Operation.Call, 0);
             require(proposals[proposalId].txHashes[i] == txHash, "Unexpected transaction hash");
+            proposals[proposalId].executionCounter--;
+            proposals[proposalId].executed[i] = true;
             // todo, dont require, check if successful
             require(
                 ISafe(executor).execTransactionFromModule(
@@ -273,8 +275,6 @@ contract ProposalModule {
                     Enum.Operation.Call//proposals[proposalId].operation
                 )
             );
-            proposals[proposalId].executionCounter--;
-            proposals[proposalId].executed[i] = true;
         }
         if(isProposalFullyExecuted(proposalId)){
             _activeProposal[proposals[proposalId].proposer] = false;

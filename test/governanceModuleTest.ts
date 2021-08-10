@@ -1338,7 +1338,7 @@ describe("proposalModule:", () => {
     );
   });
 
-  it.skip("can execute multiple", async () => {
+  it("can execute batch", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     const wallets = [wallet_0, wallet_1, wallet_2];
     for (let i = 1; i < 3; i++) {
@@ -1409,16 +1409,40 @@ describe("proposalModule:", () => {
       ],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(
-      [safe.address, safe.address, safe.address],
-      [0, 0, 0],
-      [removeCall_0.data, removeCall_1.data, burnCall.data]
+    const txHash_0 = await proposalModule.getTransactionHash(
+      removeCall_0.to,
+      removeCall_0.value,
+      removeCall_0.data,
+      removeCall_0.operation,
+      0
     );
+    const txHash_1 = await proposalModule.getTransactionHash(
+      removeCall_1.to,
+      removeCall_1.value,
+      removeCall_1.data,
+      removeCall_1.operation,
+      0
+    );
+    const txHash_2 = await proposalModule.getTransactionHash(
+      burnCall.to,
+      burnCall.value,
+      burnCall.data,
+      burnCall.operation,
+      0
+    );
+    await proposalModule.submitProposal([txHash_0, txHash_1, txHash_2]);
     await proposalModule.connect(wallet_1).vote(0, true);
     await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.startModularQueue(0);
+    await proposalModule.startQueue(0);
     await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.executeModularProposal(0);
+    await proposalModule.executeProposalBatch(
+      0, // proposalId
+      [safe.address, safe.address, safe.address],
+      [0, 0, 0],
+      [removeCall_0.data, removeCall_1.data, burnCall.data],
+      0, // txHash start index
+      3 // tx length
+    );
     owners = await safe.getOwners();
     console.log(owners);
   });
