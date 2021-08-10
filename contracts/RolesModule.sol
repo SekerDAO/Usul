@@ -67,7 +67,11 @@ contract Roles {
         _memberCount--;
     }
 
-    function safeAddRole(address member, Role memory role, uint256 roleId) external onlySafe {
+    function safeAddRole(
+        address member,
+        Role memory role,
+        uint256 roleId
+    ) external onlySafe {
         _members[member].roles[roleId] = role;
         _members[member].numberOfRoles++;
         _totalRoles++; // used to keep db informed of what the roleId should be if new role

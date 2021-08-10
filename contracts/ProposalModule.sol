@@ -8,16 +8,17 @@ import "./interfaces/ISafe.sol";
 import "./interfaces/IVoting.sol";
 import "./interfaces/IRoles.sol";
 
-/// @title Gnosis Safe DAO Extension - A gnosis wallet module for introducing fully decentralized token weighted governance.
+/// @title Gnosis Safe DAO Proposal Module - A gnosis wallet module for introducing fully decentralized token weighted governance.
 /// @author Nathan Ginnever - <team@tokenwalk.com>
 contract ProposalModule {
-
-    bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH = 0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+    bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
+        0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
     // keccak256(
     //     "EIP712Domain(uint256 chainId,address verifyingContract)"
     // );
 
-    bytes32 public constant TRANSACTION_TYPEHASH = 0x72e9670a7ee00f5fbf1049b8c38e3f22fab7e9b85029e85cf9412f17fdd5c2ad;
+    bytes32 public constant TRANSACTION_TYPEHASH =
+        0x72e9670a7ee00f5fbf1049b8c38e3f22fab7e9b85029e85cf9412f17fdd5c2ad;
     // keccak256(
     //     "Transaction(address to,uint256 value,bytes data,uint8 operation,uint256 nonce)"
     // );
@@ -31,13 +32,9 @@ contract ProposalModule {
         bool canceled;
         uint256 gracePeriod; // queue period for safety
         mapping(address => bool) hasVoted; // mapping voter / delegator to boolean
-        bool[] executed; // txindexes 
+        bool[] executed; // txindexes
         bytes32[] txHashes;
         uint256 executionCounter;
-        //uint256[] values; // Ether value to passed with the call
-        //address[] targets; // The target for execution from the gnosis safe
-        //bytes[] data; // The data for the safe to execute
-        //Enum.Operation operation; // Call or Delegatecall
     }
 
     uint256 private _totalProposalCount;
@@ -54,7 +51,7 @@ contract ProposalModule {
     // mapping to track if a user has an open proposal
     mapping(address => bool) private _activeProposal;
 
-    modifier onlySafe() {
+    modifier onlyExecutor() {
         require(msg.sender == executor, "TW001");
         _;
     }
@@ -112,11 +109,11 @@ contract ProposalModule {
         return _votingModule;
     }
 
-    function registerVoteModule(address module) external onlySafe {
+    function registerVoteModule(address module) external onlyExecutor {
         _votingModule = module;
     }
 
-    function registerRoleModule(address module) external onlySafe {
+    function registerRoleModule(address module) external onlyExecutor {
         _roleModule = module;
     }
 
@@ -143,32 +140,28 @@ contract ProposalModule {
         }
     }
 
-    function updateThreshold(uint256 threshold) external onlySafe {
+    function updateThreshold(uint256 threshold) external onlyExecutor {
         _threshold = threshold;
     }
 
     function updateMinimumProposalAmount(uint256 minimumProposalAmount)
         external
-        onlySafe
+        onlyExecutor
     {
         _minimumProposalAmount = minimumProposalAmount;
     }
 
-    function updateProposalTime(uint256 newTime) external onlySafe {
+    function updateProposalTime(uint256 newTime) external onlyExecutor {
         _proposalTime = newTime;
     }
 
-    function updateGracePeriod(uint256 gracePeriod) external onlySafe {
+    function updateGracePeriod(uint256 gracePeriod) external onlyExecutor {
         _gracePeriod = gracePeriod;
     }
 
-    function submitProposal(
-        bytes32[] memory txHashes
-        //address[] memory targets,
-        //uint256[] memory values,
-        //bytes[] memory data // TODO: split data into signatures and calldata Enum.Operation _operation
-    ) public {
-        for(uint256 i; i < txHashes.length; i++){
+    function submitProposal(bytes32[] memory txHashes) public {
+        // TODO: consider mapping here
+        for (uint256 i; i < txHashes.length; i++) {
             proposals[_totalProposalCount].executed.push(false);
         }
 
@@ -177,7 +170,6 @@ contract ProposalModule {
         require(_activeProposal[msg.sender] == false, "TW011");
         require(total >= _minimumProposalAmount, "TW012");
         IVoting(_votingModule).startVoting(msg.sender);
-        // store calldata for tx to be executed
         proposals[_totalProposalCount].executionCounter = txHashes.length;
         proposals[_totalProposalCount].txHashes = txHashes;
         proposals[_totalProposalCount].yesVotes = total; // the total number of YES votes for this proposal
@@ -186,21 +178,13 @@ contract ProposalModule {
             _proposalTime;
         proposals[_totalProposalCount].proposer = msg.sender;
         proposals[_totalProposalCount].hasVoted[msg.sender] = true;
-        //proposals[_totalProposalCount].targets = targets; // can switch target to contract and provide call data
-        //proposals[_totalProposalCount].data = data;
-        //proposals[_totalProposalCount].operation = Enum.Operation.Call;
-        //proposals[_totalProposalCount].values = values;
 
         _activeProposal[msg.sender] = true;
         _totalProposalCount++;
         emit ProposalCreated(_totalProposalCount - 1);
     }
 
-    // Execute proposals
-    function startQueue(uint256 proposalId)
-        external
-        isPassed(proposalId)
-    {
+    function startQueue(uint256 proposalId) external isPassed(proposalId) {
         require(proposals[proposalId].deadline <= block.timestamp, "TW014");
         require(proposals[proposalId].canceled == false, "TW023");
         proposals[proposalId].gracePeriod = block.timestamp + _gracePeriod;
@@ -213,31 +197,37 @@ contract ProposalModule {
         address target,
         uint256 value,
         bytes memory data,
-        //Enum.Operation operation,
+        Enum.Operation operation,
         uint256 txIndex
-    )
-        external
-        isPassed(proposalId)
-    {
+    ) external isPassed(proposalId) {
         require(
             block.timestamp >= proposals[proposalId].gracePeriod &&
                 proposals[proposalId].gracePeriod != 0,
             "TW015"
         );
-        require(proposals[proposalId].executed[txIndex] == false, "cannot execute tx again");
-        bytes32 txHash = getTransactionHash(target, value, data, Enum.Operation.Call, 0);
-        require(proposals[proposalId].txHashes[txIndex] == txHash, "Unexpected transaction hash");
-        require(txIndex == 0 || proposals[proposalId].executed[txIndex - 1], "Previous transaction not executed yet");
+        require(proposals[proposalId].executed[txIndex] == false, "TW009");
+        bytes32 txHash = getTransactionHash(
+            target,
+            value,
+            data,
+            Enum.Operation.Call,
+            0
+        );
+        require(proposals[proposalId].txHashes[txIndex] == txHash, "TW031");
+        require(
+            txIndex == 0 || proposals[proposalId].executed[txIndex - 1],
+            "TW033"
+        );
         proposals[proposalId].executed[txIndex] = true;
         proposals[proposalId].executionCounter--;
-        if(isProposalFullyExecuted(proposalId)){
+        if (isProposalFullyExecuted(proposalId)) {
             _activeProposal[proposals[proposalId].proposer] = false;
         }
         ISafe(executor).execTransactionFromModule(
             target,
             value,
             data,
-            Enum.Operation.Call//proposals[proposalId].operation
+            operation
         );
     }
 
@@ -246,24 +236,36 @@ contract ProposalModule {
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory data,
+        Enum.Operation[] memory operations,
         uint256 startIndex,
         uint256 txCount
-    )
-        external
-        isPassed(proposalId)
-    {
+    ) external isPassed(proposalId) {
         require(
             block.timestamp >= proposals[proposalId].gracePeriod &&
                 proposals[proposalId].gracePeriod != 0,
             "TW015"
         );
         //require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "");
-        require(targets.length == values.length && targets.length == data.length, "TW029");
+        require(
+            targets.length == values.length && targets.length == data.length,
+            "TW029"
+        );
         require(targets.length != 0, "TW030");
-        for(uint256 i = startIndex; i < startIndex+txCount; i++) {
+        require(
+            startIndex == 0 || proposals[proposalId].executed[startIndex - 1],
+            "TW034"
+        );
+        for (uint256 i = startIndex; i < startIndex + txCount; i++) {
             // TODO: allow nonces?
-            bytes32 txHash = getTransactionHash(targets[i], values[i], data[i], Enum.Operation.Call, 0);
-            require(proposals[proposalId].txHashes[i] == txHash, "Unexpected transaction hash");
+            // TODO: figure out how to keep ordered exectution
+            bytes32 txHash = getTransactionHash(
+                targets[i],
+                values[i],
+                data[i],
+                Enum.Operation.Call,
+                0
+            );
+            require(proposals[proposalId].txHashes[i] == txHash, "TW032");
             proposals[proposalId].executionCounter--;
             proposals[proposalId].executed[i] = true;
             // todo, dont require, check if successful
@@ -272,17 +274,21 @@ contract ProposalModule {
                     targets[i],
                     values[i],
                     data[i],
-                    Enum.Operation.Call//proposals[proposalId].operation
+                    operations[i]
                 )
             );
         }
-        if(isProposalFullyExecuted(proposalId)){
+        if (isProposalFullyExecuted(proposalId)) {
             _activeProposal[proposals[proposalId].proposer] = false;
         }
     }
 
-    function isProposalFullyExecuted(uint256 proposalId) public view returns(bool) {
-        if(proposals[proposalId].executionCounter == 0) {
+    function isProposalFullyExecuted(uint256 proposalId)
+        public
+        view
+        returns (bool)
+    {
+        if (proposals[proposalId].executionCounter == 0) {
             return true;
         } else {
             return false;
@@ -294,7 +300,8 @@ contract ProposalModule {
         require(proposals[proposalId].executionCounter > 0, "TW017");
         // proposal guardian can be put in the roles module
         require(
-            proposals[proposalId].proposer == msg.sender || msg.sender == executor,
+            proposals[proposalId].proposer == msg.sender ||
+                msg.sender == executor,
             "TW019"
         );
         proposals[proposalId].canceled = true;
@@ -308,17 +315,41 @@ contract ProposalModule {
         bytes memory data,
         Enum.Operation operation,
         uint256 nonce
-    ) public view returns(bytes memory) {
+    ) public view returns (bytes memory) {
         uint256 chainId = getChainId();
-        bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, this));
-        bytes32 transactionHash = keccak256(
-            abi.encode(TRANSACTION_TYPEHASH, to, value, keccak256(data), operation, nonce)
+        bytes32 domainSeparator = keccak256(
+            abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, this)
         );
-        return abi.encodePacked(bytes1(0x19), bytes1(0x01), domainSeparator, transactionHash);
+        bytes32 transactionHash = keccak256(
+            abi.encode(
+                TRANSACTION_TYPEHASH,
+                to,
+                value,
+                keccak256(data),
+                operation,
+                nonce
+            )
+        );
+        return
+            abi.encodePacked(
+                bytes1(0x19),
+                bytes1(0x01),
+                domainSeparator,
+                transactionHash
+            );
     }
 
-    function getTransactionHash(address to, uint256 value, bytes memory data, Enum.Operation operation, uint256 nonce) public view returns(bytes32) {
-        return keccak256(generateTransactionHashData(to, value, data, operation, nonce));
+    function getTransactionHash(
+        address to,
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation,
+        uint256 nonce
+    ) public view returns (bytes32) {
+        return
+            keccak256(
+                generateTransactionHashData(to, value, data, operation, nonce)
+            );
     }
 
     /// @dev Returns the chain id used by this contract.

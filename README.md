@@ -160,7 +160,7 @@ This swap is dangerous as it will lock the safe. To avoid accidental locking thi
 - TW006 "vote module does not exist"
 - TW007 "already voted on proposal"
 - TW008 "voting on canceled proposal"
-- TW009 ""
+- TW009 "cannot execute transaction again"
 - TW010 "voting on proposal past the deadline"
 - TW011 "submit proposal more than one proposal at a time"
 - TW012 "submit proposal does not have enough gov tokens"
@@ -182,4 +182,8 @@ This swap is dangerous as it will lock the safe. To avoid accidental locking thi
 - TW028 "must be a member to vote"
 - TW029 "length of proposal execution data missmatch"
 - TW030 "proposal must contain at least one execution"
+- TW031 "unexpected transaction hash"
+- TW032 "unexpected transaction hash - batch"
+- TW033 "previous tx not executed single"
+- TW034 "previous tx not executed batch"
 ```

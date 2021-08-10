@@ -358,6 +358,7 @@ describe("proposalModule:", () => {
       safe.address, // target
       0, // value
       addCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     proposal = await proposalModule.proposals(0);
@@ -446,6 +447,7 @@ describe("proposalModule:", () => {
       safe.address, // target
       0, // value
       addCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     proposal = await proposalModule.proposals(0);
@@ -460,6 +462,7 @@ describe("proposalModule:", () => {
       safe.address, // target
       0, // value
       addCall_1.data, // data
+      0, // call operation
       1 // txHash index
     );
     proposal = await proposalModule.proposals(0);
@@ -546,6 +549,7 @@ describe("proposalModule:", () => {
       safe.address, // target
       0, // value
       addCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     proposal = await proposalModule.proposals(0);
@@ -802,6 +806,7 @@ describe("proposalModule:", () => {
       govToken.address, // target
       0, // value
       transferCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     expect(await govToken.balanceOf(wallet_2.address)).to.equal(
@@ -1199,6 +1204,7 @@ describe("proposalModule:", () => {
       govToken.address, // target
       0, // value
       transferCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     await proposalModule.executeProposalByIndex(
@@ -1206,6 +1212,7 @@ describe("proposalModule:", () => {
       govToken.address, // target
       0, // value
       transferCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     await proposalModule.executeProposalByIndex(
@@ -1213,6 +1220,7 @@ describe("proposalModule:", () => {
       govToken.address, // target
       0, // value
       transferCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     expect(await govToken.balanceOf(wallet_3.address)).to.equal(
@@ -1300,6 +1308,7 @@ describe("proposalModule:", () => {
       govToken.address, // target
       0, // value
       transferCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     await proposalModule.executeProposalByIndex(
@@ -1307,6 +1316,7 @@ describe("proposalModule:", () => {
       govToken.address, // target
       0, // value
       transferCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     await proposalModule.executeProposalByIndex(
@@ -1314,6 +1324,7 @@ describe("proposalModule:", () => {
       govToken.address, // target
       0, // value
       transferCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     expect(await govToken.balanceOf(wallet_3.address)).to.equal(
@@ -1440,6 +1451,7 @@ describe("proposalModule:", () => {
       [safe.address, safe.address, safe.address],
       [0, 0, 0],
       [removeCall_0.data, removeCall_1.data, burnCall.data],
+      [0,0,0], // call options
       0, // txHash start index
       3 // tx length
     );
@@ -1551,6 +1563,7 @@ describe("proposalModule:", () => {
       safe.address, // target
       0, // value
       burnCall.data, // data
+      0, // call operation
       0 // txHash index
     );
     owners = await safe.getOwners();
