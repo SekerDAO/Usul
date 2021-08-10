@@ -23,6 +23,7 @@ contract Roles {
 
     mapping(address => Member) public _members;
     uint256 private _memberCount;
+    uint256 private _totalRoles;
     address private _safe;
     bool private _mustBeMember;
 
@@ -66,9 +67,10 @@ contract Roles {
         _memberCount--;
     }
 
-    function safeAddRole(address member, Role memory role) external onlySafe {
-        _members[member].roles[_members[member].numberOfRoles++] = role;
+    function safeAddRole(address member, Role memory role, uint256 roleId) external onlySafe {
+        _members[member].roles[roleId] = role;
         _members[member].numberOfRoles++;
+        _totalRoles++; // used to keep db informed of what the roleId should be if new role
     }
 
     function safeRemoveRole(address member, uint256 roleId) external onlySafe {

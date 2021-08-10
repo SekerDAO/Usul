@@ -41,7 +41,6 @@ contract ProposalModule {
     }
 
     uint256 private _totalProposalCount;
-    uint256 private _maxExecution = 10;
     uint256 private _proposalTime;
     uint256 private _gracePeriod = 60 seconds; //3 days;
     uint256 private _threshold;
@@ -163,20 +162,15 @@ contract ProposalModule {
         _gracePeriod = gracePeriod;
     }
 
-    function updateMaxExecution(uint256 maxExectuion) external onlySafe {
-        _maxExecution = maxExectuion;
-    }
-
-    function submitModularProposal(
+    function submitProposal(
         bytes32[] memory txHashes
         //address[] memory targets,
         //uint256[] memory values,
         //bytes[] memory data // TODO: split data into signatures and calldata Enum.Operation _operation
     ) public {
-        // for(uint256 i; i < txHashes.length; i++){
-        //     proposals[_totalProposalCount].executed.push(0);
-        //     // or just accept an array of 0 as calldata risking a 1 slipping in
-        // }
+        for(uint256 i; i < txHashes.length; i++){
+            proposals[_totalProposalCount].executed.push(false);
+        }
 
         require(_votingModule != address(0), "TW022");
         uint256 total = IVoting(_votingModule).calculateWeight(msg.sender);
@@ -203,7 +197,7 @@ contract ProposalModule {
     }
 
     // Execute proposals
-    function startModularQueue(uint256 proposalId)
+    function startQueue(uint256 proposalId)
         external
         isPassed(proposalId)
     {

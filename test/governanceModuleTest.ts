@@ -8,6 +8,7 @@ import {
   buildContractCall,
   safeSignMessage,
   executeTx,
+  calculateSafeTransactionHash,
 } from "./shared/utils";
 import { keccak256 } from "ethereumjs-util";
 import {
@@ -37,7 +38,7 @@ describe("proposalModule:", () => {
     wallet_8,
     wallet_9,
   ] = waffle.provider.getWallets();
-  const chainId = network.provider.chainId;
+  const chainId = ethers.BigNumber.from(network.config.chainId);
   beforeEach(async function () {
     wallet = (await ethers.getSigners())[0];
     daoFixture = await getFixtureWithParams(wallet, true);
@@ -145,7 +146,7 @@ describe("proposalModule:", () => {
     expect(await govToken.balanceOf(linearVoting.address)).to.equal(2000);
   });
 
-  it("can execute add safe admin DAO proposal", async () => {
+  it.only("can execute add safe admin DAO proposal", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(
       safe,
@@ -176,28 +177,34 @@ describe("proposalModule:", () => {
       await safe.nonce()
     );
     // ------------------------
-    const txHash = calculateSafeTransactionHash(safe, addCall, chainId)
-    await proposalModule.submitModularProposal(
-      [safe.address],
-      [0],
-      [addCall.data]
+    const txHash = calculateSafeTransactionHash(proposalModule, addCall, chainId)
+    console.log(chainId)
+    console.log(txHash)
+    await proposalModule.submitProposal(
+      [txHash]
     );
     let proposal = await proposalModule.proposals(0);
-    expect(proposal.value).to.equal(0);
+    expect(proposal.executionCounter).to.equal(1);
     expect(proposal.yesVotes).to.equal(
       ethers.BigNumber.from("1000000000000000000")
     );
     expect(proposal.noVotes).to.equal(0);
     expect(proposal.proposer).to.equal(wallet_0.address);
     expect(proposal.canceled).to.equal(false);
-    expect(proposal.targetAddress).to.equal(safe.address);
-    expect(proposal.data).to.equal(addCall.data);
+    //expect(proposal.txHashes[0]).to.equal(txHash);
     await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.startModularQueue(0);
+    await proposalModule.startQueue(0);
     proposal = await proposalModule.proposals(0);
+    console.log(proposal)
     expect(proposal.queued).to.equal(true);
     await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.executeModularProposal(0);
+    await proposalModule.executeProposalByIndex(
+      0, // proposalId
+      safe.address, // target
+      0, // value
+      addCall.data, // data
+      0 // txHash index
+    );
     proposal = await proposalModule.proposals(0);
     expect(proposal.executed).to.equal(true);
     const owners = await safe.getOwners();
@@ -1155,7 +1162,7 @@ describe("proposalModule:", () => {
     );
   });
 
-  it.only("can execute multiple", async () => {
+  it("can execute multiple", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     const wallets = [
       wallet_0,
