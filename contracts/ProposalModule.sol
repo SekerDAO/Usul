@@ -45,7 +45,7 @@ contract ProposalModule {
     uint256 private _gracePeriod = 60 seconds; //3 days;
     uint256 private _threshold;
     uint256 private _minimumProposalAmount; // amount of gov tokens needed to participate
-    address public immutable _safe;
+    address public immutable executor;
     address private _votingModule;
     address private _roleModule;
 
@@ -55,7 +55,7 @@ contract ProposalModule {
     mapping(address => bool) private _activeProposal;
 
     modifier onlySafe() {
-        require(msg.sender == _safe, "TW001");
+        require(msg.sender == executor, "TW001");
         _;
     }
 
@@ -76,12 +76,12 @@ contract ProposalModule {
 
     constructor(
         address governanceToken_,
-        address safe_,
+        address executor_,
         uint256 proposalTime_,
         uint256 threshold_,
         uint256 minimumProposalAmount_
     ) {
-        _safe = safe_;
+        executor = executor_;
         _proposalTime = proposalTime_ * 1 minutes; //days;
         _threshold = threshold_;
         _minimumProposalAmount = minimumProposalAmount_;
@@ -224,20 +224,21 @@ contract ProposalModule {
                 proposals[proposalId].gracePeriod != 0,
             "TW015"
         );
-        require(proposals[proposalId].executed[txIndex] == false);
-        bytes32 txHash = getTransactionHash(target, value, data, Enum.Operation.Call, txIndex);
+        require(proposals[proposalId].executed[txIndex] == false, "cannot execute tx again");
+        bytes32 txHash = getTransactionHash(target, value, data, Enum.Operation.Call, 0);
         require(proposals[proposalId].txHashes[txIndex] == txHash, "Unexpected transaction hash");
-        ISafe(_safe).execTransactionFromModule(
+        require(txIndex == 0 || proposals[proposalId].executed[txIndex - 1], "Previous transaction not executed yet");
+        proposals[proposalId].executed[txIndex] = true;
+        proposals[proposalId].executionCounter--;
+        if(isProposalFullyExecuted(proposalId)){
+            _activeProposal[proposals[proposalId].proposer] = false;
+        }
+        ISafe(executor).execTransactionFromModule(
             target,
             value,
             data,
             Enum.Operation.Call//proposals[proposalId].operation
         );
-        proposals[proposalId].executionCounter--;
-        if(isProposalFullyExecuted(proposalId)){
-            _activeProposal[proposals[proposalId].proposer] = false;
-            proposals[proposalId].executed[txIndex] = true;
-        }
     }
 
     function executeProposalBatch(
@@ -260,11 +261,12 @@ contract ProposalModule {
         require(targets.length == values.length && targets.length == data.length, "TW029");
         require(targets.length != 0, "TW030");
         for(uint256 i = startIndex; i < startIndex+txCount; i++) {
-            bytes32 txHash = getTransactionHash(targets[i], values[i], data[i], Enum.Operation.Call, i);
+            // TODO: allow nonces?
+            bytes32 txHash = getTransactionHash(targets[i], values[i], data[i], Enum.Operation.Call, 0);
             require(proposals[proposalId].txHashes[i] == txHash, "Unexpected transaction hash");
             // todo, dont require, check if successful
             require(
-                ISafe(_safe).execTransactionFromModule(
+                ISafe(executor).execTransactionFromModule(
                     targets[i],
                     values[i],
                     data[i],
@@ -292,7 +294,7 @@ contract ProposalModule {
         require(proposals[proposalId].executionCounter > 0, "TW017");
         // proposal guardian can be put in the roles module
         require(
-            proposals[proposalId].proposer == msg.sender || msg.sender == _safe,
+            proposals[proposalId].proposer == msg.sender || msg.sender == executor,
             "TW019"
         );
         proposals[proposalId].canceled = true;

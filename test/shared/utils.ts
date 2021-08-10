@@ -2,6 +2,34 @@ import { Contract, Wallet, utils, BigNumber, BigNumberish, Signer, PopulatedTran
 import { TypedDataSigner } from "@ethersproject/abstract-signer";
 import { AddressZero } from "@ethersproject/constants";
 
+export const EIP712_TYPES = {
+    "Transaction": [
+        {
+            "name": "to",
+            "type": "address"
+        },
+        {
+            "name": "value",
+            "type": "uint256"
+        },
+        {
+            "name": "data",
+            "type": "bytes"
+        },
+        {
+            "name": "operation",
+            "type": "uint8"
+        },
+        {
+            "name": "nonce",
+            "type": "uint256"
+        }
+    ]
+}
+
+const INVALIDATED_STATE = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+const ZERO_STATE = "0x0000000000000000000000000000000000000000000000000000000000000000";
+
 export const EIP_DOMAIN = {
     EIP712Domain: [
         { type: "uint256", name: "chainId" },
