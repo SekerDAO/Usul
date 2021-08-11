@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.0;
 
-import "./interfaces/ISafe.sol";
+import "@gnosis/zodiac/contracts/core/Module.sol";
 import "./interfaces/IVoting.sol";
 
-contract Roles {
+contract Roles is Module {
     struct Role {
         bytes allowedMethodSignature;
         address target;
@@ -31,8 +31,8 @@ contract Roles {
         _;
     }
 
-    constructor(address safe_) {
-        _safe = safe_;
+    constructor() {
+        __Ownable_init();
     }
 
     function memberCount() public view virtual returns (uint256) {
@@ -98,7 +98,7 @@ contract Roles {
         // TODO bytes lib for data equality check
         // TODO combine methodsig and params to make call
         // build the safe tx based on allowed bytes
-        ISafe(_safe).execTransactionFromModule(
+        exec(
             targetAddress,
             value,
             data,
