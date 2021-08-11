@@ -50,6 +50,7 @@
     "typescript": "^4.2.3"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "4.0.0"
+    "@openzeppelin/contracts": "4.0.0",
+    "@gnosis/zodiac": "https://github.com/gnosis/zodiac"
   }
 }

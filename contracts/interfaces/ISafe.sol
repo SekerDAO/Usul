@@ -2,7 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import "../common/Enum.sol";
+//import "../common/Enum.sol";
+import "@gnosis/zodiac/contracts/core/Module.sol";
 
 interface ISafe {
     function execTransactionFromModule(

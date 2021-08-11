@@ -3,14 +3,13 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./common/Enum.sol";
-import "./interfaces/ISafe.sol";
+import "@gnosis/zodiac/contracts/core/Module.sol";
 import "./interfaces/IVoting.sol";
 import "./interfaces/IRoles.sol";
 
 /// @title Gnosis Safe DAO Proposal Module - A gnosis wallet module for introducing fully decentralized token weighted governance.
 /// @author Nathan Ginnever - <team@tokenwalk.com>
-contract ProposalModule {
+contract ProposalModule is Module {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
     // keccak256(
@@ -42,7 +41,6 @@ contract ProposalModule {
     uint256 private _gracePeriod = 60 seconds; //3 days;
     uint256 private _threshold;
     uint256 private _minimumProposalAmount; // amount of gov tokens needed to participate
-    address public immutable executor;
     address private _votingModule;
     address private _roleModule;
 
@@ -72,13 +70,12 @@ contract ProposalModule {
     event ProposalExecuted(uint256 id);
 
     constructor(
-        address governanceToken_,
-        address executor_,
         uint256 proposalTime_,
         uint256 threshold_,
         uint256 minimumProposalAmount_
     ) {
-        executor = executor_;
+        //executor = executor_;
+        __Ownable_init();
         _proposalTime = proposalTime_ * 1 minutes; //days;
         _threshold = threshold_;
         _minimumProposalAmount = minimumProposalAmount_;
@@ -223,7 +220,7 @@ contract ProposalModule {
         if (isProposalFullyExecuted(proposalId)) {
             _activeProposal[proposals[proposalId].proposer] = false;
         }
-        ISafe(executor).execTransactionFromModule(
+        exec(
             target,
             value,
             data,
@@ -270,7 +267,7 @@ contract ProposalModule {
             proposals[proposalId].executed[i] = true;
             // todo, dont require, check if successful
             require(
-                ISafe(executor).execTransactionFromModule(
+                exec(
                     targets[i],
                     values[i],
                     data[i],
