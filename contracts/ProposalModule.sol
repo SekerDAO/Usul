@@ -82,28 +82,36 @@ contract ProposalModule is Module {
     }
 
     // getters
-    function threshold() public view virtual returns (uint256) {
+    function threshold() public view returns (uint256) {
         return _threshold;
     }
 
-    function totalProposalCount() public view virtual returns (uint256) {
+    function totalProposalCount() public view returns (uint256) {
         return _totalProposalCount;
     }
 
-    function gracePeriod() public view virtual returns (uint256) {
+    function gracePeriod() public view returns (uint256) {
         return _gracePeriod;
     }
 
-    function proposalTime() public view virtual returns (uint256) {
+    function proposalTime() public view returns (uint256) {
         return _proposalTime;
     }
 
-    function minimumProposalAmount() public view virtual returns (uint256) {
+    function minimumProposalAmount() public view returns (uint256) {
         return _minimumProposalAmount;
     }
 
-    function votingModule() public view virtual returns (address) {
+    function votingModule() public view returns (address) {
         return _votingModule;
+    }
+
+    function isExecuted(uint256 proposalId, uint256 index) public view returns (bool) {
+        return proposals[proposalId].executed[index];
+    }
+
+    function getTxHash(uint256 proposalId, uint256 index) public view returns (bytes32) {
+        return proposals[proposalId].txHashes[index];
     }
 
     function registerVoteModule(address module) external onlyExecutor {
@@ -125,6 +133,7 @@ contract ProposalModule is Module {
 
         proposals[proposalId].hasVoted[msg.sender] = true;
         IVoting(_votingModule).startVoting(msg.sender);
+        require(IVoting(_votingModule).checkBlock(msg.sender), "TW021");
 
         if (vote == true) {
             proposals[proposalId].yesVotes =
@@ -163,8 +172,8 @@ contract ProposalModule is Module {
         }
 
         require(_votingModule != address(0), "TW022");
-        uint256 total = IVoting(_votingModule).calculateWeight(msg.sender);
         require(_activeProposal[msg.sender] == false, "TW011");
+        uint256 total = IVoting(_votingModule).calculateWeight(msg.sender);
         require(total >= _minimumProposalAmount, "TW012");
         IVoting(_votingModule).startVoting(msg.sender);
         proposals[_totalProposalCount].executionCounter = txHashes.length;

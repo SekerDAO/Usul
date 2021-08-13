@@ -211,4 +211,5 @@ This swap is dangerous as it will lock the safe. To avoid accidental locking thi
 - TW032 "unexpected transaction hash - batch"
 - TW033 "previous tx not executed single"
 - TW034 "previous tx not executed batch"
+- TW035 "delegate has no votes"
 ```

@@ -85,9 +85,9 @@ describe("proposalModule:", () => {
     expect(await proposalModule.votingModule()).to.equal(linearVoting.address);
   });
 
-  it.skip("only Safe can register linear voting module", async () => {
+  it("only Safe can register linear voting module", async () => {
     const { proposalModule, linearVoting } = daoFixture;
-    await proposalModule.registerVoteModule(linearVoting.address);
+    await expect(proposalModule.registerVoteModule(linearVoting.address)).to.be.revertedWith("TW001");
   });
 
   it("can delegate votes to self", async () => {
@@ -148,7 +148,7 @@ describe("proposalModule:", () => {
     expect(await govToken.balanceOf(linearVoting.address)).to.equal(2000);
   });
 
-  it.skip("cannot create proposal with out delegation threshold", async () => {
+  it("cannot create proposal with out delegation threshold", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(
       safe,
@@ -178,7 +178,7 @@ describe("proposalModule:", () => {
       0
     );
 
-    await proposalModule.submitProposal([txHash]);
+    await expect(proposalModule.submitProposal([txHash])).to.be.revertedWith("TW035");
   });
 
   it("can vote past the threshold with delegation", async () => {
@@ -232,49 +232,14 @@ describe("proposalModule:", () => {
     );
 
     await proposalModule.submitProposal([txHash]);
-    let proposal = await proposalModule.proposals(0);
+    const proposal = await proposalModule.proposals(0);
+    const isExecuted = await proposalModule.isExecuted(0, 0);
+    const _txHash = await proposalModule.getTxHash(0, 0);
+    expect(isExecuted).to.equal(false);
+    expect(_txHash).to.equal(txHash);
     expect(proposal.yesVotes).to.equal(
       ethers.BigNumber.from("1000000000000000000")
     );
-  });
-
-  it.skip("cannot vote in same block as delegatation", async () => {
-    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-    await executeContractCallWithSigners(
-      safe,
-      safe,
-      "enableModule",
-      [proposalModule.address],
-      [wallet_0]
-    );
-    await executeContractCallWithSigners(
-      safe,
-      proposalModule,
-      "registerVoteModule",
-      [linearVoting.address],
-      [wallet_0]
-    );
-    await govToken.approve(
-      linearVoting.address,
-      ethers.BigNumber.from("500000000000000000")
-    );
-    await linearVoting.delegateVotes(
-      wallet_0.address,
-      ethers.BigNumber.from("500000000000000000")
-    );
-    await govToken
-      .connect(wallet_1)
-      .approve(
-        linearVoting.address,
-        ethers.BigNumber.from("500000000000000000")
-      );
-    await linearVoting
-      .connect(wallet_1)
-      .delegateVotes(
-        wallet_1.address,
-        ethers.BigNumber.from("500000000000000000")
-      );
-    const weight = await linearVoting.calculateWeight(wallet_1.address);
   });
 
   it("can execute add safe admin DAO proposal", async () => {
@@ -363,7 +328,8 @@ describe("proposalModule:", () => {
       0 // txHash index
     );
     proposal = await proposalModule.proposals(0);
-    //expect(proposal.executed[0]).to.equal(true);
+    const isExecuted = await proposalModule.isExecuted(0, 0);
+    expect(isExecuted).to.equal(true);
     const owners = await safe.getOwners();
     expect(owners[0]).to.equal(wallet_2.address);
     expect(owners[1]).to.equal(wallet_0.address);
@@ -467,12 +433,78 @@ describe("proposalModule:", () => {
       1 // txHash index
     );
     proposal = await proposalModule.proposals(0);
-    //expect(proposal.executed[1]).to.equal(true);
+    let isExecuted = await proposalModule.isExecuted(0, 0);
+    expect(isExecuted).to.equal(true);
+    isExecuted = await proposalModule.isExecuted(0, 1);
+    expect(isExecuted).to.equal(true);
     owners = await safe.getOwners();
     expect(owners[0]).to.equal(wallet_3.address);
     expect(owners[1]).to.equal(wallet_2.address);
     expect(owners[2]).to.equal(wallet_0.address);
     expect(proposal.executionCounter).to.equal(0);
+  });
+
+  // hardhat currently will not revert when manual
+  // https://github.com/nomiclabs/hardhat/issues/1468
+  it.skip("cannot vote if delegatation is in the same block", async () => {
+    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
+    await executeContractCallWithSigners(
+      safe,
+      safe,
+      "enableModule",
+      [proposalModule.address],
+      [wallet_0]
+    );
+    await executeContractCallWithSigners(
+      safe,
+      proposalModule,
+      "registerVoteModule",
+      [linearVoting.address],
+      [wallet_0]
+    );
+    await govToken.approve(
+      linearVoting.address,
+      ethers.BigNumber.from("500000000000000000")
+    );
+    await linearVoting.delegateVotes(
+      wallet_0.address,
+      ethers.BigNumber.from("500000000000000000")
+    );
+    let addCall = buildContractCall(
+      safe,
+      "addOwnerWithThreshold",
+      [wallet_2.address, 1],
+      await safe.nonce()
+    );
+    const txHash = await proposalModule.getTransactionHash(
+      addCall.to,
+      addCall.value,
+      addCall.data,
+      addCall.operation,
+      0
+    );
+    await proposalModule.submitProposal([txHash]);
+    await govToken
+      .connect(wallet_1)
+      .approve(
+        linearVoting.address,
+        ethers.BigNumber.from("500000000000000000")
+      );
+    let block = await network.provider.send("eth_blockNumber");
+    //await network.provider.send("evm_setAutomine", [false]);
+    await linearVoting
+      .connect(wallet_1)
+      .delegateVotes(
+        wallet_2.address,
+        ethers.BigNumber.from("500000000000000000")
+      );
+    await network.provider.send("evm_mine");
+    await proposalModule.connect(wallet_2).vote(0, true)
+    //await expect(proposalModule.connect(wallet_1).vote(0, true)).to.be.revertedWith("TW021")  
+    await network.provider.send("evm_mine");
+    let votes = await linearVoting.getDelegatorVotes(wallet_2.address, wallet_1.address)
+    expect(votes).to.equal(ethers.BigNumber.from("500000000000000000"))
+    //await network.provider.send("evm_setAutomine", [true]);
   });
 
   it("can vote past the threshold with independent delegatation", async () => {
@@ -511,7 +543,6 @@ describe("proposalModule:", () => {
         wallet_1.address,
         ethers.BigNumber.from("500000000000000000")
       );
-    await network.provider.send("evm_mine");
     const weight = await linearVoting.calculateWeight(wallet_1.address);
     expect(weight).to.equal(ethers.BigNumber.from("500000000000000000"));
     let addCall = buildContractCall(
@@ -560,7 +591,7 @@ describe("proposalModule:", () => {
     expect(owners[1]).to.equal(wallet_0.address);
   });
 
-  it.skip("can only vote once per proposal", async () => {
+  it("can only vote once per proposal", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(
       safe,
@@ -602,16 +633,19 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(
-      [safe.address],
-      [0],
-      [addCall.data]
+    const txHash = await proposalModule.getTransactionHash(
+      addCall.to,
+      addCall.value,
+      addCall.data,
+      addCall.operation,
+      0
     );
+    await proposalModule.submitProposal([txHash]);
     await proposalModule.connect(wallet_1).vote(0, true);
-    await proposalModule.connect(wallet_1).vote(0, true);
+    await expect(proposalModule.connect(wallet_1).vote(0, true)).to.be.revertedWith("TW007");
   });
 
-  it.skip("cannot enter queue if not past threshold", async () => {
+  it("cannot enter queue if not past threshold", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(
       safe,
@@ -655,10 +689,10 @@ describe("proposalModule:", () => {
       ethers.BigNumber.from("500000000000000000")
     );
     await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.startQueue(0);
+    await expect(proposalModule.startQueue(0)).to.be.revertedWith("TW004");
   });
 
-  it.skip("cannot enter queue if not past deadline", async () => {
+  it("cannot enter queue if not past deadline", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(
       safe,
@@ -696,10 +730,10 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
-    await proposalModule.startQueue(0);
+    await expect(proposalModule.startQueue(0)).to.be.revertedWith("TW014");
   });
 
-  it.skip("can have only one DAO proposal at a time", async () => {
+  it("can have only one DAO proposal at a time", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(
       safe,
@@ -737,7 +771,7 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
-    await proposalModule.submitProposal([txHash]);
+    await expect(proposalModule.submitProposal([txHash])).to.be.revertedWith("TW011");
   });
 
   it("can complete a funding proposals", async () => {
@@ -815,7 +849,7 @@ describe("proposalModule:", () => {
     );
   });
 
-  it.skip("can failsafe remove module before funding proposals", async () => {
+  it("can failsafe remove module before funding proposals", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(
       safe,
@@ -857,23 +891,16 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1000],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal([govToken.address], 0, [
+    const txHash = await proposalModule.getTransactionHash(
+      transferCall.to,
+      transferCall.value,
       transferCall.data,
-    ]);
-    let proposal = await proposalModule.proposals(0);
-    expect(proposal.value).to.equal(0);
-    expect(proposal.yesVotes).to.equal(
-      ethers.BigNumber.from("1000000000000000000")
+      transferCall.operation,
+      0
     );
-    expect(proposal.noVotes).to.equal(0);
-    expect(proposal.proposer).to.equal(wallet_0.address);
-    expect(proposal.canceled).to.equal(false);
-    expect(proposal.targetAddress).to.equal(govToken.address);
-    expect(proposal.data).to.equal(transferCall.data);
+    await proposalModule.submitProposal([txHash]);
     await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.startModularQueue(0);
-    proposal = await proposalModule.proposals(0);
-    expect(proposal.queued).to.equal(true);
+    await proposalModule.startQueue(0);
     await executeContractCallWithSigners(
       safe,
       safe,
@@ -887,7 +914,14 @@ describe("proposalModule:", () => {
       1
     );
     await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.executeModularProposal(0);
+    await expect(proposalModule.executeProposalByIndex(
+      0, // proposalId
+      govToken.address, // target
+      0, // value
+      transferCall.data, // data
+      0, // call operation
+      0 // txHash index
+    )).to.be.revertedWith("GS104");
   });
 
   it("can cancel a proposal by creator", async () => {
@@ -1006,7 +1040,7 @@ describe("proposalModule:", () => {
     expect(proposal.canceled).to.equal(true);
   });
 
-  it.skip("cannot queue dao after cancel a proposal", async () => {
+  it("cannot queue dao after cancel a proposal", async () => {
     const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
     await executeContractCallWithSigners(
       safe,
@@ -1048,11 +1082,14 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1000],
       await safe.nonce()
     );
-    await proposalModule.submitModularProposal(
-      [govToken.address],
-      [0],
-      [transferCall.data]
+    const txHash = await proposalModule.getTransactionHash(
+      transferCall.to,
+      transferCall.value,
+      transferCall.data,
+      transferCall.operation,
+      0
     );
+    await proposalModule.submitProposal([txHash]);
     await executeContractCallWithSigners(
       safe,
       proposalModule,
@@ -1062,67 +1099,7 @@ describe("proposalModule:", () => {
     );
     let proposal = await proposalModule.proposals(0);
     await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.startModularQueue(0);
-  });
-
-  it.skip("cannot cancel a proposal after it passes", async () => {
-    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-    await executeContractCallWithSigners(
-      safe,
-      safe,
-      "enableModule",
-      [proposalModule.address],
-      [wallet_0]
-    );
-    await executeContractCallWithSigners(
-      safe,
-      proposalModule,
-      "registerVoteModule",
-      [linearVoting.address],
-      [wallet_0]
-    );
-    await govToken.approve(
-      linearVoting.address,
-      ethers.BigNumber.from("500000000000000000")
-    );
-    await linearVoting.delegateVotes(
-      wallet_0.address,
-      ethers.BigNumber.from("500000000000000000")
-    );
-    await govToken
-      .connect(wallet_1)
-      .approve(
-        linearVoting.address,
-        ethers.BigNumber.from("500000000000000000")
-      );
-    await linearVoting
-      .connect(wallet_1)
-      .delegateVotes(
-        wallet_0.address,
-        ethers.BigNumber.from("500000000000000000")
-      );
-    let transferCall = buildContractCall(
-      govToken,
-      "transfer",
-      [wallet_2.address, 1000],
-      await safe.nonce()
-    );
-    await proposalModule.submitModularProposal(
-      [govToken.address],
-      [0],
-      [transferCall.data]
-    );
-    await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.startModularQueue(0);
-    await executeContractCallWithSigners(
-      safe,
-      proposalModule,
-      "cancelProposal",
-      [0],
-      [wallet_0]
-    );
-    await network.provider.send("evm_increaseTime", [60]);
-    await proposalModule.executeModularProposal(0);
+    await expect(proposalModule.startQueue(0)).to.be.revertedWith("TW002");
   });
 
   it("can vote on multiple proposals", async () => {

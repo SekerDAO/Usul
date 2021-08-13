@@ -46,6 +46,10 @@ contract LinearVoting {
         return _governanceToken;
     }
 
+    function getDelegatorVotes(address delegatee, address delegator) public view virtual returns (uint) {
+        return delegations[delegatee].votes[delegator];
+    }
+
     function delegateVotes(address delegatee, uint256 amount) external {
         IERC20(_governanceToken).safeTransferFrom(
             msg.sender,
@@ -82,8 +86,16 @@ contract LinearVoting {
         view
         returns (uint256)
     {
-        require(delegations[delegatee].lastBlock < block.number, "TW021"); // todo move this to a check function
-        // can return quadtric here
+        uint256 votes = delegations[delegatee].votes[delegatee];
+        require(delegations[delegatee].total > 0, "TW035");
         return delegations[delegatee].total;
+    }
+
+    function checkBlock(address delegatee)
+        external
+        view
+        returns (bool)
+    {
+        return (delegations[delegatee].lastBlock != block.number);
     }
 }
