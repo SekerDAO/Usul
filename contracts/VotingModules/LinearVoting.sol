@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../common/Enum.sol";
+import "../interfaces/IProposal.sol";
 
 contract LinearVoting {
     using SafeMath for uint256;
@@ -21,11 +22,19 @@ contract LinearVoting {
     address private _governanceToken;
     address private _proposalModule;
     uint256 private _undelegateDelay;
+    address private _roleModule;
+    /// @dev Address that this module will pass transactions to.
+    address public executor;
 
     mapping(address => Delegation) public delegations;
 
-    modifier onlyProposalModule() {
-        require(msg.sender == _proposalModule, "TW023");
+    // modifier onlyProposalModule() {
+    //     require(msg.sender == _proposalModule, "TW023");
+    //     _;
+    // }
+
+    modifier onlyExecutor() {
+        require(msg.sender == executor, "TW001");
         _;
     }
 
@@ -35,11 +44,23 @@ contract LinearVoting {
     constructor(
         address governanceToken_,
         address proposalModule_,
-        uint256 undelgateDelay_
+        uint256 undelgateDelay_,
+        address executor_
     ) {
         _governanceToken = governanceToken_;
         _proposalModule = proposalModule_;
         _undelegateDelay = undelgateDelay_;
+        executor = executor_;
+    }
+
+    /// @dev Sets the executor to a new account (`newExecutor`).
+    /// @notice Can only be called by the current owner.
+    function setExecutor(address _executor) public onlyExecutor {
+        executor = _executor;
+    }
+
+    function registerRoleModule(address module) external onlyExecutor {
+        _roleModule = module;
     }
 
     function governanceToken() public view virtual returns (address) {
@@ -75,14 +96,39 @@ contract LinearVoting {
         delegations[delegatee].total = delegations[delegatee].total.sub(amount);
     }
 
-    function startVoting(address delegatee) external onlyProposalModule {
+    function vote(uint256 proposalId, bool vote) external {
+        // if (_roleModule != address(0)) {
+        //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
+        // }
+        // require(_votingModule != address(0), "TW006");
+        // require(proposals[proposalId].hasVoted[msg.sender] == false, "TW007");
+        // require(proposals[proposalId].canceled == false, "TW008");
+        // require(proposals[proposalId].deadline >= block.timestamp, "TW010");
+
+        // proposals[proposalId].hasVoted[msg.sender] = true;
+        startVoting(msg.sender);
+        require(checkBlock(msg.sender), "TW021");
+        IProposal(_proposalModule).receiveVote(proposalId, vote, calculateWeight(msg.sender));
+
+        // if (vote == true) {
+        //     proposals[proposalId].yesVotes =
+        //         proposals[proposalId].yesVotes +
+        //         IVoting(_votingModule).calculateWeight(msg.sender);
+        // } else {
+        //     proposals[proposalId].noVotes =
+        //         proposals[proposalId].noVotes +
+        //         IVoting(_votingModule).calculateWeight(msg.sender);
+        // }
+    }
+
+    function startVoting(address delegatee) internal {
         delegations[delegatee].undelegateDelay =
             block.timestamp +
             _undelegateDelay;
     }
 
     function calculateWeight(address delegatee)
-        external
+        public
         view
         returns (uint256)
     {
@@ -92,7 +138,7 @@ contract LinearVoting {
     }
 
     function checkBlock(address delegatee)
-        external
+        public
         view
         returns (bool)
     {

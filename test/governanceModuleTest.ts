@@ -54,7 +54,7 @@ describe("proposalModule:", () => {
       "50000000000000000000000"
     );
     expect(await proposalModule.totalProposalCount()).to.equal(0);
-    expect(await proposalModule.owner()).to.equal(wallet_0.address)
+    expect(await proposalModule.owner()).to.equal(safe.address)
     expect(await proposalModule.proposalTime()).to.equal(60);
     expect(await proposalModule.gracePeriod()).to.equal(60);
     expect(await proposalModule.threshold()).to.equal("1000000000000000000");
@@ -78,16 +78,16 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
-    expect(await proposalModule.votingModule()).to.equal(linearVoting.address);
+    expect(await proposalModule.isModuleEnabled(linearVoting.address)).to.equal(true);
   });
 
   it("only Safe can register linear voting module", async () => {
     const { proposalModule, linearVoting } = daoFixture;
-    await expect(proposalModule.registerVoteModule(linearVoting.address)).to.be.revertedWith("TW001");
+    await expect(proposalModule.enableModule(linearVoting.address)).to.be.revertedWith("Ownable: caller is not the owner");
   });
 
   it("can delegate votes to self", async () => {
@@ -100,14 +100,12 @@ describe("proposalModule:", () => {
     expect(await govToken.balanceOf(linearVoting.address)).to.equal(1000);
   });
 
-  it("can undelegate votes to self", async () => {
+  it.only("can undelegate votes to self", async () => {
     const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture;
     const bal = await govToken.balanceOf(wallet_0.address);
     await govToken.approve(linearVoting.address, 1000);
     await linearVoting.delegateVotes(wallet_0.address, 1000);
     const delegatation = await linearVoting.delegations(wallet_0.address);
-    expect(delegatation.total).to.equal(1000);
-    expect(await govToken.balanceOf(linearVoting.address)).to.equal(1000);
     await linearVoting.undelegateVotes(wallet_0.address, 1000);
     const undelegatation = await linearVoting.delegations(wallet_0.address);
     expect(undelegatation.total).to.equal(0);

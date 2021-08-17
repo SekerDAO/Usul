@@ -3,13 +3,13 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@gnosis/zodiac/contracts/core/Module.sol";
+import "@gnosis/zodiac/contracts/core/Modifier.sol";
 import "./interfaces/IVoting.sol";
 import "./interfaces/IRoles.sol";
 
 /// @title Gnosis Safe DAO Proposal Module - A gnosis wallet module for introducing fully decentralized token weighted governance.
 /// @author Nathan Ginnever - <team@tokenwalk.com>
-contract ProposalModule is Module {
+contract ProposalModule is Modifier {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
     // keccak256(
@@ -40,9 +40,9 @@ contract ProposalModule is Module {
     uint256 private _proposalTime;
     uint256 private _gracePeriod = 60 seconds; //3 days;
     uint256 private _threshold;
-    uint256 private _minimumProposalAmount; // amount of gov tokens needed to participate
-    address private _votingModule;
-    address private _roleModule;
+    // uint256 private _minimumProposalAmount; // amount of gov tokens needed to participate
+    // address private _votingModule;
+    // address private _roleModule;
 
     // mapping of proposal id to proposal
     mapping(uint256 => Proposal) public proposals;
@@ -71,14 +71,17 @@ contract ProposalModule is Module {
 
     constructor(
         uint256 proposalTime_,
-        uint256 threshold_,
-        uint256 minimumProposalAmount_
+        uint256 threshold_
+        // uint256 minimumProposalAmount_
     ) {
         //executor = executor_;
         __Ownable_init();
+        // should always be unset and only called during instiation anyway
+        //require(modules[SENTINEL_MODULES] == address(0), "GS100");
+        modules[SENTINEL_MODULES] = SENTINEL_MODULES;
         _proposalTime = proposalTime_ * 1 minutes; //days;
         _threshold = threshold_;
-        _minimumProposalAmount = minimumProposalAmount_;
+        // _minimumProposalAmount = minimumProposalAmount_;
     }
 
     // getters
@@ -98,13 +101,13 @@ contract ProposalModule is Module {
         return _proposalTime;
     }
 
-    function minimumProposalAmount() public view returns (uint256) {
-        return _minimumProposalAmount;
-    }
+    // function minimumProposalAmount() public view returns (uint256) {
+    //     return _minimumProposalAmount;
+    // }
 
-    function votingModule() public view returns (address) {
-        return _votingModule;
-    }
+    // function votingModule() public view returns (address) {
+    //     return _votingModule;
+    // }
 
     function isExecuted(uint256 proposalId, uint256 index) public view returns (bool) {
         return proposals[proposalId].executed[index];
@@ -114,35 +117,33 @@ contract ProposalModule is Module {
         return proposals[proposalId].txHashes[index];
     }
 
-    function registerVoteModule(address module) external onlyExecutor {
-        _votingModule = module;
-    }
+    // function registerVoteModule(address module) external onlyExecutor {
+    //     _votingModule = module;
+    // }
 
-    function registerRoleModule(address module) external onlyExecutor {
-        _roleModule = module;
-    }
+    // function registerRoleModule(address module) external onlyExecutor {
+    //     _roleModule = module;
+    // }
 
-    function vote(uint256 proposalId, bool vote) external {
-        if (_roleModule != address(0)) {
-            require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
-        }
-        require(_votingModule != address(0), "TW006");
-        require(proposals[proposalId].hasVoted[msg.sender] == false, "TW007");
+    function receiveVote(address voter, uint256 proposalId, bool vote, uint256 weight) moduleOnly external {
+        // if (_roleModule != address(0)) {
+        //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
+        // }
+        //require(_votingModule != address(0), "TW006");
+        require(proposals[proposalId].hasVoted[voter] == false, "TW007");
         require(proposals[proposalId].canceled == false, "TW008");
         require(proposals[proposalId].deadline >= block.timestamp, "TW010");
 
-        proposals[proposalId].hasVoted[msg.sender] = true;
-        IVoting(_votingModule).startVoting(msg.sender);
-        require(IVoting(_votingModule).checkBlock(msg.sender), "TW021");
+        proposals[proposalId].hasVoted[voter] = true;
+        // IVoting(_votingModule).startVoting(msg.sender);
+        // require(IVoting(_votingModule).checkBlock(msg.sender), "TW021");
 
         if (vote == true) {
             proposals[proposalId].yesVotes =
-                proposals[proposalId].yesVotes +
-                IVoting(_votingModule).calculateWeight(msg.sender);
+                proposals[proposalId].yesVotes + weight;
         } else {
             proposals[proposalId].noVotes =
-                proposals[proposalId].noVotes +
-                IVoting(_votingModule).calculateWeight(msg.sender);
+                proposals[proposalId].noVotes + weight;
         }
     }
 
@@ -150,12 +151,12 @@ contract ProposalModule is Module {
         _threshold = threshold;
     }
 
-    function updateMinimumProposalAmount(uint256 minimumProposalAmount)
-        external
-        onlyExecutor
-    {
-        _minimumProposalAmount = minimumProposalAmount;
-    }
+    // function updateMinimumProposalAmount(uint256 minimumProposalAmount)
+    //     external
+    //     onlyExecutor
+    // {
+    //     _minimumProposalAmount = minimumProposalAmount;
+    // }
 
     function updateProposalTime(uint256 newTime) external onlyExecutor {
         _proposalTime = newTime;
@@ -171,19 +172,19 @@ contract ProposalModule is Module {
             proposals[_totalProposalCount].executed.push(false);
         }
 
-        require(_votingModule != address(0), "TW022");
+        // require(_votingModule != address(0), "TW022");
         require(_activeProposal[msg.sender] == false, "TW011");
-        uint256 total = IVoting(_votingModule).calculateWeight(msg.sender);
-        require(total >= _minimumProposalAmount, "TW012");
-        IVoting(_votingModule).startVoting(msg.sender);
+        // uint256 total = IVoting(_votingModule).calculateWeight(msg.sender);
+        // require(total >= _minimumProposalAmount, "TW012");
+        // IVoting(_votingModule).startVoting(msg.sender);
         proposals[_totalProposalCount].executionCounter = txHashes.length;
         proposals[_totalProposalCount].txHashes = txHashes;
-        proposals[_totalProposalCount].yesVotes = total; // the total number of YES votes for this proposal
+        // proposals[_totalProposalCount].yesVotes = total; // the total number of YES votes for this proposal
         proposals[_totalProposalCount].deadline =
             block.timestamp +
             _proposalTime;
         proposals[_totalProposalCount].proposer = msg.sender;
-        proposals[_totalProposalCount].hasVoted[msg.sender] = true;
+        // proposals[_totalProposalCount].hasVoted[msg.sender] = true;
 
         _activeProposal[msg.sender] = true;
         _totalProposalCount++;

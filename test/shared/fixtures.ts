@@ -58,13 +58,18 @@ export async function getFixtureWithParams(
   const proposalModule = await proposalContract.deploy(
     ethers.BigNumber.from(1), // number of days proposals are active
     ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
-    ethers.BigNumber.from('10000'), // min proposal gov token amt
   )
   await proposalModule.setExecutor(safe.address);
+  await proposalModule.transferOwnership(safe.address);
   console.log('deployed House ERC20 DAO: ', proposalModule.address)
 
   const linearContract = await ethers.getContractFactory("LinearVoting")
-  const linearVoting = await linearContract.deploy(govToken.address, proposalModule.address, 180)
+  const linearVoting = await linearContract.deploy(
+    govToken.address,
+    proposalModule.address,
+    180,
+    safe.address
+  )
 
   await govToken.transfer(safe.address, ethers.BigNumber.from('50000000000000000000000'))
 
