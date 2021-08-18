@@ -36,18 +36,15 @@ contract ProposalModule is Modifier {
         uint256 executionCounter;
     }
 
-    uint256 private _totalProposalCount;
-    uint256 private _proposalTime;
-    uint256 private _gracePeriod = 60 seconds; //3 days;
-    uint256 private _threshold;
-    // uint256 private _minimumProposalAmount; // amount of gov tokens needed to participate
-    // address private _votingModule;
-    // address private _roleModule;
+    uint256 public totalProposalCount;
+    uint256 public proposalTime;
+    uint256 public gracePeriod = 60 seconds; //3 days;
+    uint256 public threshold;
 
     // mapping of proposal id to proposal
     mapping(uint256 => Proposal) public proposals;
     // mapping to track if a user has an open proposal
-    mapping(address => bool) private _activeProposal;
+    mapping(address => bool) public activeProposal;
 
     modifier onlyExecutor() {
         require(msg.sender == executor, "TW001");
@@ -57,7 +54,7 @@ contract ProposalModule is Modifier {
     modifier isPassed(uint256 proposalId) {
         require(proposals[proposalId].canceled == false, "TW002");
         require(proposals[proposalId].executionCounter != 0, "TW003");
-        require(proposals[proposalId].yesVotes >= _threshold, "TW004");
+        require(proposals[proposalId].yesVotes >= threshold, "TW004");
         require(
             proposals[proposalId].yesVotes >= proposals[proposalId].noVotes,
             "TW005"
@@ -70,44 +67,15 @@ contract ProposalModule is Modifier {
     event ProposalExecuted(uint256 id);
 
     constructor(
-        uint256 proposalTime_,
-        uint256 threshold_
-        // uint256 minimumProposalAmount_
+        uint256 _proposalTime,
+        uint256 _threshold
     ) {
-        //executor = executor_;
         __Ownable_init();
-        // should always be unset and only called during instiation anyway
-        //require(modules[SENTINEL_MODULES] == address(0), "GS100");
         modules[SENTINEL_MODULES] = SENTINEL_MODULES;
-        _proposalTime = proposalTime_ * 1 minutes; //days;
-        _threshold = threshold_;
-        // _minimumProposalAmount = minimumProposalAmount_;
+        proposalTime = _proposalTime * 1 minutes; //days;
+        threshold = _threshold;
     }
 
-    // getters
-    function threshold() public view returns (uint256) {
-        return _threshold;
-    }
-
-    function totalProposalCount() public view returns (uint256) {
-        return _totalProposalCount;
-    }
-
-    function gracePeriod() public view returns (uint256) {
-        return _gracePeriod;
-    }
-
-    function proposalTime() public view returns (uint256) {
-        return _proposalTime;
-    }
-
-    // function minimumProposalAmount() public view returns (uint256) {
-    //     return _minimumProposalAmount;
-    // }
-
-    // function votingModule() public view returns (address) {
-    //     return _votingModule;
-    // }
 
     function isExecuted(uint256 proposalId, uint256 index) public view returns (bool) {
         return proposals[proposalId].executed[index];
@@ -117,26 +85,12 @@ contract ProposalModule is Modifier {
         return proposals[proposalId].txHashes[index];
     }
 
-    // function registerVoteModule(address module) external onlyExecutor {
-    //     _votingModule = module;
-    // }
-
-    // function registerRoleModule(address module) external onlyExecutor {
-    //     _roleModule = module;
-    // }
-
     function receiveVote(address voter, uint256 proposalId, bool vote, uint256 weight) moduleOnly external {
-        // if (_roleModule != address(0)) {
-        //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
-        // }
-        //require(_votingModule != address(0), "TW006");
         require(proposals[proposalId].hasVoted[voter] == false, "TW007");
         require(proposals[proposalId].canceled == false, "TW008");
         require(proposals[proposalId].deadline >= block.timestamp, "TW010");
 
         proposals[proposalId].hasVoted[voter] = true;
-        // IVoting(_votingModule).startVoting(msg.sender);
-        // require(IVoting(_votingModule).checkBlock(msg.sender), "TW021");
 
         if (vote == true) {
             proposals[proposalId].yesVotes =
@@ -148,53 +102,38 @@ contract ProposalModule is Modifier {
     }
 
     function updateThreshold(uint256 threshold) external onlyExecutor {
-        _threshold = threshold;
+        threshold = threshold;
     }
 
-    // function updateMinimumProposalAmount(uint256 minimumProposalAmount)
-    //     external
-    //     onlyExecutor
-    // {
-    //     _minimumProposalAmount = minimumProposalAmount;
-    // }
-
     function updateProposalTime(uint256 newTime) external onlyExecutor {
-        _proposalTime = newTime;
+        proposalTime = newTime;
     }
 
     function updateGracePeriod(uint256 gracePeriod) external onlyExecutor {
-        _gracePeriod = gracePeriod;
+        gracePeriod = gracePeriod;
     }
 
     function submitProposal(bytes32[] memory txHashes) public {
         // TODO: consider mapping here
         for (uint256 i; i < txHashes.length; i++) {
-            proposals[_totalProposalCount].executed.push(false);
+            proposals[totalProposalCount].executed.push(false);
         }
-
-        // require(_votingModule != address(0), "TW022");
-        require(_activeProposal[msg.sender] == false, "TW011");
-        // uint256 total = IVoting(_votingModule).calculateWeight(msg.sender);
-        // require(total >= _minimumProposalAmount, "TW012");
-        // IVoting(_votingModule).startVoting(msg.sender);
-        proposals[_totalProposalCount].executionCounter = txHashes.length;
-        proposals[_totalProposalCount].txHashes = txHashes;
-        // proposals[_totalProposalCount].yesVotes = total; // the total number of YES votes for this proposal
-        proposals[_totalProposalCount].deadline =
+        require(activeProposal[msg.sender] == false, "TW011");
+        proposals[totalProposalCount].executionCounter = txHashes.length;
+        proposals[totalProposalCount].txHashes = txHashes;
+        proposals[totalProposalCount].deadline =
             block.timestamp +
-            _proposalTime;
-        proposals[_totalProposalCount].proposer = msg.sender;
-        // proposals[_totalProposalCount].hasVoted[msg.sender] = true;
-
-        _activeProposal[msg.sender] = true;
-        _totalProposalCount++;
-        emit ProposalCreated(_totalProposalCount - 1);
+            proposalTime;
+        proposals[totalProposalCount].proposer = msg.sender;
+        activeProposal[msg.sender] = true;
+        totalProposalCount++;
+        emit ProposalCreated(totalProposalCount - 1);
     }
 
     function startQueue(uint256 proposalId) external isPassed(proposalId) {
         require(proposals[proposalId].deadline <= block.timestamp, "TW014");
         require(proposals[proposalId].canceled == false, "TW023");
-        proposals[proposalId].gracePeriod = block.timestamp + _gracePeriod;
+        proposals[proposalId].gracePeriod = block.timestamp + gracePeriod;
         proposals[proposalId].queued = true;
         emit GracePeriodStarted(proposals[proposalId].gracePeriod);
     }
@@ -228,7 +167,7 @@ contract ProposalModule is Modifier {
         proposals[proposalId].executed[txIndex] = true;
         proposals[proposalId].executionCounter--;
         if (isProposalFullyExecuted(proposalId)) {
-            _activeProposal[proposals[proposalId].proposer] = false;
+            activeProposal[proposals[proposalId].proposer] = false;
         }
         exec(
             target,
@@ -286,7 +225,7 @@ contract ProposalModule is Modifier {
             );
         }
         if (isProposalFullyExecuted(proposalId)) {
-            _activeProposal[proposals[proposalId].proposer] = false;
+            activeProposal[proposals[proposalId].proposer] = false;
         }
     }
 
@@ -312,7 +251,7 @@ contract ProposalModule is Modifier {
             "TW019"
         );
         proposals[proposalId].canceled = true;
-        _activeProposal[proposals[proposalId].proposer] = false;
+        activeProposal[proposals[proposalId].proposer] = false;
     }
 
     /// @dev Generates the data for the module transaction hash (required for signing)

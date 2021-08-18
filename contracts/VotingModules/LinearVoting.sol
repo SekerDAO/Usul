@@ -28,11 +28,6 @@ contract LinearVoting {
 
     mapping(address => Delegation) public delegations;
 
-    // modifier onlyProposalModule() {
-    //     require(msg.sender == _proposalModule, "TW023");
-    //     _;
-    // }
-
     modifier onlyExecutor() {
         require(msg.sender == executor, "TW001");
         _;
@@ -100,25 +95,9 @@ contract LinearVoting {
         // if (_roleModule != address(0)) {
         //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
         // }
-        // require(_votingModule != address(0), "TW006");
-        // require(proposals[proposalId].hasVoted[msg.sender] == false, "TW007");
-        // require(proposals[proposalId].canceled == false, "TW008");
-        // require(proposals[proposalId].deadline >= block.timestamp, "TW010");
-
-        // proposals[proposalId].hasVoted[msg.sender] = true;
         startVoting(msg.sender);
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(msg.sender, proposalId, vote, calculateWeight(msg.sender));
-
-        // if (vote == true) {
-        //     proposals[proposalId].yesVotes =
-        //         proposals[proposalId].yesVotes +
-        //         IVoting(_votingModule).calculateWeight(msg.sender);
-        // } else {
-        //     proposals[proposalId].noVotes =
-        //         proposals[proposalId].noVotes +
-        //         IVoting(_votingModule).calculateWeight(msg.sender);
-        // }
     }
 
     function startVoting(address delegatee) internal {
