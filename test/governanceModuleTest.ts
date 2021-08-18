@@ -100,7 +100,7 @@ describe("proposalModule:", () => {
     expect(await govToken.balanceOf(linearVoting.address)).to.equal(1000);
   });
 
-  it.only("can undelegate votes to self", async () => {
+  it("can undelegate votes to self", async () => {
     const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture;
     const bal = await govToken.balanceOf(wallet_0.address);
     await govToken.approve(linearVoting.address, 1000);
@@ -135,48 +135,12 @@ describe("proposalModule:", () => {
     await linearVoting.connect(wallet_1).delegateVotes(wallet_0.address, 1000);
     await govToken.connect(wallet_2).approve(linearVoting.address, 1000);
     await linearVoting.connect(wallet_2).delegateVotes(wallet_0.address, 1000);
-    const delegatation = await linearVoting.delegations(wallet_0.address);
-    expect(delegatation.total).to.equal(3000);
-    expect(await govToken.balanceOf(linearVoting.address)).to.equal(3000);
     await linearVoting
       .connect(wallet_2)
       .undelegateVotes(wallet_0.address, 1000);
     const undelegatation = await linearVoting.delegations(wallet_0.address);
     expect(undelegatation.total).to.equal(2000);
     expect(await govToken.balanceOf(linearVoting.address)).to.equal(2000);
-  });
-
-  it("cannot create proposal with out delegation threshold", async () => {
-    const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-    await executeContractCallWithSigners(
-      safe,
-      safe,
-      "enableModule",
-      [proposalModule.address],
-      [wallet_0]
-    );
-    await executeContractCallWithSigners(
-      safe,
-      proposalModule,
-      "registerVoteModule",
-      [linearVoting.address],
-      [wallet_0]
-    );
-    let addCall = buildContractCall(
-      safe,
-      "addOwnerWithThreshold",
-      [wallet_2.address, 1],
-      await safe.nonce()
-    );
-    const txHash = await proposalModule.getTransactionHash(
-      addCall.to,
-      addCall.value,
-      addCall.data,
-      addCall.operation,
-      0
-    );
-
-    await expect(proposalModule.submitProposal([txHash])).to.be.revertedWith("TW035");
   });
 
   it("can vote past the threshold with delegation", async () => {
@@ -191,7 +155,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -228,7 +192,6 @@ describe("proposalModule:", () => {
       addCall.operation,
       0
     );
-
     await proposalModule.submitProposal([txHash]);
     const proposal = await proposalModule.proposals(0);
     const isExecuted = await proposalModule.isExecuted(0, 0);
@@ -236,6 +199,13 @@ describe("proposalModule:", () => {
     expect(isExecuted).to.equal(false);
     expect(_txHash).to.equal(txHash);
     expect(proposal.yesVotes).to.equal(
+      ethers.BigNumber.from(0)
+    );
+    await linearVoting.vote(0, 1);
+    const proposalAfterVoting = await proposalModule.proposals(0);
+    const delegation = await linearVoting.delegations(wallet_0.address)
+    //expect(delegation.undelegateDelay.toString()).to.equal(1629243513)
+    expect(proposalAfterVoting.yesVotes).to.equal(
       ethers.BigNumber.from("1000000000000000000")
     );
   });
@@ -252,7 +222,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -270,7 +240,6 @@ describe("proposalModule:", () => {
       [wallet_2.address, 1],
       await safe.nonce()
     );
-    // ------------------------
     const domain = {
       chainId: chainId,
       verifyingContract: proposalModule.address,
@@ -291,7 +260,6 @@ describe("proposalModule:", () => {
         tx.nonce
       )
     ).to.be.equals(_TypedDataEncoder.hash(domain, EIP712_TYPES, tx));
-
     const txHash = await proposalModule.getTransactionHash(
       addCall.to,
       addCall.value,
@@ -299,8 +267,8 @@ describe("proposalModule:", () => {
       addCall.operation,
       0
     );
-
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, 1);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.executionCounter).to.equal(1);
     expect(proposal.yesVotes).to.equal(
@@ -347,7 +315,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -391,15 +359,9 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash, txHash_1]);
+    await linearVoting.vote(0, 1);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.executionCounter).to.equal(2);
-    expect(proposal.yesVotes).to.equal(
-      ethers.BigNumber.from("1000000000000000000")
-    );
-    expect(proposal.noVotes).to.equal(0);
-    expect(proposal.proposer).to.equal(wallet_0.address);
-    expect(proposal.canceled).to.equal(false);
-    //expect(proposal.txHashes[0]).to.equal(txHash);
     await network.provider.send("evm_increaseTime", [60]);
     await proposalModule.startQueue(0);
     proposal = await proposalModule.proposals(0);
@@ -456,7 +418,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -517,7 +479,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -557,14 +519,12 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, 1);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.yesVotes).to.equal(
       ethers.BigNumber.from("500000000000000000")
     );
-    expect(proposal.noVotes).to.equal(0);
-    expect(proposal.proposer).to.equal(wallet_0.address);
-    expect(proposal.canceled).to.equal(false);
-    await proposalModule.connect(wallet_1).vote(0, true);
+    await linearVoting.connect(wallet_1).vote(0, 1);
     proposal = await proposalModule.proposals(0);
     expect(proposal.yesVotes).to.equal(
       ethers.BigNumber.from("1000000000000000000")
@@ -601,7 +561,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -639,8 +599,8 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
-    await proposalModule.connect(wallet_1).vote(0, true);
-    await expect(proposalModule.connect(wallet_1).vote(0, true)).to.be.revertedWith("TW007");
+    await linearVoting.connect(wallet_1).vote(0, true);
+    await expect(linearVoting.connect(wallet_1).vote(0, true)).to.be.revertedWith("TW007");
   });
 
   it("cannot enter queue if not past threshold", async () => {
@@ -655,7 +615,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -682,6 +642,7 @@ describe("proposalModule:", () => {
     );
 
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, true);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.yesVotes).to.equal(
       ethers.BigNumber.from("500000000000000000")
@@ -702,7 +663,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -728,6 +689,7 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, true);
     await expect(proposalModule.startQueue(0)).to.be.revertedWith("TW014");
   });
 
@@ -743,7 +705,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -784,7 +746,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -822,6 +784,7 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, true);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.yesVotes).to.equal(
       ethers.BigNumber.from("1000000000000000000")
@@ -859,7 +822,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -897,6 +860,7 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, true);
     await network.provider.send("evm_increaseTime", [60]);
     await proposalModule.startQueue(0);
     await executeContractCallWithSigners(
@@ -934,7 +898,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -972,6 +936,7 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, true);
     await proposalModule.cancelProposal(0);
     let proposal = await proposalModule.proposals(0);
     expect(proposal.canceled).to.equal(true);
@@ -989,7 +954,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -1050,7 +1015,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -1088,6 +1053,7 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, true);
     await executeContractCallWithSigners(
       safe,
       proposalModule,
@@ -1112,7 +1078,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -1162,14 +1128,17 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, true);
     await proposalModule.connect(wallet_1).submitProposal([txHash]);
+    await linearVoting.connect(wallet_1).vote(1, true);
     await proposalModule.connect(wallet_2).submitProposal([txHash]);
-    await proposalModule.vote(1, true);
-    await proposalModule.vote(2, true);
-    await proposalModule.connect(wallet_1).vote(0, true);
-    await proposalModule.connect(wallet_1).vote(2, true);
-    await proposalModule.connect(wallet_2).vote(0, true);
-    await proposalModule.connect(wallet_2).vote(1, true);
+    await linearVoting.connect(wallet_2).vote(2, true);
+    await linearVoting.vote(1, true);
+    await linearVoting.vote(2, true);
+    await linearVoting.connect(wallet_1).vote(0, true);
+    await linearVoting.connect(wallet_1).vote(2, true);
+    await linearVoting.connect(wallet_2).vote(0, true);
+    await linearVoting.connect(wallet_2).vote(1, true);
     await network.provider.send("evm_increaseTime", [60]);
     await proposalModule.startQueue(0);
     await proposalModule.startQueue(1);
@@ -1216,7 +1185,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -1266,14 +1235,17 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
+    await linearVoting.vote(0, true);
     await proposalModule.connect(wallet_1).submitProposal([txHash]);
+    await linearVoting.connect(wallet_1).vote(1, true);
     await proposalModule.connect(wallet_2).submitProposal([txHash]);
-    await proposalModule.vote(1, true);
-    await proposalModule.vote(2, true);
-    await proposalModule.connect(wallet_1).vote(0, true);
-    await proposalModule.connect(wallet_1).vote(2, true);
-    await proposalModule.connect(wallet_2).vote(0, true);
-    await proposalModule.connect(wallet_2).vote(1, true);
+    await linearVoting.connect(wallet_2).vote(2, true);
+    await linearVoting.vote(1, true);
+    await linearVoting.vote(2, true);
+    await linearVoting.connect(wallet_1).vote(0, true);
+    await linearVoting.connect(wallet_1).vote(2, true);
+    await linearVoting.connect(wallet_2).vote(0, true);
+    await linearVoting.connect(wallet_2).vote(1, true);
     await network.provider.send("evm_increaseTime", [60]);
     await proposalModule.startQueue(0);
     await proposalModule.startQueue(1);
@@ -1347,7 +1319,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -1418,7 +1390,8 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash_0, txHash_1, txHash_2]);
-    await proposalModule.connect(wallet_1).vote(0, true);
+    await linearVoting.vote(0, true);
+    await linearVoting.connect(wallet_1).vote(0, true);
     await network.provider.send("evm_increaseTime", [60]);
     await proposalModule.startQueue(0);
     await network.provider.send("evm_increaseTime", [60]);
@@ -1461,7 +1434,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "registerVoteModule",
+      "enableModule",
       [linearVoting.address],
       [wallet_0]
     );
@@ -1530,7 +1503,8 @@ describe("proposalModule:", () => {
       0
     );
     await proposalModule.submitProposal([txHash]);
-    await proposalModule.connect(wallet_1).vote(0, true);
+    await linearVoting.vote(0, true);
+    await linearVoting.connect(wallet_1).vote(0, true);
     await network.provider.send("evm_increaseTime", [60]);
     await proposalModule.startQueue(0);
     await network.provider.send("evm_increaseTime", [60]);

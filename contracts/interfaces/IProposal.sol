@@ -3,5 +3,5 @@
 pragma solidity ^0.8.0;
 
 interface IProposal {
-    function receiveVote(uint256 proposalId, bool vote, uint256 weight) external;
+    function receiveVote(address voter, uint256 proposalId, bool vote, uint256 weight) external;
 }

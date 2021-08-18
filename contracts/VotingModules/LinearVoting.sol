@@ -108,7 +108,7 @@ contract LinearVoting {
         // proposals[proposalId].hasVoted[msg.sender] = true;
         startVoting(msg.sender);
         require(checkBlock(msg.sender), "TW021");
-        IProposal(_proposalModule).receiveVote(proposalId, vote, calculateWeight(msg.sender));
+        IProposal(_proposalModule).receiveVote(msg.sender, proposalId, vote, calculateWeight(msg.sender));
 
         // if (vote == true) {
         //     proposals[proposalId].yesVotes =
