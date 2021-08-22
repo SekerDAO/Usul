@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.6;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@gnosis/zodiac/contracts/core/Modifier.sol";
-import "./interfaces/IVoting.sol";
-import "./interfaces/IRoles.sol";
 
 /// @title Gnosis Safe DAO Proposal Module - A gnosis wallet module for introducing fully decentralized token weighted governance.
 /// @author Nathan Ginnever - <team@tokenwalk.com>
@@ -26,7 +23,7 @@ contract ProposalModule is Modifier {
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
         bool queued;
-        uint256 deadline; // voting deadline
+        uint256 deadline; // voting deadline TODO: consider using block number
         address proposer;
         bool canceled;
         uint256 gracePeriod; // queue period for safety
@@ -66,26 +63,35 @@ contract ProposalModule is Modifier {
     event GracePeriodStarted(uint256 endDate);
     event ProposalExecuted(uint256 id);
 
-    constructor(
-        uint256 _proposalTime,
-        uint256 _threshold
-    ) {
+    constructor(uint256 _proposalTime, uint256 _threshold) {
         __Ownable_init();
         modules[SENTINEL_MODULES] = SENTINEL_MODULES;
         proposalTime = _proposalTime * 1 minutes; //days;
         threshold = _threshold;
     }
 
-
-    function isExecuted(uint256 proposalId, uint256 index) public view returns (bool) {
+    function isExecuted(uint256 proposalId, uint256 index)
+        public
+        view
+        returns (bool)
+    {
         return proposals[proposalId].executed[index];
     }
 
-    function getTxHash(uint256 proposalId, uint256 index) public view returns (bytes32) {
+    function getTxHash(uint256 proposalId, uint256 index)
+        public
+        view
+        returns (bytes32)
+    {
         return proposals[proposalId].txHashes[index];
     }
 
-    function receiveVote(address voter, uint256 proposalId, bool vote, uint256 weight) moduleOnly external {
+    function receiveVote(
+        address voter,
+        uint256 proposalId,
+        bool vote,
+        uint256 weight
+    ) external moduleOnly {
         require(proposals[proposalId].hasVoted[voter] == false, "TW007");
         require(proposals[proposalId].canceled == false, "TW008");
         require(proposals[proposalId].deadline >= block.timestamp, "TW010");
@@ -94,10 +100,12 @@ contract ProposalModule is Modifier {
 
         if (vote == true) {
             proposals[proposalId].yesVotes =
-                proposals[proposalId].yesVotes + weight;
+                proposals[proposalId].yesVotes +
+                weight;
         } else {
             proposals[proposalId].noVotes =
-                proposals[proposalId].noVotes + weight;
+                proposals[proposalId].noVotes +
+                weight;
         }
     }
 
@@ -121,9 +129,7 @@ contract ProposalModule is Modifier {
         require(activeProposal[msg.sender] == false, "TW011");
         proposals[totalProposalCount].executionCounter = txHashes.length;
         proposals[totalProposalCount].txHashes = txHashes;
-        proposals[totalProposalCount].deadline =
-            block.timestamp +
-            proposalTime;
+        proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
         activeProposal[msg.sender] = true;
         totalProposalCount++;
@@ -169,12 +175,7 @@ contract ProposalModule is Modifier {
         if (isProposalFullyExecuted(proposalId)) {
             activeProposal[proposals[proposalId].proposer] = false;
         }
-        exec(
-            target,
-            value,
-            data,
-            operation
-        );
+        exec(target, value, data, operation);
     }
 
     function executeProposalBatch(
@@ -215,14 +216,7 @@ contract ProposalModule is Modifier {
             proposals[proposalId].executionCounter--;
             proposals[proposalId].executed[i] = true;
             // todo, dont require, check if successful
-            require(
-                exec(
-                    targets[i],
-                    values[i],
-                    data[i],
-                    operations[i]
-                )
-            );
+            require(exec(targets[i], values[i], data[i], operations[i]));
         }
         if (isProposalFullyExecuted(proposalId)) {
             activeProposal[proposals[proposalId].proposer] = false;

@@ -8,7 +8,7 @@ import "hardhat-deploy";
  */
 module.exports = {
   solidity: {
-    version: "0.8.0",
+    version: "0.8.6",
     allowUnlimitedContractSize: true,
     settings: {
       optimizer: {

@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../common/Enum.sol";
 import "../interfaces/IProposal.sol";
 
-contract LinearVoting {
+contract MemberLinearVoting {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -19,6 +19,7 @@ contract LinearVoting {
         uint256 total;
     }
 
+    uint256 public memberCount;
     address private _governanceToken;
     address private _proposalModule;
     uint256 private _undelegateDelay;
@@ -27,9 +28,15 @@ contract LinearVoting {
     address public executor;
 
     mapping(address => Delegation) public delegations;
+    mapping(address => bool) public members;
 
     modifier onlyExecutor() {
         require(msg.sender == executor, "TW001");
+        _;
+    }
+
+    modifier onlyMember() {
+        require(members[msg.sender] == true);
         _;
     }
 
@@ -46,6 +53,16 @@ contract LinearVoting {
         _proposalModule = proposalModule_;
         _undelegateDelay = undelgateDelay_;
         executor = executor_;
+    }
+
+    function addMember(address member) public onlyExecutor {
+        members[member] = true;
+        memberCount++;
+    }
+
+    function removeMember(address member) public onlyExecutor {
+        members[member] = false;
+        memberCount--;
     }
 
     /// @dev Sets the executor to a new account (`newExecutor`).
@@ -73,7 +90,10 @@ contract LinearVoting {
 
     // todo erc712 delegation
 
-    function delegateVotes(address delegatee, uint256 amount) external {
+    function delegateVotes(address delegatee, uint256 amount)
+        external
+        onlyMember
+    {
         IERC20(_governanceToken).safeTransferFrom(
             msg.sender,
             address(this),
@@ -102,10 +122,7 @@ contract LinearVoting {
 
     // todo: erc712 voting
 
-    function vote(uint256 proposalId, bool vote) external {
-        // if (_roleModule != address(0)) {
-        //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
-        // }
+    function vote(uint256 proposalId, bool vote) external onlyMember {
         startVoting(msg.sender);
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
