@@ -290,15 +290,7 @@ contract Roles is Modifier {
         address to,
         uint256 value,
         bytes memory data,
-        Enum.Operation operation,
-        uint256,
-        uint256,
-        uint256,
-        address,
-        // solhint-disallow-next-line no-unused-vars
-        address payable,
-        bytes memory,
-        address
+        Enum.Operation operation
     ) external {
         bool targetScoped = memberRoles[member].allowedTargets[to].scoped;
         bool functionScoped = memberRoles[member]

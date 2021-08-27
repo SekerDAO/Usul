@@ -13,7 +13,7 @@ contract MemberLinearVoting {
     using SafeERC20 for IERC20;
 
     struct Delegation {
-        mapping(address => uint256) votes;
+        uint256 votes;
         uint256 undelegateDelay;
         uint256 lastBlock;
         uint256 total;
@@ -79,15 +79,6 @@ contract MemberLinearVoting {
         return _governanceToken;
     }
 
-    function getDelegatorVotes(address delegatee, address delegator)
-        public
-        view
-        virtual
-        returns (uint256)
-    {
-        return delegations[delegatee].votes[delegator];
-    }
-
     // todo erc712 delegation
 
     function delegateVotes(address delegatee, uint256 amount)
@@ -99,10 +90,9 @@ contract MemberLinearVoting {
             address(this),
             amount
         );
-        delegations[delegatee].votes[msg.sender] = amount;
+        delegations[delegatee].votes = amount;
         delegations[delegatee].lastBlock = block.number;
         // can make the total 1-1 here
-        delegations[delegatee].total = delegations[delegatee].total.add(amount);
     }
 
     // todo erc712 undelegation
@@ -112,12 +102,11 @@ contract MemberLinearVoting {
             delegations[delegatee].undelegateDelay <= block.timestamp,
             "TW024"
         );
-        require(delegations[delegatee].votes[msg.sender] >= amount, "TW020");
+        require(delegations[delegatee].votes >= amount, "TW020");
         IERC20(_governanceToken).safeTransfer(msg.sender, amount);
-        delegations[delegatee].votes[msg.sender] = delegations[delegatee]
-            .votes[msg.sender]
+        delegations[delegatee].votes = delegations[delegatee]
+            .votes
             .sub(amount);
-        delegations[delegatee].total = delegations[delegatee].total.sub(amount);
     }
 
     // todo: erc712 voting
@@ -140,9 +129,8 @@ contract MemberLinearVoting {
     }
 
     function calculateWeight(address delegatee) public view returns (uint256) {
-        uint256 votes = delegations[delegatee].votes[delegatee];
-        require(delegations[delegatee].total > 0, "TW035");
-        return delegations[delegatee].total;
+        require(delegations[delegatee].votes > 0, "TW035");
+        return delegations[delegatee].votes;
     }
 
     function checkBlock(address delegatee) public view returns (bool) {
