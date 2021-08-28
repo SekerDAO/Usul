@@ -21,6 +21,7 @@ import {
 import { AddressZero } from "@ethersproject/constants";
 
 const zero = ethers.BigNumber.from(0);
+const deadline = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
 const MaxUint256 = ethers.constants.MaxUint256;
 
 let daoFixture: DAOFixture;
@@ -613,6 +614,175 @@ describe("votingModules:", () => {
       expect(await govToken.balanceOf(wallet_0.address)).to.equal(
         ethers.BigNumber.from("49997000000000000000000")
       );
+    });
+
+    it.only("can vote with ERC712 offchain signature", async () => {
+      const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
+      await executeContractCallWithSigners(
+        safe,
+        safe,
+        "enableModule",
+        [proposalModule.address],
+        [wallet_0]
+      );
+      await executeContractCallWithSigners(
+        safe,
+        proposalModule,
+        "enableModule",
+        [linearVoting.address],
+        [wallet_0]
+      );
+      await govToken.approve(
+        linearVoting.address,
+        ethers.BigNumber.from("500000000000000000")
+      );
+      await linearVoting.delegateVotes(
+        wallet_0.address,
+        ethers.BigNumber.from("500000000000000000")
+      );
+      await govToken
+        .connect(wallet_1)
+        .approve(
+          linearVoting.address,
+          ethers.BigNumber.from("500000000000000000")
+        );
+      await linearVoting
+        .connect(wallet_1)
+        .delegateVotes(
+          wallet_1.address,
+          ethers.BigNumber.from("500000000000000000")
+        );
+      const weight = await linearVoting.calculateWeight(wallet_1.address);
+      expect(weight).to.equal(ethers.BigNumber.from("500000000000000000"));
+      let addCall = buildContractCall(
+        safe,
+        "addOwnerWithThreshold",
+        [wallet_2.address, 1],
+        await safe.nonce()
+      );
+      const txHash = await proposalModule.getTransactionHash(
+        addCall.to,
+        addCall.value,
+        addCall.data,
+        addCall.operation,
+        0
+      );
+      await proposalModule.submitProposal([txHash]);
+      const voteHash = await linearVoting.getVoteHash(
+        wallet_0.address,
+        0,
+        1,
+        deadline
+      )
+      const domain = {
+          verifyingContract: linearVoting.address,
+          chainId: chainId
+      };
+                // delegatee,
+                // proposalId,
+                // delegations[delegatee].votes[delegatee],
+                // vote,
+                // deadline,
+                // nonces[delegatee]
+
+      const types = {
+          Vote: [
+              { name: 'delegatee', type: 'address' },
+              { name: 'proposalId', type: 'uint256' },
+              { name: 'votes', type: 'uint256' },
+              { name: 'vote', type: 'bool' },
+              { name: 'deadline', type: 'uint256' },
+              { name: 'nonce', type: 'uint256' },
+          ]
+      };
+      const value = {
+          delegatee: wallet_0.address,
+          proposalId: 0,
+          votes: await linearVoting.getDelegatorVotes(wallet_0.address, wallet_0.address),
+          vote: 1,
+          deadline: deadline,
+          nonce: 0
+      };
+      console.log(value)
+      console.log(voteHash)
+      let typehash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Vote(address delegatee, uint256 proposalId, uint256 votes, bool vote, uint256 deadline, uint256 nonce)"))
+      console.log(typehash)
+      //const signature = await wallet_0._signTypedData(domain, types, value)
+      let abi = ethers.utils.defaultAbiCoder.encode(["bytes32", "uint256", "address"], ['0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218', chainId, linearVoting.address])
+      let abi2 = ethers.utils.defaultAbiCoder.encode(
+        [
+          "bytes32",
+          "address",
+          "uint256",
+          "uint256",
+          "bool",
+          "uint256",
+          "uint256"
+        ],
+        [
+          '0x17c0c894efb0e2d2868a370783df75623a0365af090e935de3c5f6f761aaa153',
+          wallet_0.address,
+          0,
+          await linearVoting.getDelegatorVotes(wallet_0.address, wallet_0.address),
+          1,
+          deadline,
+          0
+        ]
+      )
+      let test = ethers.utils.keccak256(abi)
+      let test2 = ethers.utils.keccak256(abi2)
+      let abi3 = ethers.utils.defaultAbiCoder.encode(
+        [
+          "bytes1",
+          "bytes1",
+          "bytes32",
+          "bytes32"
+        ],
+        [
+          '0x19',
+          '0x01',
+          test,
+          test2
+        ]
+      );
+      let test3 = ethers.utils.keccak256(abi3)
+      console.log('---')
+      console.log(test3)
+      const signature = await wallet_0.signMessage(voteHash)
+      const r = signature.slice(0, 66)
+      const s = '0x' + signature.slice(66, 130)
+      const v = parseInt(signature.slice(130, 132), 16)
+      console.log(r)
+      console.log(s)
+      console.log(v)
+      await linearVoting.connect(wallet_1).voteSignature(wallet_0.address, 0, 1, deadline, v, r, s);
+      // let proposal = await proposalModule.proposals(0);
+      // expect(proposal.yesVotes).to.equal(
+      //   ethers.BigNumber.from("500000000000000000")
+      // );
+      // await linearVoting.connect(wallet_1).vote(0, 1);
+      // proposal = await proposalModule.proposals(0);
+      // expect(proposal.yesVotes).to.equal(
+      //   ethers.BigNumber.from("1000000000000000000")
+      // );
+      // await network.provider.send("evm_increaseTime", [60]);
+      // await proposalModule.startQueue(0);
+      // proposal = await proposalModule.proposals(0);
+      // expect(proposal.queued).to.equal(true);
+      // await network.provider.send("evm_increaseTime", [60]);
+      // await proposalModule.executeProposalByIndex(
+      //   0, // proposalId
+      //   safe.address, // target
+      //   0, // value
+      //   addCall.data, // data
+      //   0, // call operation
+      //   0 // txHash index
+      // );
+      // proposal = await proposalModule.proposals(0);
+      // //expect(proposal.executed).to.equal(true);
+      // const owners = await safe.getOwners();
+      // expect(owners[0]).to.equal(wallet_2.address);
+      // expect(owners[1]).to.equal(wallet_0.address);
     });
 
   });

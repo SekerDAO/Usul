@@ -20,9 +20,9 @@ contract LinearVoting {
 
     // todo FIX
     bytes32 public constant VOTE_TYPEHASH =
-        0x72e9670a7ee00f5fbf1049b8c38e3f22fab7e9b85029e85cf9412f17fdd5c2ad;
+        0x17c0c894efb0e2d2868a370783df75623a0365af090e935de3c5f6f761aaa153;
     // keccak256(
-    //     "vote(uint256 proposalId, bool vote)"
+    //     "Vote(address delegatee, uint256 proposalId, uint256 votes, bool vote, uint256 deadline, uint256 nonce)"
     // );
 
     struct Delegation {
@@ -133,7 +133,6 @@ contract LinearVoting {
     function voteSignature(
         address delegatee,
         uint256 proposalId,
-        uint256 value,
         bool vote,
         uint256 deadline,
         uint8 v,
@@ -143,12 +142,12 @@ contract LinearVoting {
         bytes32 voteHash = getVoteHash(
             delegatee,
             proposalId,
-            value,
             vote,
             deadline
         );
         address signer = ecrecover(voteHash, v, r, s);
         require(signer != address(0) && signer == delegatee, "signer doesn not match delegatee");
+        nonces[signer]++;
         startVoting(signer);
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
@@ -209,7 +208,6 @@ contract LinearVoting {
     function getVoteHash(
         address delegatee,
         uint256 proposalId,
-        uint256 value,
         bool vote,
         uint256 deadline
     ) public view returns (bytes32) {
