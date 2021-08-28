@@ -44,7 +44,7 @@ contract ProposalModule is Modifier {
     mapping(address => bool) public activeProposal;
 
     modifier onlyExecutor() {
-        require(msg.sender == executor, "TW001");
+        require(msg.sender == avatar, "TW001");
         _;
     }
 
@@ -241,7 +241,7 @@ contract ProposalModule is Modifier {
         // proposal guardian can be put in the roles module
         require(
             proposals[proposalId].proposer == msg.sender ||
-                msg.sender == executor,
+                msg.sender == avatar,
             "TW019"
         );
         proposals[proposalId].canceled = true;
@@ -301,4 +301,6 @@ contract ProposalModule is Modifier {
         }
         return id;
     }
+
+    function setUp(bytes calldata initializeParams) public virtual override {}
 }

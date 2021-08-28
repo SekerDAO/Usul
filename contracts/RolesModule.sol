@@ -329,4 +329,5 @@ contract Roles is Modifier {
     }
 
     function checkAfterExecution(bytes32, bool) external {}
+    function setUp(bytes calldata initializeParams) public virtual override {}
 }

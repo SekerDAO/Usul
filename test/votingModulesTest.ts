@@ -19,6 +19,8 @@ import {
   contract,
 } from "@openzeppelin/test-environment";
 import { AddressZero } from "@ethersproject/constants";
+import { signTypedData } from "eth-sig-util";
+import { ecsign } from "ethereumjs-util";
 
 const zero = ethers.BigNumber.from(0);
 const deadline = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
@@ -668,6 +670,7 @@ describe("votingModules:", () => {
         0
       );
       await proposalModule.submitProposal([txHash]);
+
       const voteHash = await linearVoting.getVoteHash(
         wallet_0.address,
         0,
@@ -675,16 +678,9 @@ describe("votingModules:", () => {
         deadline
       )
       const domain = {
-          verifyingContract: linearVoting.address,
-          chainId: chainId
+          chainId: chainId,
+          verifyingContract: linearVoting.address
       };
-                // delegatee,
-                // proposalId,
-                // delegations[delegatee].votes[delegatee],
-                // vote,
-                // deadline,
-                // nonces[delegatee]
-
       const types = {
           Vote: [
               { name: 'delegatee', type: 'address' },
@@ -697,17 +693,66 @@ describe("votingModules:", () => {
       };
       const value = {
           delegatee: wallet_0.address,
-          proposalId: 0,
+          proposalId: ethers.BigNumber.from(0),
           votes: await linearVoting.getDelegatorVotes(wallet_0.address, wallet_0.address),
           vote: 1,
           deadline: deadline,
-          nonce: 0
+          nonce: ethers.BigNumber.from(0)
       };
-      console.log(value)
+      const msgParams = {
+            types: {
+              // TODO: Clarify if EIP712Domain refers to the domain the contract is hosted on
+              EIP712Domain: [
+                { name: 'chainId', type: 'uint256' },
+                { name: 'verifyingContract', type: 'address' },
+              ],
+              // Not an EIP712Domain definition
+              Vote: [
+                  { name: 'delegatee', type: 'address' },
+                  { name: 'proposalId', type: 'uint256' },
+                  { name: 'votes', type: 'uint256' },
+                  { name: 'vote', type: 'bool' },
+                  { name: 'deadline', type: 'uint256' },
+                  { name: 'nonce', type: 'uint256' },
+              ],
+            },
+            domain: {
+              // Defining the chain aka Rinkeby testnet or Ethereum Main Net
+              chainId: chainId,
+              // If name isn't enough add verifying contract to make sure you are establishing contracts with the proper entity
+              verifyingContract: linearVoting.address,
+            },
+
+            // Defining the message signing data content.
+            vote: {
+              /*
+               - Anything you want. Just a JSON Blob that encodes the data you want to send
+               - No required fields
+               - This is DApp Specific
+               - Be as explicit as possible when building out the message schema.
+              */
+              delegatee: wallet_0.address,
+              proposalId: ethers.BigNumber.from(0),
+              votes: await linearVoting.getDelegatorVotes(wallet_0.address, wallet_0.address),
+              vote: 1,
+              deadline: deadline,
+              nonce: ethers.BigNumber.from(0)
+            },
+            // Refers to the keys of the *types* object below.
+            primaryType: 'Vote',
+      };
+
+      //const signature = await wallet_0._signTypedData(domain, types, value)
+      //const signature = await signTypedData(Buffer.from(wallet_0.privateKey.slice(2, 66), "hex"), msgParams as any)
+      const signature = ecsign(Buffer.from(voteHash.slice(2, 66), "hex"), Buffer.from(wallet_0.privateKey.slice(2, 66), "hex"))
+      //console.log(value)
+      console.log('--------')
+      console.log(wallet_0.privateKey)
+      console.log(Buffer.from(wallet_0.privateKey.slice(2, 66), "hex"))
       console.log(voteHash)
       let typehash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Vote(address delegatee, uint256 proposalId, uint256 votes, bool vote, uint256 deadline, uint256 nonce)"))
+      //let typehash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Vote(address delegatee)"))
       console.log(typehash)
-      //const signature = await wallet_0._signTypedData(domain, types, value)
       let abi = ethers.utils.defaultAbiCoder.encode(["bytes32", "uint256", "address"], ['0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218', chainId, linearVoting.address])
       let abi2 = ethers.utils.defaultAbiCoder.encode(
         [
@@ -745,17 +790,33 @@ describe("votingModules:", () => {
           test2
         ]
       );
-      let test3 = ethers.utils.keccak256(abi3)
+      let abi4 = "0x1901"+test.slice(2, 66)+test2.slice(2, 66)
+      console.log(abi4)
+      let test3 = ethers.utils.keccak256(abi4)
       console.log('---')
       console.log(test3)
-      const signature = await wallet_0.signMessage(voteHash)
-      const r = signature.slice(0, 66)
-      const s = '0x' + signature.slice(66, 130)
-      const v = parseInt(signature.slice(130, 132), 16)
+      console.log(signature)
+      //const signature = await wallet_0.signMessage(voteHash)
+      // const r = signature.slice(0, 66)
+      // const s = '0x' + signature.slice(66, 130)
+      // const v = parseInt(signature.slice(130, 132), 16)
+      const r = ethers.utils.hexlify(signature.r)
+      const s = ethers.utils.hexlify(signature.s)
+      const v = signature.v
       console.log(r)
       console.log(s)
       console.log(v)
+      let address = ethers.utils.recoverAddress(
+        voteHash, {
+          r: r,
+          s: s,
+          v: v
+        }
+      )
+      console.log(address)
+      console.log(wallet_0.address)
       await linearVoting.connect(wallet_1).voteSignature(wallet_0.address, 0, 1, deadline, v, r, s);
+
       // let proposal = await proposalModule.proposals(0);
       // expect(proposal.yesVotes).to.equal(
       //   ethers.BigNumber.from("500000000000000000")

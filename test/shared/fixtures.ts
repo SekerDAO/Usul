@@ -56,7 +56,7 @@ export async function getFixtureWithParams(
     ethers.BigNumber.from(1), // number of days proposals are active
     ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
   )
-  await proposalModule.setExecutor(safe.address);
+  await proposalModule.setAvatar(safe.address);
   await proposalModule.transferOwnership(safe.address);
 
   const linearContract = await ethers.getContractFactory("LinearVoting")
