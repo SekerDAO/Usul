@@ -139,6 +139,7 @@ contract LinearVoting {
         bytes32 r,
         bytes32 s
     ) external {
+        require(block.timestamp <= deadline, "Deadline Expired");
         bytes32 voteHash = getVoteHash(
             delegatee,
             proposalId,
@@ -183,7 +184,13 @@ contract LinearVoting {
     ) public view returns (bytes memory) {
         uint256 chainId = getChainId();
         bytes32 domainSeparator = keccak256(
-            abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, this)
+            abi.encode(
+                DOMAIN_SEPARATOR_TYPEHASH,
+                // keccak256(bytes(name)),
+                // keccak256(bytes("1")),
+                chainId,
+                this
+            )
         );
         bytes32 voteHash = keccak256(
             abi.encode(
