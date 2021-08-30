@@ -9,4 +9,9 @@ interface IProposal {
         bool vote,
         uint256 weight
     ) external;
+
+    function getProposalStart(uint256 proposalId)
+        external
+        view
+        returns (uint256);
 }

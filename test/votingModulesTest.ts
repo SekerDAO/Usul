@@ -20,7 +20,9 @@ import {
 } from "@openzeppelin/test-environment";
 import { AddressZero } from "@ethersproject/constants";
 import { signTypedData_v4, MsgParams } from "eth-sig-util";
+import { TypedDataUtils } from 'ethers-eip712'
 import { ecsign } from "ethereumjs-util";
+//import { sign } from "./shared/EIP712";
 
 const zero = ethers.BigNumber.from(0);
 const deadline = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
@@ -618,7 +620,7 @@ describe("votingModules:", () => {
       );
     });
 
-    it.only("can vote with ERC712 offchain signature", async () => {
+    it("can vote with ERC712 offchain signature", async () => {
       const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
       await executeContractCallWithSigners(
         safe,
@@ -670,7 +672,7 @@ describe("votingModules:", () => {
         0
       );
       await proposalModule.submitProposal([txHash]);
-
+      // -------
       const voteHash = await linearVoting.getVoteHash(
         wallet_0.address,
         0,
@@ -699,7 +701,39 @@ describe("votingModules:", () => {
           deadline: deadline,
           nonce: ethers.BigNumber.from(0)
       };
-      //const signature = await wallet_0._signTypedData(domain, types, value)
+      // const signature = await wallet_0._signTypedData(domain, types, value)
+      // const dataEncoder = new ethers.utils._TypedDataEncoder(types)
+      // const payload = await dataEncoder.getPayload(domain, types, value)
+      // console.log(payload)
+      // -------
+      // const typedData = {
+      //   types: {
+      //     EIP712Domain: [
+      //       {name: "chainId", type: "uint256"},
+      //       {name: "verifyingContract", type: "address"},
+      //     ],
+      //     Vote: [
+      //         { name: 'delegatee', type: 'address' },
+      //         { name: 'proposalId', type: 'uint256' },
+      //         { name: 'votes', type: 'uint256' },
+      //         { name: 'vote', type: 'bool' },
+      //         { name: 'deadline', type: 'uint256' },
+      //         { name: 'nonce', type: 'uint256' },
+      //     ]
+      //   },
+      //   primaryType: 'Vote' as const,
+      //   domain: {
+      //     chainId: chainId.toNumber(),
+      //     verifyingContract: linearVoting.address
+      //   },
+      //   message: value
+      // }
+
+      // const digest = TypedDataUtils.encodeDigest(typedData)
+      // const digestHex = ethers.utils.hexlify(digest)
+
+      // const signature = await wallet_0.signMessage(digest)
+      // ------
 
       // const delegateVotes = await linearVoting.getDelegatorVotes(wallet_0.address, wallet_0.address)
       // const types = {
@@ -787,12 +821,11 @@ describe("votingModules:", () => {
       //     }
       //   }
       // )
-      console.log('--------')
+      // ---------
       console.log(voteHash)
-      let typehash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Vote(address delegatee, uint256 proposalId, uint256 votes, bool vote, uint256 deadline, uint256 nonce)"))
-      //let typehash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Vote(address delegatee)"))
+      const typehash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes("Vote(address delegatee, uint256 proposalId, uint256 votes, bool vote, uint256 deadline, uint256 nonce)"))
       console.log(typehash)
-      let abi = ethers.utils.defaultAbiCoder.encode(
+      const abi = ethers.utils.defaultAbiCoder.encode(
         [
           "bytes32",
           "uint256",
@@ -831,6 +864,8 @@ describe("votingModules:", () => {
       console.log('---')
       console.log(test3)
       const signature = ecsign(Buffer.from(test3.slice(2, 66), "hex"), Buffer.from(wallet_0.privateKey.slice(2, 66), "hex"))
+      // ---------
+
       console.log(signature)
       // const r = signature.slice(0, 66)
       // const s = '0x' + signature.slice(66, 130)

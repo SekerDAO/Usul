@@ -49,7 +49,7 @@ describe("proposalModule:", () => {
   describe("setUp", async () => {
     it("proposal module is initialized", async () => {
       const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture;
-      expect(await proposalModule.executor()).to.equal(safe.address);
+      expect(await proposalModule.avatar()).to.equal(safe.address);
       expect(await govToken.balanceOf(safe.address)).to.equal(
         "50000000000000000000000"
       );

@@ -35,7 +35,6 @@ contract LinearVoting {
     address private _governanceToken;
     address private _proposalModule;
     uint256 private _undelegateDelay;
-    address private _roleModule;
     /// @dev Address that this module will pass transactions to.
     address public executor;
 
@@ -68,10 +67,6 @@ contract LinearVoting {
         executor = _executor;
     }
 
-    function registerRoleModule(address module) external onlyExecutor {
-        _roleModule = module;
-    }
-
     function governanceToken() public view virtual returns (address) {
         return _governanceToken;
     }
@@ -86,21 +81,23 @@ contract LinearVoting {
     }
 
     // todo erc712 delegation
-
+    // ensure all votes are delegated
     function delegateVotes(address delegatee, uint256 amount) external {
         IERC20(_governanceToken).safeTransferFrom(
             msg.sender,
             address(this),
             amount
         );
-        delegations[delegatee].votes[msg.sender] = amount;
+        delegations[delegatee].votes[msg.sender] = delegations[delegatee]
+            .votes[msg.sender]
+            .add(amount);
         delegations[delegatee].lastBlock = block.number;
         // can make the total 1-1 here
         delegations[delegatee].total = delegations[delegatee].total.add(amount);
     }
 
     // todo remove
-
+    // move delegation to a compound specific module
     function undelegateVotes(address delegatee, uint256 amount) external {
         require(
             delegations[delegatee].undelegateDelay <= block.timestamp,
@@ -140,14 +137,12 @@ contract LinearVoting {
         bytes32 s
     ) external {
         require(block.timestamp <= deadline, "Deadline Expired");
-        bytes32 voteHash = getVoteHash(
-            delegatee,
-            proposalId,
-            vote,
-            deadline
-        );
+        bytes32 voteHash = getVoteHash(delegatee, proposalId, vote, deadline);
         address signer = ecrecover(voteHash, v, r, s);
-        require(signer != address(0) && signer == delegatee, "signer doesn not match delegatee");
+        require(
+            signer != address(0) && signer == delegatee,
+            "signer doesn not match delegatee"
+        );
         nonces[signer]++;
         startVoting(signer);
         require(checkBlock(msg.sender), "TW021");
