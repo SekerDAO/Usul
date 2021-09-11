@@ -1,7 +1,7 @@
 # TokenWalk - Seele Module
 
 <p align="center">
-  <img width="460" height="300" src="https://pbs.twimg.com/media/Ezw7YFqWEAMgqUl.jpg">
+  <img width="600" src="https://pbs.twimg.com/media/Ezw7YFqWEAMgqUl.jpg">
 </p>
 
 ## About
