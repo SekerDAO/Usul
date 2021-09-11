@@ -4,7 +4,7 @@
 
 Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Seele Module.
 
-This module another tool in the Zodiac DAO technology stack. This module provides a proposal core that can take swapable voting contracts, allowing DAOs to choose different on-chain voting methods that best suit their needs.
+This module is another tool in the Zodiac DAO technology stack. This module provides a proposal core that can take swappable voting contracts, allowing DAOs to choose different on-chain voting methods that best suit their needs.
 
 The available voting methods as of this time are...
 - ERC20 delegation
