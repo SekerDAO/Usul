@@ -1,20 +1,21 @@
-# TokenWalk - Safe Proposal Module
+# TokenWalk - Seele Module
 
 ## About
 
-Welcome to the [Gnosis Safe](https://github.com/gnosis/safe-contracts) Proposal Module.
+Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Seele Module.
 
-This module was built to extend a DAO technology stack with the intention of creating DAO contracts to fit all use cases and levels of trust requirements. These contracts make no opinions about how a DAO should operate to prevent being siloed into a technology choice. This repository contains contracts that are a module, built on top of the Gnosis Safe that many already have deployed. The vast majority of state remains on the Gnosis Safe which is upgradeable. If new logic is desired on the proposal module a new module may be voted into the Safe by the old proposal module with minimal migration overhead. If a DAO decides that they prefer another voting mechanism for their proposal module, they can simply undelegate their tokens and attach a different voting module.
+This module another tool in the Zodiac DAO technology stack. This module provides a proposal core that can take swapable voting contracts, allowing DAOs to choose different on-chain voting methods that best suit their needs.
 
-This works with standard ERC20 tokens rather than only specialized DeFi tokens. Any standard ERC20 token can be used as the fully decentralized token weighted vote. We have specifically chosen not to support ERC721 as a voting token, but it would be as easy creating a voting module and attaching it to the proposal module if anyone creates one.
+The available voting methods as of this time are...
+- ERC20 delegation
+- Compound ERC20 delegation
+- Quadratic Voting + Membership
+- Single Voting
+- Commitment Voting
 
-By building on the Gnosis Safe, this stack allows an organization to start with a trusted federation in the early days and eventually move to a fully decentralized community owned DAO. A Safe admin or federation of owners can be kept as a fail safe mechanism against attacks by bypassing the proposal module and removing it at the Gnosis Safe core if necessary. If this is too trusted, a specific role can be created to only be allowed to cancel proposals. Eventually, given proper community building and token distribution, all Safe admins can be burned and any roles registered that can cancel proposals can be removed.
+### Proposal Core
 
-Coming soon... Gnosis Sage role module. Roles and membership use a byte code registry that allows DAOs to enable any specific permission that they can think of, remove them later, and stay flexible over time.
-
-### Proposal Module
-
-This is the core module that is registered with the Gnosis Safe. This module operates in a similar way as the [Compound.Finance](https://github.com/compound-finance/compound-protocol/tree/master/contracts/Governance) DAOs with token weighted votes on proposals. These proposals can have a minimum token delegation threshold for being accepted to the contract. Voting is passed by having more votes than the voting threshold and majority of yes votes. Once passed proposals enter a queue period for safety where a trusted role can have time to prevent attacks. All thresholds are updatable by governance proposal or role bypass if desired.
+This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate contracts that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) (formerly SafeSnap) in that it can take a list of transaction hashes and execute them after proposal. This module adds a batching feature to the execution phase.
 
 #### Proposal Structure
 ```
@@ -66,11 +67,6 @@ proposalModule.executeProposalBatch
 proposalModule.cancelProposal
 /// @param proposalID The ID of the proposal to be canceled by proposer, role bypass, or Safe admin bypass
 
-/// @dev The voting entry point for a proposal
-proposalModule.vote
-/// @param proposalID The ID of the proposal to vote on
-/// @param vote The boolean value of the vote
-
 /// @dev A view that returns if all transactions have been executed in a proposal
 proposalModule.isProposalFullyExecuted
 /// @param proposalId the id of the proposal that you would like see is fully executed or not
@@ -83,19 +79,25 @@ proposalModule.generateTransactionHashData
 /// @param operation The enumarated call or delegatecall option
 ```
 
-### Voting Modules
+### Voting Cores
 
-These are external modules that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use.
+These are external contracts registered with the Seele module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use.
 
 If a delegate has a vote on an active proposal, no delegetors will be able to undelegate until the proposal is passed or canceled. A counter is incremented each time a delegatee votes on a proposal and must be decremented for each time a proposal is finalized. An optional delay to the ability of undelegating votes can be supplied to this contract.
 
-#### Delegation Structure
+#### Delegation Voting
 ```
 mapping(address => uint) votes; // number of tokens held for each delegator
 uint lastBlock; // The last block at which delegation happened to prevent flash loans
 uint total; // The total amount of delegation
 uint proposalCount; // Number of open proposals being voted on
 ```
+
+#### Quadtratic Voting
+
+#### Single (Member) Voting
+
+#### Commitment Voting
 
 #### Voting API
 ```
@@ -110,52 +112,6 @@ voting.undelegateVotes
 voting.calculateWeight
 /// @param delegatee The account that is to have the voting weight delegated from by voting method
 ```
-
-### Roles Module (Under Construction)
-
-This is a second Gnosis Safe module that defines membership and specific permissions over actions on the Gnosis Safe that bypass the token weighted proposal module. It may be desirable for DAOs to leave specific permission for quick actions that do not need to be brought before the entire community's vote.
-
-If a DAO wants a more gated community they can require that token holding voters must be granted membership before being able to vote on proposals. Anyone may still enter proposals to become members and only current members with their delegated token weight can vote them in.
-
-This module uses a registry of byte code to enable all possible roles that a DAO can think of in the future.
-
-#### Roles API
-```
-roles.safeEnterMember
-/// @param address The address of the member to add
-
-roles.safeRemoveMember
-/// @param address The address of the member to remove
-
-roles.safeAddRole
-/// @param address The address of the member to a role to
-/// @param Role The role structure contain the allowed bytes to execute
-
-roles.safeRemoveRole
-/// @param address The address of the member to remove a role from
-/// @param uint The role ID to remove from the member registery
-
-roles.executeModuleByRole
-/// @param uint The role ID to use for execution permissions
-/// @param address The target address for execution
-/// @param uint The ether value to pass during exectution
-/// @param bytes The method signature that is allowed by this role
-/// @param bytes The parameters data that is allowed by this role
-/// @param operation The enumarated call or delegatecall option
-
-roles.setMustBeMember
-/// @param bool Set to true to enforce the proposal module can only collect member votes
-```
-
-## Admin Burning
-
-Admin burning is the mechanism by which this DAO stack allows for a gradual move from centralized, to federated, to decentralized.
-
-The process to burn the Gnosis Safe is to remove all owners. Due to this, we simply remove all owners up to the last owner and the SENTINEL_OWNERS address. Finally we swap the last owner with a burn address that the GNosis safe will accept. 
-
-There should be sufficient guarantees that address `0x0000000000000000000000000000000000000002` will have no known associated private key.
-
-This swap is dangerous as it will lock the safe. To avoid accidental locking this burn mechanism should only be conducted through the SafeDAO proposal module.
 
 ## Deploy 
 
