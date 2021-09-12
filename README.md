@@ -8,11 +8,12 @@
 
 Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Seele Module.
 
-This module is another tool in the Zodiac DAO technology stack. This module provides a proposal core that can take swappable voting contracts, allowing DAOs to choose different on-chain voting methods that best suit their needs.
+This module is another tool in the Zodiac DAO technology stack. This module provides a proposal core that can register swappable voting contracts, allowing DAOs to choose various on-chain voting methods that best suit their needs.
 
 The available voting methods as of this time are...
-- ERC20 delegation
-- Compound ERC20 delegation
+- Linear Voting ERC20 delegation
+- Linear Voting Compound ERC20 delegation
+- Linear Voting + Membership
 - Quadratic Voting + Membership
 - Single Voting
 - Commitment Voting
@@ -89,7 +90,7 @@ These are external contracts registered with the Seele module that allow DAOs to
 
 If a delegate has a vote on an active proposal, no delegetors will be able to undelegate until the proposal is passed or canceled. A counter is incremented each time a delegatee votes on a proposal and must be decremented for each time a proposal is finalized. An optional delay to the ability of undelegating votes can be supplied to this contract.
 
-#### Delegation Voting
+#### Linear Voting ERC20 delegation
 ```
 mapping(address => uint) votes; // number of tokens held for each delegator
 uint lastBlock; // The last block at which delegation happened to prevent flash loans
@@ -97,7 +98,11 @@ uint total; // The total amount of delegation
 uint proposalCount; // Number of open proposals being voted on
 ```
 
-#### Quadtratic Voting
+#### Linear Voting Compound ERC20 delegation
+
+#### Linear Voting + Membership
+
+#### Quadtratic Voting + Membership
 
 #### Single (Member) Voting
 
