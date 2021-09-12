@@ -36,7 +36,7 @@ contract ProposalModule is Modifier {
 
     uint256 public totalProposalCount;
     uint256 public proposalTime;
-    uint256 public gracePeriod = 60 seconds; //3 days;
+    uint256 public gracePeriod = 60 seconds; //3 days; TODO: Remove and use the Zodiac Delay modifier
     uint256 public threshold;
 
     // mapping of proposal id to proposal
