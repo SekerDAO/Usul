@@ -19,7 +19,7 @@ The available voting methods as of this time are...
 
 ### Proposal Core
 
-This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate contracts that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) (formerly SafeSnap) in that it can take a list of transaction hashes and execute them after proposal passes. This module adds a batching feature to the execution phase.
+This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate contracts that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) (formerly SafeSnap) in that it can take a list of transaction hashes and execute them after a proposal passes. This module adds a batching feature to the execution phase.
 
 #### Proposal Structure
 ```
