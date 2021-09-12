@@ -8,35 +8,33 @@
 
 Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Seele Module.
 
-This module is another tool in the Zodiac DAO technology stack. This module provides a proposal core that can register swappable voting contracts, allowing DAOs to choose various on-chain voting methods that best suit their needs.
+This module — another tool in the Zodiac DAO technology stack — provides a proposal core that can register swappable voting contracts, allowing DAOs to choose from various on-chain voting methods that best suit their needs.
 
 The available voting methods as of this time are...
-- Linear Voting ERC20 delegation
-- Linear Voting Compound ERC20 delegation
+- Linear Voting ERC20 + delegation
 - Linear Voting + Membership
 - Quadratic Voting + Membership
-- Single Voting
+- Single Voting + Membership
 - Commitment Voting
 
 ### Proposal Core
 
-This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate contracts that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) (formerly SafeSnap) in that it can take a list of transaction hashes and execute them after proposal. This module adds a batching feature to the execution phase.
+This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate contracts that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) (formerly SafeSnap) in that it can take a list of transaction hashes and execute them after proposal passes. This module adds a batching feature to the execution phase.
 
 #### Proposal Structure
 ```
-uint256 value; // Ether value to passed with the call
+uint256 startTime; // when the proposal was started
 uint256 yesVotes; // the total number of YES votes for this proposal
-uint256 noVotes; // the total number of NO votes for this proposal        
-bool executed; // Marks when a proposal is fully executed
-bool queued; // Marks when the proposal has entered SafeDelay (a gnosis module)
-uint deadline; // voting deadline
-address proposer; // the originator of the proposal
-bool canceled; // canceled by the gnosis safe bypass or the originator
-uint gracePeriod; // queue period for safety
-mapping(address => bool) hasVoted; // mapping voter / delegator to boolean 
-bool[] executed; // transaction indices of execution booleans
-bytes32[] txHashes; // the hashes of transactions to be executed
-uint256 executionCounter; // counting down until the proposal is fully executed
+uint256 noVotes; // the total number of NO votes for this proposal
+bool queued;
+uint256 deadline; // voting deadline TODO: consider using block number
+address proposer;
+bool canceled;
+uint256 gracePeriod; // queue period for safety
+mapping(address => bool) hasVoted; // mapping voter / delegator to boolean
+bool[] executed; // txindexes
+bytes32[] txHashes;
+uint256 executionCounter;
 ```
 
 #### Proposal API
@@ -88,7 +86,7 @@ proposalModule.generateTransactionHashData
 
 These are external contracts registered with the Seele module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use.
 
-If a delegate has a vote on an active proposal, no delegetors will be able to undelegate until the proposal is passed or canceled. A counter is incremented each time a delegatee votes on a proposal and must be decremented for each time a proposal is finalized. An optional delay to the ability of undelegating votes can be supplied to this contract.
+If a delegate has a vote on an active proposal, no delegators will be able to undelegate until the proposal is passed or canceled. A counter is incremented each time a delegatee votes on a proposal and must be decremented for each time a proposal is finalized. An optional delay to the ability of undelegating votes can be supplied to this contract.
 
 #### Linear Voting ERC20 delegation
 ```
