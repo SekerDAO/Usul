@@ -12,10 +12,10 @@ This module — another tool in the Zodiac DAO technology stack — provides a p
 
 The available voting methods as of this time are...
 - Linear Voting ERC20 + delegation
-- Linear Voting + Membership
-- Quadratic Voting + Membership
-- Single Voting + Membership
-- Commitment Voting
+- Linear Voting ERC20 + Membership
+- Quadratic Voting ERC20 + Membership
+- Single Voting
+- Commitment ERC20 Voting
 
 ### Proposal Core
 
