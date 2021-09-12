@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../common/Enum.sol";
 import "../interfaces/IProposal.sol";
 
-contract LinearVoting {
+contract QuadraticVoting {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
