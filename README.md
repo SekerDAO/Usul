@@ -101,7 +101,7 @@ uint proposalCount; // Number of open proposals being voted on
 
 #### Linear Voting + Membership
 
-#### Quadtratic Voting + Membership
+#### Quadratic Voting + Membership
 
 #### Single (Member) Voting
 
