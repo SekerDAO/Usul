@@ -86,9 +86,10 @@ proposalModule.generateTransactionHashData
 
 These are external contracts registered with the Seele module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use.
 
-If a delegate has a vote on an active proposal, no delegators will be able to undelegate until the proposal is passed or canceled. A counter is incremented each time a delegatee votes on a proposal and must be decremented for each time a proposal is finalized. An optional delay to the ability of undelegating votes can be supplied to this contract.
-
 #### Linear Voting ERC20 delegation
+
+If a delegate has a vote on an active proposal, no delegators will be able to undelegate until the proposal time-box has passed or the proposal has been canceled.
+
 ```
 mapping(address => uint) votes; // number of tokens held for each delegator
 uint lastBlock; // The last block at which delegation happened to prevent flash loans
