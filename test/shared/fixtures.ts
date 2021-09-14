@@ -8,11 +8,9 @@ export interface DAOFixture {
   weth: Contract,
   proposalModule: Contract,
   linearVoting: Contract,
-  multiNFT: Contract,
   govToken: Contract,
   safe: Contract,
   proxy: Contract,
-  auction: Contract
 }
 
 export async function getFixtureWithParams(
@@ -31,17 +29,8 @@ export async function getFixtureWithParams(
   await govToken.transfer(wallet_3.address, ethers.BigNumber.from('1000000000000000000'))
   //console.log('Gov Token Deploy Cost ' + govToken.deployTransaction.gasLimit.toString())
 
-  const multiArtToken = await ethers.getContractFactory("MultiArtToken")
-  const multiNFT = await multiArtToken.deploy("Walk", "TWT")
-  //console.log('Multi-NFT Deploy Cost ' + multiNFT.deployTransaction.gasLimit.toString())
-
-  await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
-  await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
-  await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
-  await multiNFT.mintEdition(['https://gateway.ipfs.io/ipfs/QmZuwWhEGkUKZgC2GzNrfCRKcrKbxYxskjSnTgpMQY9Dy2/metadata/'], 1, wallet.address, {gasLimit:12450000})
-
   const GnosisSafeL2 = await hre.ethers.getContractFactory("@gnosis.pm/safe-contracts/contracts/GnosisSafeL2.sol:GnosisSafeL2")
-  const FactoryContract = await hre.ethers.getContractFactory("GnosisSafeProxyFactory")
+  const FactoryContract = await hre.ethers.getContractFactory("@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol:GnosisSafeProxyFactory")
   const singleton = await GnosisSafeL2.deploy()
   //console.log('Gnosis Safe Deploy Cost ' + singleton.deployTransaction.gasLimit.toString())
   const factory = await FactoryContract.deploy()
@@ -72,7 +61,6 @@ export async function getFixtureWithParams(
     weth,
     proposalModule,
     linearVoting,
-    multiNFT,
     govToken,
     safe,
     factory,
