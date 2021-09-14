@@ -3,7 +3,6 @@ import { AddressZero } from "@ethersproject/constants";
 import hre, { ethers, upgrades, deployments, waffle } from 'hardhat'
 import { deployContract } from 'ethereum-waffle'
 import { Contract } from 'ethers'
-import ZoraAuction from "../../node_modules/@zoralabs/auction-house/dist/artifacts/AuctionHouse.sol/AuctionHouse.json"
 
 export interface DAOFixture {
   weth: Contract,
@@ -69,12 +68,6 @@ export async function getFixtureWithParams(
 
   await govToken.transfer(safe.address, ethers.BigNumber.from('50000000000000000000000'))
 
-  const auction = await deployContract(wallet as any, ZoraAuction, [multiNFT.address, weth.address]) //await hre.ethers.getContractFactory(ZoraAuction)
-
-  const rolesContract = await ethers.getContractFactory("Roles")
-  const roles = await rolesContract.deploy( safe.address)
-  //console.log('Roles Deploy Cost ' + roles.deployTransaction.gasLimit.toString())
-
   return {
     weth,
     proposalModule,
@@ -83,6 +76,5 @@ export async function getFixtureWithParams(
     govToken,
     safe,
     factory,
-    auction
   }
 }
