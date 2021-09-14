@@ -108,6 +108,10 @@ This strategy is a non-token based one. This is simply one vote per human.
 
 This strategy will scale the voting weight based on the amount of time the tokens have been vested in the contract.
 
+## Delay Modifier
+
+This modules makes use of the [Zodiac Delay Modifer](https://github.com/gnosis/zodiac-modifier-delay) to provide a grace period between a proposal passing and it's ability to be executed through the avatar. 
+
 ## Deploy 
 
 ```
