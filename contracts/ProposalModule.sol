@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.6;
 
-import "@gnosis/zodiac/contracts/core/Modifier.sol";
+import "@gnosis.pm/zodiac/contracts/core/Modifier.sol";
 
-/// @title Gnosis Safe DAO Proposal Module - A gnosis wallet module for introducing fully decentralized token weighted governance.
+/// @title Zodiac Module - A Zodiac module for introducing fully decentralized token weighted governance.
 /// @author Nathan Ginnever - <team@tokenwalk.com>
 contract ProposalModule is Modifier {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =

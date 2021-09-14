@@ -19,7 +19,7 @@ The available voting methods as of this time are...
 
 ## Proposal Core
 
-This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate contracts that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) in that it can take a list of transaction hashes and execute them after a proposal passes. This module adds a batching feature to the execution phase.
+This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate modifiers that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) in that it can take a list of transaction hashes and execute them after a proposal passes. This module adds a batching feature to the execution phase.
 
 ### Proposal Structure
 ```
@@ -84,7 +84,7 @@ proposalModule.generateTransactionHashData
 
 ## Voting Cores
 
-These are external contracts registered with the Seele module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
+These are external zodiac modifiers registered with the proposal module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
 
 ### Linear Voting ERC20 delegation
 
