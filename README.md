@@ -17,11 +17,11 @@ The available voting methods as of this time are...
 - Single Voting
 - Commitment ERC20 Voting
 
-### Proposal Core
+## Proposal Core
 
 This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate contracts that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) (formerly SafeSnap) in that it can take a list of transaction hashes and execute them after a proposal passes. This module adds a batching feature to the execution phase.
 
-#### Proposal Structure
+### Proposal Structure
 ```
 uint256 startTime; // when the proposal was started
 uint256 yesVotes; // the total number of YES votes for this proposal
@@ -37,7 +37,7 @@ bytes32[] txHashes;
 uint256 executionCounter;
 ```
 
-#### Proposal API
+### Proposal API
 ```
 /// @dev The entry point for submitting transaction proposals
 proposalModule.submitProposal
@@ -82,45 +82,31 @@ proposalModule.generateTransactionHashData
 /// @param operation The enumarated call or delegatecall option
 ```
 
-### Voting Cores
+## Voting Cores
 
 These are external contracts registered with the Seele module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
 
-#### Linear Voting ERC20 delegation
+### Linear Voting ERC20 delegation
 
 This strategy is similar to Compound or Gitcoin. It uses token weighted voting only with one-to-one weights based on token ownership.
 
 If a delegate has a vote on an active proposal, no delegators will be able to undelegate until the proposal time-box has passed or the proposal has been canceled.
 
-#### Linear Voting + Membership
+### Linear Voting + Membership
 
 This strategy adds a membership gate to the token weighted voting, similar to a moloch DAO.
 
-#### Quadratic Voting + Membership
+### Quadratic Voting + Membership
 
 This strategy scales the power that large token holders have down. This needs to come with sybil protection in the form of PoH or BrightID.
 
-#### Single (Member) Voting
+### Single (Member) Voting
 
 This strategy is a non-token based one. This is simply one vote per human.
 
-#### Commitment Voting
+### Commitment Voting
 
 This strategy will scale the voting weight based on the amount of time the tokens have been vested in the contract.
-
-#### Voting API
-```
-voting.delegateVotes
-/// @param delegatee The account that is being delegated tokens to
-/// @param amount The amount of tokens to delegate
-
-voting.undelegateVotes
-/// @param delegatee The account that is being undelegated tokens from
-/// @param amount The amount of tokens to undelegate
-
-voting.calculateWeight
-/// @param delegatee The account that is to have the voting weight delegated from by voting method
-```
 
 ## Deploy 
 
