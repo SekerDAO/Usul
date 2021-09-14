@@ -84,28 +84,29 @@ proposalModule.generateTransactionHashData
 
 ### Voting Cores
 
-These are external contracts registered with the Seele module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use.
+These are external contracts registered with the Seele module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
 
 #### Linear Voting ERC20 delegation
 
+This strategy is similar to Compound or Gitcoin. It uses token weighted voting only with one-to-one weights based on token ownership.
+
 If a delegate has a vote on an active proposal, no delegators will be able to undelegate until the proposal time-box has passed or the proposal has been canceled.
-
-```
-mapping(address => uint) votes; // number of tokens held for each delegator
-uint lastBlock; // The last block at which delegation happened to prevent flash loans
-uint total; // The total amount of delegation
-uint proposalCount; // Number of open proposals being voted on
-```
-
-#### Linear Voting Compound ERC20 delegation
 
 #### Linear Voting + Membership
 
+This strategy adds a membership gate to the token weighted voting, similar to a moloch DAO.
+
 #### Quadratic Voting + Membership
+
+This strategy scales the power that large token holders have down. This needs to come with sybil protection in the form of PoH or BrightID.
 
 #### Single (Member) Voting
 
+This strategy is a non-token based one. This is simply one vote per human.
+
 #### Commitment Voting
+
+This strategy will scale the voting weight based on the amount of time the tokens have been vested in the contract.
 
 #### Voting API
 ```
