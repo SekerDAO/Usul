@@ -20,7 +20,6 @@ contract ProposalModule is Modifier {
     // );
 
     struct Proposal {
-        uint256 startTime; // when the proposal was started
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
         bool queued;
@@ -130,7 +129,6 @@ contract ProposalModule is Modifier {
         require(activeProposal[msg.sender] == false, "TW011");
         proposals[totalProposalCount].executionCounter = txHashes.length;
         proposals[totalProposalCount].txHashes = txHashes;
-        proposals[totalProposalCount].startTime = block.timestamp;
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
         activeProposal[msg.sender] = true;
@@ -302,14 +300,6 @@ contract ProposalModule is Modifier {
             id := chainid()
         }
         return id;
-    }
-
-    function getProposalStart(uint256 proposalId)
-        external
-        view
-        returns (uint256)
-    {
-        return proposals[proposalId].startTime;
     }
 
     function setUp(bytes calldata initializeParams) public virtual override {}

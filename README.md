@@ -23,7 +23,6 @@ This is the core of the module that is registered with the Gnosis Safe as a Zodi
 
 ### Proposal Structure
 ```
-uint256 startTime; // when the proposal was started
 uint256 yesVotes; // the total number of YES votes for this proposal
 uint256 noVotes; // the total number of NO votes for this proposal
 bool queued;
