@@ -111,6 +111,10 @@ contract ProposalModule is Modifier {
         }
     }
 
+    function getProposalWindow() public view returns (uint256) {
+        return proposalTime;
+    }
+
     function updateThreshold(uint256 threshold) external onlyExecutor {
         threshold = threshold;
     }

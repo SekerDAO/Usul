@@ -96,7 +96,6 @@ describe("votingModules:", () => {
     const linearVoting = await linearContract.deploy(
       govToken.address,
       proposalModule.address,
-      180,
       safe.address
     );
 

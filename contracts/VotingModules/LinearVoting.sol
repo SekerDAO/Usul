@@ -34,7 +34,6 @@ contract LinearVoting {
 
     address private _governanceToken;
     address private _proposalModule;
-    uint256 private _undelegateDelay;
     /// @dev Address that this module will pass transactions to.
     address public executor;
 
@@ -52,12 +51,10 @@ contract LinearVoting {
     constructor(
         address governanceToken_,
         address proposalModule_,
-        uint256 undelgateDelay_,
         address executor_
     ) {
         _governanceToken = governanceToken_;
         _proposalModule = proposalModule_;
-        _undelegateDelay = undelgateDelay_;
         executor = executor_;
     }
 
@@ -117,7 +114,7 @@ contract LinearVoting {
         // if (_roleModule != address(0)) {
         //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
         // }
-        startVoting(msg.sender);
+        delegations[msg.sender].undelegateDelay = block.timestamp + IProposal(_proposalModule).getProposalWindow();
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
             msg.sender,
@@ -144,7 +141,7 @@ contract LinearVoting {
             "signer doesn not match delegatee"
         );
         nonces[signer]++;
-        startVoting(signer);
+        delegations[signer].undelegateDelay = block.timestamp + IProposal(_proposalModule).getProposalWindow();
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
             signer,
@@ -152,12 +149,6 @@ contract LinearVoting {
             vote,
             calculateWeight(signer)
         );
-    }
-
-    function startVoting(address delegatee) internal {
-        delegations[delegatee].undelegateDelay =
-            block.timestamp +
-            _undelegateDelay;
     }
 
     function calculateWeight(address delegatee) public view returns (uint256) {
