@@ -1,35 +1,18 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/dist/src/signer-with-address";
 import { expect } from "chai";
-import { BigNumber, Contract } from "ethers";
-import { ethers, network, waffle } from "hardhat";
+import { BigNumber } from "ethers";
+import hre, { ethers, network, waffle, deployments } from "hardhat";
 import { _TypedDataEncoder } from "@ethersproject/hash";
-import { DAOFixture, getFixtureWithParams } from "./shared/fixtures";
 import {
   executeContractCallWithSigners,
   buildContractCall,
-  safeSignMessage,
-  executeTx,
-  EIP712_TYPES,
 } from "./shared/utils";
-import { keccak256 } from "ethereumjs-util";
-import {
-  defaultSender,
-  provider,
-  web3,
-  contract,
-} from "@openzeppelin/test-environment";
 import { AddressZero } from "@ethersproject/constants";
 import { signTypedData_v4, MsgParams } from "eth-sig-util";
 import { TypedDataUtils } from 'ethers-eip712'
 import { ecsign } from "ethereumjs-util";
 //import { sign } from "./shared/EIP712";
 
-const zero = ethers.BigNumber.from(0);
 const deadline = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
-const MaxUint256 = ethers.constants.MaxUint256;
-
-let daoFixture: DAOFixture;
-let wallet: SignerWithAddress;
 
 describe("votingModules:", () => {
   const [
@@ -45,33 +28,86 @@ describe("votingModules:", () => {
     wallet_9,
   ] = waffle.provider.getWallets();
   const chainId = ethers.BigNumber.from(network.config.chainId);
-  beforeEach(async function () {
-    wallet = (await ethers.getSigners())[0];
-    daoFixture = await getFixtureWithParams(wallet, true);
+  const baseSetup = deployments.createFixture(async () => {
+    await deployments.fixture();
+    const [wallet_0, wallet_1, wallet_2, wallet_3] = waffle.provider.getWallets();
+    const govTokenContract = await ethers.getContractFactory("GovernanceToken")
+    const govToken = await govTokenContract.deploy("GovToken", "GT", ethers.BigNumber.from('100000000000000000000000'))
+    await govToken.transfer(wallet_1.address, ethers.BigNumber.from('1000000000000000000'))
+    await govToken.transfer(wallet_2.address, ethers.BigNumber.from('1000000000000000000'))
+    await govToken.transfer(wallet_3.address, ethers.BigNumber.from('1000000000000000000'))
+    //console.log('Gov Token Deploy Cost ' + govToken.deployTransaction.gasLimit.toString())
+
+    const GnosisSafeL2 = await hre.ethers.getContractFactory("@gnosis.pm/safe-contracts/contracts/GnosisSafeL2.sol:GnosisSafeL2")
+    const FactoryContract = await hre.ethers.getContractFactory("@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol:GnosisSafeProxyFactory")
+    const singleton = await GnosisSafeL2.deploy()
+    //console.log('Gnosis Safe Deploy Cost ' + singleton.deployTransaction.gasLimit.toString())
+    const factory = await FactoryContract.deploy()
+    const template = await factory.callStatic.createProxy(singleton.address, "0x")
+    await factory.createProxy(singleton.address, "0x").then((tx: any) => tx.wait())
+    const safe = GnosisSafeL2.attach(template);
+    safe.setup([wallet_0.address], 1, AddressZero, "0x", AddressZero, AddressZero, 0, AddressZero)
+
+    const proposalContract = await ethers.getContractFactory("ProposalModule")
+    const proposalModule = await proposalContract.deploy(
+      ethers.BigNumber.from(1), // number of days proposals are active
+      ethers.BigNumber.from('1000000000000000000'), // number of votes wieghted to pass
+    )
+
+    // TODO: Use common setup pattern
+    await proposalModule.setAvatar(safe.address);
+    await proposalModule.setTarget(safe.address);
+    await proposalModule.transferOwnership(safe.address);
+
+    const linearContract = await ethers.getContractFactory("LinearVoting")
+    const linearVoting = await linearContract.deploy(
+      govToken.address,
+      proposalModule.address,
+      180,
+      safe.address
+    )
+
+    await govToken.transfer(safe.address, ethers.BigNumber.from('50000000000000000000000'))
+
+    await executeContractCallWithSigners(
+      safe,
+      safe,
+      "enableModule",
+      [proposalModule.address],
+      [wallet_0]
+    );
+    await executeContractCallWithSigners(
+      safe,
+      proposalModule,
+      "enableModule",
+      [linearVoting.address],
+      [wallet_0]
+    );
+
+    return {
+    proposalModule,
+    linearVoting,
+    govToken,
+    safe,
+    factory,
+    };
   });
 
   describe("setUp", async () => {
     it("can register linear voting module", async () => {
-      const { proposalModule, linearVoting, safe } = daoFixture;
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "enableModule",
-        [linearVoting.address],
-        [wallet_0]
-      );
+      const { proposalModule, linearVoting, safe } = await baseSetup();
       expect(await proposalModule.isModuleEnabled(linearVoting.address)).to.equal(true);
     });
 
     it("only Safe can register linear voting module", async () => {
-      const { proposalModule, linearVoting } = daoFixture;
+      const { proposalModule, linearVoting } = await baseSetup();
       await expect(proposalModule.enableModule(linearVoting.address)).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
 
   describe("linear voting module", async () => {
     it("can delegate votes to self", async () => {
-      const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture;
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       const bal = await govToken.balanceOf(wallet_0.address);
       await govToken.approve(linearVoting.address, 1000);
       await linearVoting.delegateVotes(wallet_0.address, 1000);
@@ -81,7 +117,7 @@ describe("votingModules:", () => {
     });
 
     it("can undelegate votes to self", async () => {
-      const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture;
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       const bal = await govToken.balanceOf(wallet_0.address);
       await govToken.approve(linearVoting.address, 1000);
       await linearVoting.delegateVotes(wallet_0.address, 1000);
@@ -93,7 +129,7 @@ describe("votingModules:", () => {
     });
 
     it("can delegate votes to others", async () => {
-      const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture;
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       const bal = await govToken.balanceOf(wallet_0.address);
       await govToken.approve(linearVoting.address, 1000);
       await linearVoting.delegateVotes(wallet_0.address, 1000);
@@ -107,7 +143,7 @@ describe("votingModules:", () => {
     });
 
     it("can undelegate votes to others", async () => {
-      const { proposalModule, linearVoting, safe, govToken, weth } = daoFixture;
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       const bal = await govToken.balanceOf(wallet_0.address);
       await govToken.approve(linearVoting.address, 1000);
       await linearVoting.delegateVotes(wallet_0.address, 1000);
@@ -124,21 +160,7 @@ describe("votingModules:", () => {
     });
 
     it("can vote past the threshold with delegation", async () => {
-      const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-      await executeContractCallWithSigners(
-        safe,
-        safe,
-        "enableModule",
-        [proposalModule.address],
-        [wallet_0]
-      );
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "enableModule",
-        [linearVoting.address],
-        [wallet_0]
-      );
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       await govToken.approve(
         linearVoting.address,
         ethers.BigNumber.from("500000000000000000")
@@ -193,21 +215,7 @@ describe("votingModules:", () => {
     // hardhat currently will not revert when manual
     // https://github.com/nomiclabs/hardhat/issues/1468
     it.skip("cannot vote if delegatation is in the same block", async () => {
-      const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-      await executeContractCallWithSigners(
-        safe,
-        safe,
-        "enableModule",
-        [proposalModule.address],
-        [wallet_0]
-      );
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "enableModule",
-        [linearVoting.address],
-        [wallet_0]
-      );
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       await govToken.approve(
         linearVoting.address,
         ethers.BigNumber.from("500000000000000000")
@@ -254,21 +262,7 @@ describe("votingModules:", () => {
     });
 
     it("can vote past the threshold with independent delegatation", async () => {
-      const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-      await executeContractCallWithSigners(
-        safe,
-        safe,
-        "enableModule",
-        [proposalModule.address],
-        [wallet_0]
-      );
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "enableModule",
-        [linearVoting.address],
-        [wallet_0]
-      );
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       await govToken.approve(
         linearVoting.address,
         ethers.BigNumber.from("500000000000000000")
@@ -336,21 +330,7 @@ describe("votingModules:", () => {
     });
 
     it("can only vote once per proposal", async () => {
-      const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-      await executeContractCallWithSigners(
-        safe,
-        safe,
-        "enableModule",
-        [proposalModule.address],
-        [wallet_0]
-      );
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "enableModule",
-        [linearVoting.address],
-        [wallet_0]
-      );
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       await govToken.approve(
         linearVoting.address,
         ethers.BigNumber.from("500000000000000000")
@@ -390,21 +370,7 @@ describe("votingModules:", () => {
     });
 
     it("can vote on multiple proposals", async () => {
-      const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-      await executeContractCallWithSigners(
-        safe,
-        safe,
-        "enableModule",
-        [proposalModule.address],
-        [wallet_0]
-      );
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "enableModule",
-        [linearVoting.address],
-        [wallet_0]
-      );
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       await govToken.approve(
         linearVoting.address,
         ethers.BigNumber.from("500000000000000000")
@@ -497,21 +463,7 @@ describe("votingModules:", () => {
     });
 
     it("cannot undelegate if not past timeout", async () => {
-      const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-      await executeContractCallWithSigners(
-        safe,
-        safe,
-        "enableModule",
-        [proposalModule.address],
-        [wallet_0]
-      );
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "enableModule",
-        [linearVoting.address],
-        [wallet_0]
-      );
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       await govToken.approve(
         linearVoting.address,
         ethers.BigNumber.from("500000000000000000")
@@ -621,21 +573,7 @@ describe("votingModules:", () => {
     });
 
     it("can vote with ERC712 offchain signature", async () => {
-      const { weth, proposalModule, linearVoting, safe, govToken } = daoFixture;
-      await executeContractCallWithSigners(
-        safe,
-        safe,
-        "enableModule",
-        [proposalModule.address],
-        [wallet_0]
-      );
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "enableModule",
-        [linearVoting.address],
-        [wallet_0]
-      );
+      const { proposalModule, linearVoting, safe, govToken } = await baseSetup();
       await govToken.approve(
         linearVoting.address,
         ethers.BigNumber.from("500000000000000000")
