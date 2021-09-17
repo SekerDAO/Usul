@@ -31,6 +31,7 @@ contract ProposalModule is Modifier {
         bool[] executed; // txindexes
         bytes32[] txHashes;
         uint256 executionCounter;
+        address votingStrategy; // the module that is allowed to vote on this
     }
 
     uint256 public totalProposalCount;
@@ -92,6 +93,7 @@ contract ProposalModule is Modifier {
         bool vote,
         uint256 weight
     ) external moduleOnly {
+        require(msg.sender == proposals[proposalId].votingStrategy, "vote from incorrect module");
         require(proposals[proposalId].hasVoted[voter] == false, "TW007");
         require(proposals[proposalId].canceled == false, "TW008");
         require(proposals[proposalId].deadline >= block.timestamp, "TW010");
@@ -121,7 +123,7 @@ contract ProposalModule is Modifier {
         gracePeriod = gracePeriod;
     }
 
-    function submitProposal(bytes32[] memory txHashes) public {
+    function submitProposal(bytes32[] memory txHashes, address votingStrategy) public {
         // TODO: consider mapping here
         for (uint256 i; i < txHashes.length; i++) {
             proposals[totalProposalCount].executed.push(false);
@@ -131,6 +133,7 @@ contract ProposalModule is Modifier {
         proposals[totalProposalCount].txHashes = txHashes;
         proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
         proposals[totalProposalCount].proposer = msg.sender;
+        proposals[totalProposalCount].votingStrategy = votingStrategy;
         activeProposal[msg.sender] = true;
         totalProposalCount++;
         emit ProposalCreated(totalProposalCount - 1);

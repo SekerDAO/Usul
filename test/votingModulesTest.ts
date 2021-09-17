@@ -172,7 +172,7 @@ describe("votingModules:", () => {
         addCall.operation,
         0
       );
-      await proposalModule.submitProposal([txHash]);
+      await proposalModule.submitProposal([txHash], linearVoting.address);
       const proposal = await proposalModule.proposals(0);
       const isExecuted = await proposalModule.isExecuted(0, 0);
       const _txHash = await proposalModule.getTxHash(0, 0);
@@ -229,7 +229,7 @@ describe("votingModules:", () => {
         addCall.operation,
         0
       );
-      await proposalModule.submitProposal([txHash]);
+      await proposalModule.submitProposal([txHash], linearVoting.address);
       await govToken
         .connect(wallet_1)
         .approve(
@@ -304,7 +304,7 @@ describe("votingModules:", () => {
         addCall.operation,
         0
       );
-      await proposalModule.submitProposal([txHash]);
+      await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.vote(0, 1);
       let proposal = await proposalModule.proposals(0);
       expect(proposal.yesVotes).to.equal(
@@ -384,7 +384,7 @@ describe("votingModules:", () => {
         addCall.operation,
         0
       );
-      await proposalModule.submitProposal([txHash]);
+      await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.connect(wallet_1).vote(0, true);
       await expect(linearVoting.connect(wallet_1).vote(0, true)).to.be.revertedWith("TW007");
     });
@@ -450,11 +450,11 @@ describe("votingModules:", () => {
         transferCall.operation,
         0
       );
-      await proposalModule.submitProposal([txHash]);
+      await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.vote(0, true);
-      await proposalModule.connect(wallet_1).submitProposal([txHash]);
+      await proposalModule.connect(wallet_1).submitProposal([txHash], linearVoting.address);
       await linearVoting.connect(wallet_1).vote(1, true);
-      await proposalModule.connect(wallet_2).submitProposal([txHash]);
+      await proposalModule.connect(wallet_2).submitProposal([txHash], linearVoting.address);
       await linearVoting.connect(wallet_2).vote(2, true);
       await linearVoting.vote(1, true);
       await linearVoting.vote(2, true);
@@ -557,11 +557,11 @@ describe("votingModules:", () => {
         transferCall.operation,
         0
       );
-      await proposalModule.submitProposal([txHash]);
+      await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.vote(0, true);
-      await proposalModule.connect(wallet_1).submitProposal([txHash]);
+      await proposalModule.connect(wallet_1).submitProposal([txHash], linearVoting.address);
       await linearVoting.connect(wallet_1).vote(1, true);
-      await proposalModule.connect(wallet_2).submitProposal([txHash]);
+      await proposalModule.connect(wallet_2).submitProposal([txHash], linearVoting.address);
       await linearVoting.connect(wallet_2).vote(2, true);
       await linearVoting.vote(1, true);
       await linearVoting.vote(2, true);
@@ -671,7 +671,7 @@ describe("votingModules:", () => {
         addCall.operation,
         0
       );
-      await proposalModule.submitProposal([txHash]);
+      await proposalModule.submitProposal([txHash], linearVoting.address);
       // -------
       const voteHash = await linearVoting.getVoteHash(
         wallet_0.address,

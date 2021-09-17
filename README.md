@@ -19,7 +19,7 @@ The available voting methods as of this time are...
 
 ## Proposal Core
 
-This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate modifiers that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) in that it can take a list of transaction hashes and execute them after a proposal passes. This module adds a batching feature to the execution phase.
+This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate modifiers that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) in that it can take a list of transaction hashes and execute them after a proposal passes. This module adds a batching feature to the execution phase. A delay period between proposal passing and execution is defaulted to x days and can be tuned through futher proposals.
 
 ### Proposal Structure
 ```
@@ -106,10 +106,6 @@ This strategy is a non-token based one. This is simply one vote per human.
 ### Commitment Voting
 
 This strategy will scale the voting weight based on the amount of time the tokens have been vested in the contract.
-
-## Delay Modifier
-
-This modules makes use of the [Zodiac Delay Modifer](https://github.com/gnosis/zodiac-modifier-delay) to provide a grace period between a proposal passing and it's ability to be executed through the avatar. 
 
 ## Deploy 
 
