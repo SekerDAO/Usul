@@ -122,7 +122,11 @@ contract CommitmentVoting {
         return (votes[voter].stakedAt != block.number);
     }
 
-    function weighByTime(uint256 votes, uint256 stakedAt) internal view returns (uint256) {
-    	return votes.mul(block.timestamp - stakedAt);
+    function weighByTime(uint256 votes, uint256 stakedAt)
+        internal
+        view
+        returns (uint256)
+    {
+        return votes.mul(block.timestamp - stakedAt);
     }
 }

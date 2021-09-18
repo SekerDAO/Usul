@@ -114,7 +114,9 @@ contract LinearVoting {
         // if (_roleModule != address(0)) {
         //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
         // }
-        delegations[msg.sender].undelegateDelay = block.timestamp + IProposal(_proposalModule).getProposalWindow();
+        delegations[msg.sender].undelegateDelay =
+            block.timestamp +
+            IProposal(_proposalModule).getProposalWindow();
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
             msg.sender,
@@ -141,7 +143,9 @@ contract LinearVoting {
             "signer doesn not match delegatee"
         );
         nonces[signer]++;
-        delegations[signer].undelegateDelay = block.timestamp + IProposal(_proposalModule).getProposalWindow();
+        delegations[signer].undelegateDelay =
+            block.timestamp +
+            IProposal(_proposalModule).getProposalWindow();
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
             signer,

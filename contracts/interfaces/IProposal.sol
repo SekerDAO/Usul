@@ -15,8 +15,5 @@ interface IProposal {
         view
         returns (uint256);
 
-    function getProposalWindow()
-        external
-        view
-        returns (uint256);
+    function getProposalWindow() external view returns (uint256);
 }

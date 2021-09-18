@@ -126,7 +126,9 @@ contract MemberLinearVoting {
         // if (_roleModule != address(0)) {
         //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
         // }
-        delegations[msg.sender].undelegateDelay = block.timestamp + IProposal(_proposalModule).getProposalWindow();
+        delegations[msg.sender].undelegateDelay =
+            block.timestamp +
+            IProposal(_proposalModule).getProposalWindow();
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
             msg.sender,
@@ -154,7 +156,9 @@ contract MemberLinearVoting {
         );
         require(members[signer] == true, "not a member");
         nonces[signer]++;
-        delegations[signer].undelegateDelay = block.timestamp + IProposal(_proposalModule).getProposalWindow();
+        delegations[signer].undelegateDelay =
+            block.timestamp +
+            IProposal(_proposalModule).getProposalWindow();
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
             signer,
