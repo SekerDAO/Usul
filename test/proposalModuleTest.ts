@@ -134,7 +134,7 @@ describe("proposalModule:", () => {
       );
       expect(await proposalModule.totalProposalCount()).to.equal(0);
       expect(await proposalModule.owner()).to.equal(safe.address);
-      expect(await proposalModule.proposalTime()).to.equal(60);
+      expect(await proposalModule.proposalWindow()).to.equal(60);
       expect(await proposalModule.gracePeriod()).to.equal(60);
       expect(await proposalModule.threshold()).to.equal("1000000000000000000");
       expect(await linearVoting.governanceToken()).to.equal(govToken.address);

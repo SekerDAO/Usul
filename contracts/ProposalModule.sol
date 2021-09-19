@@ -35,7 +35,7 @@ contract ProposalModule is Modifier {
     }
 
     uint256 public totalProposalCount;
-    uint256 public proposalTime;
+    uint256 public proposalWindow;
     uint256 public gracePeriod = 60 seconds; //3 days; TODO: Remove and use the Zodiac Delay modifier
     uint256 public threshold;
 
@@ -63,12 +63,29 @@ contract ProposalModule is Modifier {
     event ProposalCreated(uint256 number);
     event GracePeriodStarted(uint256 endDate);
     event ProposalExecuted(uint256 id);
+    event SeeleSetup(address indexed initiator, uint256 indexed proposalWindow, uint256 indexed threshold);
 
-    constructor(uint256 _proposalTime, uint256 _threshold) {
+    constructor(uint256 _proposalWindow, uint256 _threshold) {
+        bytes memory initParams = abi.encode(_proposalWindow, _threshold);
+        setUp(initParams);
+    }
+
+    function setUp(bytes memory initParams) public override {
+        (uint256 _proposalWindow, uint256 _threshold) = abi.decode(initParams, (uint256, uint256));
         __Ownable_init();
-        modules[SENTINEL_MODULES] = SENTINEL_MODULES;
-        proposalTime = _proposalTime * 1 minutes; //days;
+        require(_proposalWindow >= 1, "proposal window must be greater than 1");
+        proposalWindow = _proposalWindow * 1 minutes; //days;
         threshold = _threshold;
+        setupStrategies();
+        emit SeeleSetup(msg.sender, _proposalWindow, _threshold);
+    }
+
+    function setupStrategies() internal {
+        require(
+            modules[SENTINEL_MODULES] == address(0),
+            "setUpModules has already been called"
+        );
+        modules[SENTINEL_MODULES] = SENTINEL_MODULES;
     }
 
     function isExecuted(uint256 proposalId, uint256 index)
@@ -112,15 +129,15 @@ contract ProposalModule is Modifier {
     }
 
     function getProposalWindow() public view returns (uint256) {
-        return proposalTime;
+        return proposalWindow;
     }
 
     function updateThreshold(uint256 threshold) external onlyExecutor {
         threshold = threshold;
     }
 
-    function updateProposalTime(uint256 newTime) external onlyExecutor {
-        proposalTime = newTime;
+    function updateproposalWindow(uint256 newWindow) external onlyExecutor {
+        proposalWindow = newWindow;
     }
 
     function updateGracePeriod(uint256 gracePeriod) external onlyExecutor {
@@ -135,7 +152,7 @@ contract ProposalModule is Modifier {
         require(activeProposal[msg.sender] == false, "TW011");
         proposals[totalProposalCount].executionCounter = txHashes.length;
         proposals[totalProposalCount].txHashes = txHashes;
-        proposals[totalProposalCount].deadline = block.timestamp + proposalTime;
+        proposals[totalProposalCount].deadline = block.timestamp + proposalWindow;
         proposals[totalProposalCount].proposer = msg.sender;
         proposals[totalProposalCount].votingStrategy = votingStrategy;
         activeProposal[msg.sender] = true;
@@ -308,6 +325,4 @@ contract ProposalModule is Modifier {
         }
         return id;
     }
-
-    function setUp(bytes calldata initializeParams) public virtual override {}
 }
