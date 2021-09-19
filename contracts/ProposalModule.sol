@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.6;
 
-import "@gnosis.pm/zodiac/contracts/core/Modifier.sol";
+import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 
 /// @title Zodiac Module - A Zodiac module for introducing fully decentralized token weighted governance.
 /// @author Nathan Ginnever - <team@tokenwalk.com>
-contract ProposalModule is Modifier {
+contract ProposalModule is Module {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
     // keccak256(
@@ -38,14 +38,22 @@ contract ProposalModule is Modifier {
     uint256 public proposalWindow;
     uint256 public gracePeriod = 60 seconds; //3 days; TODO: Remove and use the Zodiac Delay modifier
     uint256 public threshold;
+    address internal constant SENTINEL_STRATEGY = address(0x1);
 
     // mapping of proposal id to proposal
     mapping(uint256 => Proposal) public proposals;
     // mapping to track if a user has an open proposal
     mapping(address => bool) public activeProposal;
+    // Mapping of modules
+    mapping(address => address) internal strategies;
 
     modifier onlyExecutor() {
         require(msg.sender == avatar, "TW001");
+        _;
+    }
+
+    modifier strategyOnly() {
+        require(strategies[msg.sender] != address(0), "Strategy not authorized");
         _;
     }
 
@@ -64,6 +72,8 @@ contract ProposalModule is Modifier {
     event GracePeriodStarted(uint256 endDate);
     event ProposalExecuted(uint256 id);
     event SeeleSetup(address indexed initiator, uint256 indexed proposalWindow, uint256 indexed threshold);
+    event EnabledStrategy(address strategy);
+    event DisabledStrategy(address strategy);
 
     constructor(uint256 _proposalWindow, uint256 _threshold) {
         bytes memory initParams = abi.encode(_proposalWindow, _threshold);
@@ -82,10 +92,81 @@ contract ProposalModule is Modifier {
 
     function setupStrategies() internal {
         require(
-            modules[SENTINEL_MODULES] == address(0),
+            strategies[SENTINEL_STRATEGY] == address(0),
             "setUpModules has already been called"
         );
-        modules[SENTINEL_MODULES] = SENTINEL_MODULES;
+        strategies[SENTINEL_STRATEGY] = SENTINEL_STRATEGY;
+    }
+
+    /// @dev Disables a voting strategy on the module
+    /// @param prevStrategy Strategy that pointed to the module to be removed in the linked list
+    /// @param strategy Strategy to be removed
+    /// @notice This can only be called by the owner
+    function disableStrategy(address prevStrategy, address strategy)
+        public
+        onlyOwner
+    {
+        require(
+            strategy != address(0) && strategy != SENTINEL_STRATEGY,
+            "Invalid strategy"
+        );
+        require(strategies[prevStrategy] == strategy, "Strategy already disabled");
+        strategies[prevStrategy] = strategies[strategy];
+        strategies[strategy] = address(0);
+        emit DisabledStrategy(strategy);
+    }
+
+    /// @dev Enables a voting strategy that can add transactions to the queue
+    /// @param strategy Address of the module to be enabled
+    /// @notice This can only be called by the owner
+    function enableStrategy(address strategy) public onlyOwner {
+        require(
+            strategy != address(0) && strategy != SENTINEL_STRATEGY,
+            "Invalid strategy"
+        );
+        require(strategies[strategy] == address(0), "Strategy already enabled");
+        strategies[strategy] = strategies[SENTINEL_STRATEGY];
+        strategies[SENTINEL_STRATEGY] = strategy;
+        emit EnabledStrategy(strategy);
+    }
+
+    /// @dev Returns if an module is enabled
+    /// @return True if the module is enabled
+    function isStrategyEnabled(address _strategy) public view returns (bool) {
+        return SENTINEL_STRATEGY != _strategy && strategies[_strategy] != address(0);
+    }
+
+    /// @dev Returns array of modules.
+    /// @param start Start of the page.
+    /// @param pageSize Maximum number of modules that should be returned.
+    /// @return array Array of modules.
+    /// @return next Start of the next page.
+    function getStrategiesPaginated(address start, uint256 pageSize)
+        external
+        view
+        returns (address[] memory array, address next)
+    {
+        // Init array with max page size
+        array = new address[](pageSize);
+
+        // Populate return array
+        uint256 strategyCount = 0;
+        address currentStrategy = strategies[start];
+        while (
+            currentStrategy != address(0x0) &&
+            currentStrategy != SENTINEL_STRATEGY &&
+            strategyCount < pageSize
+        ) {
+            array[strategyCount] = currentStrategy;
+            currentStrategy = strategies[currentStrategy];
+            strategyCount++;
+        }
+        next = currentStrategy;
+        // Set correct size of returned array
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            mstore(array, strategyCount)
+        }
     }
 
     function isExecuted(uint256 proposalId, uint256 index)
@@ -109,8 +190,8 @@ contract ProposalModule is Modifier {
         uint256 proposalId,
         bool vote,
         uint256 weight
-    ) external moduleOnly {
-        require(msg.sender == proposals[proposalId].votingStrategy, "vote from incorrect module");
+    ) external strategyOnly {
+        require(msg.sender == proposals[proposalId].votingStrategy, "vote from incorrect strategy");
         require(proposals[proposalId].hasVoted[voter] == false, "TW007");
         require(proposals[proposalId].canceled == false, "TW008");
         require(proposals[proposalId].deadline >= block.timestamp, "TW010");

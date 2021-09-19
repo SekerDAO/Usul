@@ -109,7 +109,7 @@ describe("proposalModule:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "enableModule",
+      "enableStrategy",
       [linearVoting.address],
       [wallet_0]
     );

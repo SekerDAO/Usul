@@ -114,7 +114,7 @@ describe("votingModules:", () => {
     await executeContractCallWithSigners(
       safe,
       proposalModule,
-      "enableModule",
+      "enableStrategy",
       [linearVoting.address],
       [wallet_0]
     );
@@ -132,14 +132,14 @@ describe("votingModules:", () => {
     it("can register linear voting module", async () => {
       const { proposalModule, linearVoting, safe } = await baseSetup();
       expect(
-        await proposalModule.isModuleEnabled(linearVoting.address)
+        await proposalModule.isStrategyEnabled(linearVoting.address)
       ).to.equal(true);
     });
 
-    it("only Safe can register linear voting module", async () => {
+    it("only owner can register linear voting module", async () => {
       const { proposalModule, linearVoting } = await baseSetup();
       await expect(
-        proposalModule.enableModule(linearVoting.address)
+        proposalModule.enableStrategy(linearVoting.address)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
