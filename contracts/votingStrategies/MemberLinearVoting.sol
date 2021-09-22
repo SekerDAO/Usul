@@ -123,9 +123,6 @@ contract MemberLinearVoting {
     // todo: erc712 voting
 
     function vote(uint256 proposalId, bool vote) public onlyMember {
-        // if (_roleModule != address(0)) {
-        //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
-        // }
         delegations[msg.sender].undelegateDelay =
             block.timestamp +
             IProposal(_proposalModule).getProposalWindow();

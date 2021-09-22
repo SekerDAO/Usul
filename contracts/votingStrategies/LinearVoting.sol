@@ -8,23 +8,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../common/Enum.sol";
 import "../interfaces/IProposal.sol";
 
-interface ICompToken {
-    function delegateBySig(
-        address delegatee,
-        uint256 nonce,
-        uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
-
-    function getPriorVotes(address account, uint256 blockNumber)
-        external
-        view
-        returns (uint96);
-}
-
-contract CompoundVoting {
+contract LinearVoting {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -41,21 +25,20 @@ contract CompoundVoting {
     //     "Vote(address delegatee, uint256 proposalId, uint256 votes, bool vote, uint256 deadline, uint256 nonce)"
     // );
 
-    // struct Delegation {
-    //     mapping(address => uint256) votes;
-    //     uint256 undelegateDelay;
-    //     uint256 lastBlock;
-    //     uint256 total;
-    // }
+    struct Delegation {
+        mapping(address => uint256) votes;
+        uint256 undelegateDelay;
+        uint256 lastBlock;
+        uint256 total;
+    }
 
     address private _governanceToken;
     address private _proposalModule;
-    address private _roleModule;
     /// @dev Address that this module will pass transactions to.
     address public executor;
 
     mapping(address => uint256) public nonces;
-    //mapping(address => Delegation) public delegations;
+    mapping(address => Delegation) public delegations;
 
     modifier onlyExecutor() {
         require(msg.sender == executor, "TW001");
@@ -85,63 +68,58 @@ contract CompoundVoting {
         return _governanceToken;
     }
 
-    // function getDelegatorVotes(address delegatee, address delegator)
-    //     public
-    //     view
-    //     virtual
-    //     returns (uint256)
-    // {
-    //     return delegations[delegatee].votes[delegator];
-    // }
-
-    function delegateVotes(address delegate) external {
-        // todo delegate call to comp token
+    function getDelegatorVotes(address delegatee, address delegator)
+        public
+        view
+        virtual
+        returns (uint256)
+    {
+        return delegations[delegatee].votes[delegator];
     }
 
     // todo erc712 delegation
     // ensure all votes are delegated
-    function delegateVotesBySig(
-        address delegatee,
-        uint256 nonce,
-        uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external {
-        ICompToken(_governanceToken).delegateBySig(
-            delegatee,
-            nonce,
-            expiry,
-            v,
-            r,
-            s
+    function delegateVotes(address delegatee, uint256 amount) external {
+        IERC20(_governanceToken).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
         );
-        // IERC20(_governanceToken).safeTransferFrom(
-        //     msg.sender,
-        //     address(this),
-        //     amount
-        // );
-        // delegations[delegatee].votes[msg.sender] = amount;
-        // delegations[delegatee].lastBlock = block.number;
-        // // can make the total 1-1 here
-        // delegations[delegatee].total = delegations[delegatee].total.add(amount);
+        delegations[delegatee].votes[msg.sender] = delegations[delegatee]
+            .votes[msg.sender]
+            .add(amount);
+        delegations[delegatee].lastBlock = block.number;
+        // can make the total 1-1 here
+        delegations[delegatee].total = delegations[delegatee].total.add(amount);
+    }
+
+    // todo remove
+    // move delegation to a compound specific module
+    function undelegateVotes(address delegatee, uint256 amount) external {
+        require(
+            delegations[delegatee].undelegateDelay <= block.timestamp,
+            "TW024"
+        );
+        require(delegations[delegatee].votes[msg.sender] >= amount, "TW020");
+        IERC20(_governanceToken).safeTransfer(msg.sender, amount);
+        delegations[delegatee].votes[msg.sender] = delegations[delegatee]
+            .votes[msg.sender]
+            .sub(amount);
+        delegations[delegatee].total = delegations[delegatee].total.sub(amount);
     }
 
     // todo: erc712 voting
 
     function vote(uint256 proposalId, bool vote) public {
-        // if (_roleModule != address(0)) {
-        //     require(IRoles(_roleModule).checkMembership(msg.sender), "TW028");
-        // }
-        //require(checkBlock(msg.sender), "TW021");
+        delegations[msg.sender].undelegateDelay =
+            block.timestamp +
+            IProposal(_proposalModule).getProposalWindow();
+        require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
             msg.sender,
             proposalId,
             vote,
-            ICompToken(_governanceToken).getPriorVotes(
-                msg.sender,
-                IProposal(_proposalModule).getProposalStart(proposalId)
-            )
+            calculateWeight(msg.sender)
         );
     }
 
@@ -162,23 +140,27 @@ contract CompoundVoting {
             "signer doesn not match delegatee"
         );
         nonces[signer]++;
-        //require(checkBlock(signer), "TW021");
-        uint256 votes = ICompToken(_governanceToken).getPriorVotes(
+        delegations[signer].undelegateDelay =
+            block.timestamp +
+            IProposal(_proposalModule).getProposalWindow();
+        require(checkBlock(msg.sender), "TW021");
+        IProposal(_proposalModule).receiveVote(
             signer,
-            IProposal(_proposalModule).getProposalStart(proposalId)
+            proposalId,
+            vote,
+            calculateWeight(signer)
         );
-        IProposal(_proposalModule).receiveVote(signer, proposalId, vote, votes);
     }
 
-    // function calculateWeight(address delegatee) public view returns (uint256) {
-    //     uint256 votes = delegations[delegatee].votes[delegatee];
-    //     require(delegations[delegatee].total > 0, "TW035");
-    //     return delegations[delegatee].total;
-    // }
+    function calculateWeight(address delegatee) public view returns (uint256) {
+        uint256 votes = delegations[delegatee].votes[delegatee];
+        require(delegations[delegatee].total > 0, "TW035");
+        return delegations[delegatee].total;
+    }
 
-    // function checkBlock(address delegatee) public view returns (bool) {
-    //     return (delegations[delegatee].lastBlock != block.number);
-    // }
+    function checkBlock(address delegatee) public view returns (bool) {
+        return (delegations[delegatee].lastBlock != block.number);
+    }
 
     /// @dev Generates the data for the module transaction hash (required for signing)
     function generateVoteHashData(
@@ -202,7 +184,7 @@ contract CompoundVoting {
                 VOTE_TYPEHASH,
                 delegatee,
                 proposalId,
-                getCompoundVotes(msg.sender, proposalId),
+                delegations[delegatee].votes[delegatee],
                 vote,
                 deadline,
                 nonces[delegatee]
@@ -214,18 +196,6 @@ contract CompoundVoting {
                 bytes1(0x01),
                 domainSeparator,
                 voteHash
-            );
-    }
-
-    function getCompoundVotes(address voter, uint256 proposalId)
-        public
-        view
-        returns (uint256)
-    {
-        return
-            ICompToken(_governanceToken).getPriorVotes(
-                voter,
-                IProposal(_proposalModule).getProposalStart(proposalId)
             );
     }
 

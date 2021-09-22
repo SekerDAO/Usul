@@ -4,8 +4,8 @@ pragma solidity ^0.8.6;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 
-/// @title Zodiac Module - A Zodiac module for introducing fully decentralized token weighted governance.
-/// @author Nathan Ginnever - <team@tokenwalk.com>
+/// @title Seele Module - A Zodiac module that enables a voting agnostic proposal mechanism.
+/// @author Nathan Ginnever - <team@tokenwalk.org>
 contract ProposalModule is Module {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
@@ -19,9 +19,19 @@ contract ProposalModule is Module {
     //     "Transaction(address to,uint256 value,bytes data,uint8 operation,uint256 nonce)"
     // );
 
+    /**
+     * @dev Supported vote types. Matches Governor Bravo ordering.
+     */
+    enum VoteType {
+        Against,
+        For,
+        Abstain
+    }
+
     struct Proposal {
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
+        uint256 abstainVotes; // introduce abstain votes
         bool queued;
         uint256 deadline; // voting deadline TODO: consider using block number
         address proposer;
@@ -75,6 +85,7 @@ contract ProposalModule is Module {
     event EnabledStrategy(address strategy);
     event DisabledStrategy(address strategy);
 
+    // move threshold to voting contracts
     constructor(uint256 _proposalWindow, uint256 _threshold) {
         bytes memory initParams = abi.encode(_proposalWindow, _threshold);
         setUp(initParams);
@@ -185,6 +196,13 @@ contract ProposalModule is Module {
         return proposals[proposalId].txHashes[index];
     }
 
+    /**
+     * @dev See {IGovernor-hasVoted}.
+     */
+    function hasVoted(uint256 proposalId, address account) public view returns (bool) {
+        return proposals[proposalId].hasVoted[account];
+    }
+
     function receiveVote(
         address voter,
         uint256 proposalId,
@@ -226,6 +244,7 @@ contract ProposalModule is Module {
     }
 
     function submitProposal(bytes32[] memory txHashes, address votingStrategy) public {
+        require(isStrategyEnabled(votingStrategy), "voting strategy is not enabled for proposal");
         // TODO: consider mapping here
         for (uint256 i; i < txHashes.length; i++) {
             proposals[totalProposalCount].executed.push(false);
