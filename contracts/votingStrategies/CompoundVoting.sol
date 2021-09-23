@@ -129,7 +129,7 @@ contract CompoundVoting {
 
     // todo: erc712 voting
 
-    function vote(uint256 proposalId, bool vote) public {
+    function vote(uint256 proposalId, uint8 vote) public {
         //require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(
             msg.sender,
@@ -145,7 +145,7 @@ contract CompoundVoting {
     function voteSignature(
         address delegatee,
         uint256 proposalId,
-        bool vote,
+        uint8 vote,
         uint256 deadline,
         uint8 v,
         bytes32 r,
@@ -181,7 +181,7 @@ contract CompoundVoting {
     function generateVoteHashData(
         address delegatee,
         uint256 proposalId,
-        bool vote,
+        uint8 vote,
         uint256 deadline
     ) public view returns (bytes memory) {
         uint256 chainId = getChainId();
@@ -229,7 +229,7 @@ contract CompoundVoting {
     function getVoteHash(
         address delegatee,
         uint256 proposalId,
-        bool vote,
+        uint8 vote,
         uint256 deadline
     ) public view returns (bytes32) {
         return

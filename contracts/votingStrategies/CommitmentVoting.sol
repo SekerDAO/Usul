@@ -98,7 +98,7 @@ contract CommitmentVoting {
 
     // todo: erc712 voting
 
-    function vote(uint256 proposalId, bool vote) external onlyMember {
+    function vote(uint256 proposalId, uint8 vote) external onlyMember {
         startVoting(msg.sender);
         require(checkBlock(msg.sender), "TW021");
         IProposal(_proposalModule).receiveVote(

@@ -304,7 +304,7 @@ describe("votingModules:", () => {
           ethers.BigNumber.from("500000000000000000")
         );
       await network.provider.send("evm_mine");
-      await proposalModule.connect(wallet_2).vote(0, true);
+      await proposalModule.connect(wallet_2).vote(0, 1);
       //await expect(proposalModule.connect(wallet_1).vote(0, true)).to.be.revertedWith("TW021")
       await network.provider.send("evm_mine");
       let votes = await linearVoting.getDelegatorVotes(
@@ -421,9 +421,9 @@ describe("votingModules:", () => {
         0
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.connect(wallet_1).vote(0, true);
+      await linearVoting.connect(wallet_1).vote(0, 1);
       await expect(
-        linearVoting.connect(wallet_1).vote(0, true)
+        linearVoting.connect(wallet_1).vote(0, 1)
       ).to.be.revertedWith("TW007");
     });
 
@@ -476,21 +476,21 @@ describe("votingModules:", () => {
         0
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.vote(0, true);
+      await linearVoting.vote(0, 1);
       await proposalModule
         .connect(wallet_1)
         .submitProposal([txHash], linearVoting.address);
-      await linearVoting.connect(wallet_1).vote(1, true);
+      await linearVoting.connect(wallet_1).vote(1, 1);
       await proposalModule
         .connect(wallet_2)
         .submitProposal([txHash], linearVoting.address);
-      await linearVoting.connect(wallet_2).vote(2, true);
-      await linearVoting.vote(1, true);
-      await linearVoting.vote(2, true);
-      await linearVoting.connect(wallet_1).vote(0, true);
-      await linearVoting.connect(wallet_1).vote(2, true);
-      await linearVoting.connect(wallet_2).vote(0, true);
-      await linearVoting.connect(wallet_2).vote(1, true);
+      await linearVoting.connect(wallet_2).vote(2, 1);
+      await linearVoting.vote(1, 1);
+      await linearVoting.vote(2, 1);
+      await linearVoting.connect(wallet_1).vote(0, 1);
+      await linearVoting.connect(wallet_1).vote(2, 1);
+      await linearVoting.connect(wallet_2).vote(0, 1);
+      await linearVoting.connect(wallet_2).vote(1, 1);
       await network.provider.send("evm_increaseTime", [60]);
       await proposalModule.startQueue(0);
       await proposalModule.startQueue(1);
@@ -574,21 +574,21 @@ describe("votingModules:", () => {
         0
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.vote(0, true);
+      await linearVoting.vote(0, 1);
       await proposalModule
         .connect(wallet_1)
         .submitProposal([txHash], linearVoting.address);
-      await linearVoting.connect(wallet_1).vote(1, true);
+      await linearVoting.connect(wallet_1).vote(1, 1);
       await proposalModule
         .connect(wallet_2)
         .submitProposal([txHash], linearVoting.address);
-      await linearVoting.connect(wallet_2).vote(2, true);
-      await linearVoting.vote(1, true);
-      await linearVoting.vote(2, true);
-      await linearVoting.connect(wallet_1).vote(0, true);
-      await linearVoting.connect(wallet_1).vote(2, true);
-      await linearVoting.connect(wallet_2).vote(0, true);
-      await linearVoting.connect(wallet_2).vote(1, true);
+      await linearVoting.connect(wallet_2).vote(2, 1);
+      await linearVoting.vote(1, 1);
+      await linearVoting.vote(2, 1);
+      await linearVoting.connect(wallet_1).vote(0, 1);
+      await linearVoting.connect(wallet_1).vote(2, 1);
+      await linearVoting.connect(wallet_2).vote(0, 1);
+      await linearVoting.connect(wallet_2).vote(1, 1);
       await network.provider.send("evm_increaseTime", [60]);
       await proposalModule.startQueue(0);
       await proposalModule.startQueue(1);
@@ -639,6 +639,10 @@ describe("votingModules:", () => {
         ethers.BigNumber.from("49997000000000000000000")
       );
     });
+
+    // todo test no votes
+
+    // todo test abstain votes
 
     it("can vote with ERC712 offchain signature", async () => {
       const { proposalModule, linearVoting, safe, govToken } =

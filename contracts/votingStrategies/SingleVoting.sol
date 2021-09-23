@@ -62,7 +62,7 @@ contract SingleVoting {
 
     // todo: erc712 voting
 
-    function vote(uint256 proposalId, bool vote) external onlyMember {
+    function vote(uint256 proposalId, uint8 vote) external onlyMember {
         IProposal(_proposalModule).receiveVote(msg.sender, proposalId, vote, 1);
     }
 }

@@ -346,7 +346,7 @@ describe("proposalModule:", () => {
       );
 
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.vote(0, true);
+      await linearVoting.vote(0, 1);
       let proposal = await proposalModule.proposals(0);
       expect(proposal.yesVotes).to.equal(
         ethers.BigNumber.from("500000000000000000")
@@ -380,7 +380,7 @@ describe("proposalModule:", () => {
         0
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.vote(0, true);
+      await linearVoting.vote(0, 1);
       await expect(proposalModule.startQueue(0)).to.be.revertedWith("TW014");
     });
 
@@ -451,7 +451,7 @@ describe("proposalModule:", () => {
         0
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.vote(0, true);
+      await linearVoting.vote(0, 1);
       let proposal = await proposalModule.proposals(0);
       expect(proposal.yesVotes).to.equal(
         ethers.BigNumber.from("1000000000000000000")
@@ -514,7 +514,7 @@ describe("proposalModule:", () => {
         0
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.vote(0, true);
+      await linearVoting.vote(0, 1);
       await network.provider.send("evm_increaseTime", [60]);
       await proposalModule.startQueue(0);
       await executeContractCallWithSigners(
@@ -581,7 +581,7 @@ describe("proposalModule:", () => {
         0
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.vote(0, true);
+      await linearVoting.vote(0, 1);
       await proposalModule.cancelProposal(0);
       let proposal = await proposalModule.proposals(0);
       expect(proposal.canceled).to.equal(true);
@@ -672,7 +672,7 @@ describe("proposalModule:", () => {
         0
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.vote(0, true);
+      await linearVoting.vote(0, 1);
       await executeContractCallWithSigners(
         safe,
         proposalModule,
@@ -768,8 +768,8 @@ describe("proposalModule:", () => {
         [txHash_0, txHash_1, txHash_2],
         linearVoting.address
       );
-      await linearVoting.vote(0, true);
-      await linearVoting.connect(wallet_1).vote(0, true);
+      await linearVoting.vote(0, 1);
+      await linearVoting.connect(wallet_1).vote(0, 1);
       await network.provider.send("evm_increaseTime", [60]);
       await proposalModule.startQueue(0);
       await network.provider.send("evm_increaseTime", [60]);
@@ -864,8 +864,8 @@ describe("proposalModule:", () => {
         0
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
-      await linearVoting.vote(0, true);
-      await linearVoting.connect(wallet_1).vote(0, true);
+      await linearVoting.vote(0, 1);
+      await linearVoting.connect(wallet_1).vote(0, 1);
       await network.provider.send("evm_increaseTime", [60]);
       await proposalModule.startQueue(0);
       await network.provider.send("evm_increaseTime", [60]);

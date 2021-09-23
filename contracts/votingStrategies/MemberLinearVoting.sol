@@ -122,7 +122,7 @@ contract MemberLinearVoting {
 
     // todo: erc712 voting
 
-    function vote(uint256 proposalId, bool vote) public onlyMember {
+    function vote(uint256 proposalId, uint8 vote) public onlyMember {
         delegations[msg.sender].undelegateDelay =
             block.timestamp +
             IProposal(_proposalModule).getProposalWindow();
@@ -138,7 +138,7 @@ contract MemberLinearVoting {
     function voteSignature(
         address delegatee,
         uint256 proposalId,
-        bool vote,
+        uint8 vote,
         uint256 deadline,
         uint8 v,
         bytes32 r,
@@ -179,7 +179,7 @@ contract MemberLinearVoting {
     function generateVoteHashData(
         address delegatee,
         uint256 proposalId,
-        bool vote,
+        uint8 vote,
         uint256 deadline
     ) public view returns (bytes memory) {
         uint256 chainId = getChainId();
@@ -215,7 +215,7 @@ contract MemberLinearVoting {
     function getVoteHash(
         address delegatee,
         uint256 proposalId,
-        bool vote,
+        uint8 vote,
         uint256 deadline
     ) public view returns (bytes32) {
         return

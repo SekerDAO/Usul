@@ -6,7 +6,7 @@ interface IProposal {
     function receiveVote(
         address voter,
         uint256 proposalId,
-        bool vote,
+        uint8 vote,
         uint256 weight
     ) external;
 

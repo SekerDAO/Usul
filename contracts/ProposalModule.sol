@@ -206,7 +206,7 @@ contract ProposalModule is Module {
     function receiveVote(
         address voter,
         uint256 proposalId,
-        bool vote,
+        uint8 vote,
         uint256 weight
     ) external strategyOnly {
         require(msg.sender == proposals[proposalId].votingStrategy, "vote from incorrect strategy");
@@ -216,14 +216,20 @@ contract ProposalModule is Module {
 
         proposals[proposalId].hasVoted[voter] = true;
 
-        if (vote == true) {
-            proposals[proposalId].yesVotes =
-                proposals[proposalId].yesVotes +
-                weight;
-        } else {
+        if (vote == uint8(VoteType.Against)) {
             proposals[proposalId].noVotes =
                 proposals[proposalId].noVotes +
                 weight;
+        } else if (vote == uint8(VoteType.For)) {
+            proposals[proposalId].yesVotes =
+                proposals[proposalId].yesVotes +
+                weight;
+        } else if (vote == uint8(VoteType.Abstain)) {
+            proposals[proposalId].abstainVotes =
+                proposals[proposalId].abstainVotes +
+                weight;
+        } else {
+            revert("invalid value for enum VoteType");
         }
     }
 
