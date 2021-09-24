@@ -424,7 +424,7 @@ describe("votingModules:", () => {
       await linearVoting.connect(wallet_1).vote(0, 1);
       await expect(
         linearVoting.connect(wallet_1).vote(0, 1)
-      ).to.be.revertedWith("TW007");
+      ).to.be.revertedWith("account has already voted");
     });
 
     it("can vote on multiple proposals", async () => {

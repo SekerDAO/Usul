@@ -19,9 +19,7 @@ contract ProposalModule is Module {
     //     "Transaction(address to,uint256 value,bytes data,uint8 operation,uint256 nonce)"
     // );
 
-    /**
-     * @dev Supported vote types. Matches Governor Bravo ordering.
-     */
+    /// @dev Supported vote types. Matches Governor Bravo ordering.
     enum VoteType {
         Against,
         For,
@@ -44,10 +42,10 @@ contract ProposalModule is Module {
         address votingStrategy; // the module that is allowed to vote on this
     }
 
-    uint256 public totalProposalCount;
-    uint256 public proposalWindow;
-    uint256 public gracePeriod = 60 seconds; //3 days; TODO: Remove and use the Zodiac Delay modifier
-    uint256 public threshold;
+    uint256 public totalProposalCount; // total number of submitted proposals
+    uint256 public proposalWindow; // the length of time voting is valid for a proposal
+    uint256 public gracePeriod = 60 seconds; // 3 days;
+    uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
     address internal constant SENTINEL_STRATEGY = address(0x1);
 
     // mapping of proposal id to proposal
@@ -57,8 +55,8 @@ contract ProposalModule is Module {
     // Mapping of modules
     mapping(address => address) internal strategies;
 
-    modifier onlyExecutor() {
-        require(msg.sender == avatar, "TW001");
+    modifier onlyAvatar() {
+        require(msg.sender == avatar, "only the avatar may enter");
         _;
     }
 
@@ -68,12 +66,13 @@ contract ProposalModule is Module {
     }
 
     modifier isPassed(uint256 proposalId) {
-        require(proposals[proposalId].canceled == false, "TW002");
-        require(proposals[proposalId].executionCounter != 0, "TW003");
-        require(proposals[proposalId].yesVotes >= threshold, "TW004");
+        require(proposals[proposalId].canceled == false, "the proposal was canceled before passing");
+        require(proposals[proposalId].executionCounter != 0, "the proposal has already been executed fully");
+        require(proposals[proposalId].yesVotes > proposals[proposalId].noVotes, "the yesVotes must be strictly over the noVotes");
+        require(proposals[proposalId].yesVotes + proposals[proposalId].abstainVotes >= quorumThreshold, "a quorum has not been reached for the proposal");
         require(
             proposals[proposalId].yesVotes >= proposals[proposalId].noVotes,
-            "TW005"
+            "More no votes than yes votes"
         );
         _;
     }
@@ -81,24 +80,24 @@ contract ProposalModule is Module {
     event ProposalCreated(uint256 number);
     event GracePeriodStarted(uint256 endDate);
     event ProposalExecuted(uint256 id);
-    event SeeleSetup(address indexed initiator, uint256 indexed proposalWindow, uint256 indexed threshold);
+    event SeeleSetup(address initiator, uint256 proposalWindow, uint256 quorumThreshold);
     event EnabledStrategy(address strategy);
     event DisabledStrategy(address strategy);
 
     // move threshold to voting contracts
-    constructor(uint256 _proposalWindow, uint256 _threshold) {
-        bytes memory initParams = abi.encode(_proposalWindow, _threshold);
+    constructor(uint256 _proposalWindow, uint256 _quorumThreshold) {
+        bytes memory initParams = abi.encode(_proposalWindow, _quorumThreshold);
         setUp(initParams);
     }
 
     function setUp(bytes memory initParams) public override {
-        (uint256 _proposalWindow, uint256 _threshold) = abi.decode(initParams, (uint256, uint256));
+        (uint256 _proposalWindow, uint256 _quorumThreshold) = abi.decode(initParams, (uint256, uint256));
         __Ownable_init();
         require(_proposalWindow >= 1, "proposal window must be greater than 1");
         proposalWindow = _proposalWindow * 1 minutes; //days;
-        threshold = _threshold;
+        quorumThreshold = _quorumThreshold;
         setupStrategies();
-        emit SeeleSetup(msg.sender, _proposalWindow, _threshold);
+        emit SeeleSetup(msg.sender, _proposalWindow, _quorumThreshold);
     }
 
     function setupStrategies() internal {
@@ -110,7 +109,7 @@ contract ProposalModule is Module {
     }
 
     /// @dev Disables a voting strategy on the module
-    /// @param prevStrategy Strategy that pointed to the module to be removed in the linked list
+    /// @param prevStrategy Strategy that pointed to the strategy to be removed in the linked list
     /// @param strategy Strategy to be removed
     /// @notice This can only be called by the owner
     function disableStrategy(address prevStrategy, address strategy)
@@ -127,8 +126,8 @@ contract ProposalModule is Module {
         emit DisabledStrategy(strategy);
     }
 
-    /// @dev Enables a voting strategy that can add transactions to the queue
-    /// @param strategy Address of the module to be enabled
+    /// @dev Enables a voting strategy that can vote on proposals
+    /// @param strategy Address of the strategy to be enabled
     /// @notice This can only be called by the owner
     function enableStrategy(address strategy) public onlyOwner {
         require(
@@ -141,16 +140,16 @@ contract ProposalModule is Module {
         emit EnabledStrategy(strategy);
     }
 
-    /// @dev Returns if an module is enabled
-    /// @return True if the module is enabled
+    /// @dev Returns if a strategy is enabled
+    /// @return True if the strategy is enabled
     function isStrategyEnabled(address _strategy) public view returns (bool) {
         return SENTINEL_STRATEGY != _strategy && strategies[_strategy] != address(0);
     }
 
-    /// @dev Returns array of modules.
+    /// @dev Returns array of strategy.
     /// @param start Start of the page.
-    /// @param pageSize Maximum number of modules that should be returned.
-    /// @return array Array of modules.
+    /// @param pageSize Maximum number of strategy that should be returned.
+    /// @return array Array of strategy.
     /// @return next Start of the next page.
     function getStrategiesPaginated(address start, uint256 pageSize)
         external
@@ -180,6 +179,10 @@ contract ProposalModule is Module {
         }
     }
 
+    /// @dev Returns true if a proposal transaction by index is exectuted.
+    /// @param proposalId the proposal to inspect.
+    /// @param index the transaction to inspect.
+    /// @return boolean.
     function isExecuted(uint256 proposalId, uint256 index)
         public
         view
@@ -188,6 +191,10 @@ contract ProposalModule is Module {
         return proposals[proposalId].executed[index];
     }
 
+    /// @dev Returns the hash of a transaction in a proposal.
+    /// @param proposalId the proposal to inspect.
+    /// @param index the transaction to inspect.
+    /// @return transaction hash.
     function getTxHash(uint256 proposalId, uint256 index)
         public
         view
@@ -196,13 +203,43 @@ contract ProposalModule is Module {
         return proposals[proposalId].txHashes[index];
     }
 
-    /**
-     * @dev See {IGovernor-hasVoted}.
-     */
+    /// @dev Returns true if an account has voted on a specific proposal.
+    /// @param proposalId the proposal to inspect.
+    /// @param account the account to inspect.
+    /// @return boolean.
     function hasVoted(uint256 proposalId, address account) public view returns (bool) {
         return proposals[proposalId].hasVoted[account];
     }
 
+    /// @dev Returns the length of time that proposals are active for voting.
+    /// @return length of proposals.
+    function getProposalWindow() public view returns (uint256) {
+        return proposalWindow;
+    }
+
+    /// @dev Updates the quorum needed to pass a proposal, only executor.
+    /// @param _quorumThreshold the voting quorum threshold.
+    function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
+        quorumThreshold = _quorumThreshold;
+    }
+
+    /// @dev Updates the time that proposals are active for voting.
+    /// @param newWindow the voting window.
+    function updateproposalWindow(uint256 newWindow) external onlyAvatar {
+        proposalWindow = newWindow;
+    }
+
+    /// @dev Updates the grace period time after a proposal passed before it can execute.
+    /// @param gracePeriod the new delay before execution.
+    function updateGracePeriod(uint256 gracePeriod) external onlyAvatar {
+        gracePeriod = gracePeriod;
+    }
+
+    /// @dev Receives a vote and weight from a voting strategy.
+    /// @param voter the account that is casting the vote.
+    /// @param proposalId identifier of the proposal to receive the vote.
+    /// @param vote a VoteType enum, 0 = no, 1 = yes, 2 = abstain.
+    /// @param weight the weight of the vote determined by the strategy.
     function receiveVote(
         address voter,
         uint256 proposalId,
@@ -210,9 +247,9 @@ contract ProposalModule is Module {
         uint256 weight
     ) external strategyOnly {
         require(msg.sender == proposals[proposalId].votingStrategy, "vote from incorrect strategy");
-        require(proposals[proposalId].hasVoted[voter] == false, "TW007");
-        require(proposals[proposalId].canceled == false, "TW008");
-        require(proposals[proposalId].deadline >= block.timestamp, "TW010");
+        require(proposals[proposalId].hasVoted[voter] == false, "account has already voted");
+        require(proposals[proposalId].canceled == false, "proposal has been canceled during vote window");
+        require(proposals[proposalId].deadline >= block.timestamp, "proposal voting window has passed");
 
         proposals[proposalId].hasVoted[voter] = true;
 
@@ -231,22 +268,6 @@ contract ProposalModule is Module {
         } else {
             revert("invalid value for enum VoteType");
         }
-    }
-
-    function getProposalWindow() public view returns (uint256) {
-        return proposalWindow;
-    }
-
-    function updateThreshold(uint256 threshold) external onlyExecutor {
-        threshold = threshold;
-    }
-
-    function updateproposalWindow(uint256 newWindow) external onlyExecutor {
-        proposalWindow = newWindow;
-    }
-
-    function updateGracePeriod(uint256 gracePeriod) external onlyExecutor {
-        gracePeriod = gracePeriod;
     }
 
     function submitProposal(bytes32[] memory txHashes, address votingStrategy) public {

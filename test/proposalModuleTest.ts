@@ -136,7 +136,7 @@ describe("proposalModule:", () => {
       expect(await proposalModule.owner()).to.equal(safe.address);
       expect(await proposalModule.proposalWindow()).to.equal(60);
       expect(await proposalModule.gracePeriod()).to.equal(60);
-      expect(await proposalModule.threshold()).to.equal("1000000000000000000");
+      expect(await proposalModule.quorumThreshold()).to.equal("1000000000000000000");
       expect(await linearVoting.governanceToken()).to.equal(govToken.address);
     });
 
@@ -352,7 +352,7 @@ describe("proposalModule:", () => {
         ethers.BigNumber.from("500000000000000000")
       );
       await network.provider.send("evm_increaseTime", [60]);
-      await expect(proposalModule.startQueue(0)).to.be.revertedWith("TW004");
+      await expect(proposalModule.startQueue(0)).to.be.revertedWith("a quorum has not been reached for the proposal");
     });
 
     it("cannot enter queue if not past deadline", async () => {
@@ -682,7 +682,7 @@ describe("proposalModule:", () => {
       );
       let proposal = await proposalModule.proposals(0);
       await network.provider.send("evm_increaseTime", [60]);
-      await expect(proposalModule.startQueue(0)).to.be.revertedWith("TW002");
+      await expect(proposalModule.startQueue(0)).to.be.revertedWith("the proposal was canceled before passing");
     });
 
     it("can execute batch", async () => {
