@@ -8,4 +8,6 @@ interface IVoting {
     function startVoting(address delegatee) external;
 
     function checkBlock(address delegatee) external view returns (bool);
+
+    function getThreshold() external view returns (uint256);
 }

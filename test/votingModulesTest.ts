@@ -83,8 +83,7 @@ describe("votingModules:", () => {
 
     const proposalContract = await ethers.getContractFactory("ProposalModule");
     const proposalModule = await proposalContract.deploy(
-      ethers.BigNumber.from(1), // number of days proposals are active
-      ethers.BigNumber.from("1000000000000000000") // number of votes wieghted to pass
+      ethers.BigNumber.from(1) // number of days proposals are active
     );
 
     // TODO: Use common setup pattern
@@ -96,6 +95,7 @@ describe("votingModules:", () => {
     const linearVoting = await linearContract.deploy(
       govToken.address,
       proposalModule.address,
+      ethers.BigNumber.from("1000000000000000000"), // number of votes wieghted to pass
       safe.address
     );
 

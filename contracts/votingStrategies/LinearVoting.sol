@@ -32,16 +32,17 @@ contract LinearVoting {
         uint256 total;
     }
 
-    address private _governanceToken;
-    address private _proposalModule;
+    address public governanceToken;
+    address public proposalModule;
+    uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
     /// @dev Address that this module will pass transactions to.
-    address public executor;
+    address public avatar;
 
     mapping(address => uint256) public nonces;
     mapping(address => Delegation) public delegations;
 
-    modifier onlyExecutor() {
-        require(msg.sender == executor, "TW001");
+    modifier onlyAvatar() {
+        require(msg.sender == avatar, "TW001");
         _;
     }
 
@@ -49,23 +50,19 @@ contract LinearVoting {
     event VotesUndelegated(uint256 number);
 
     constructor(
-        address governanceToken_,
-        address proposalModule_,
-        address executor_
+        address _governanceToken,
+        address _proposalModule,
+        uint256 _quorumThreshold,
+        address _avatar
     ) {
-        _governanceToken = governanceToken_;
-        _proposalModule = proposalModule_;
-        executor = executor_;
+        governanceToken = _governanceToken;
+        proposalModule = _proposalModule;
+        quorumThreshold = _quorumThreshold;
+        avatar = _avatar;
     }
 
-    /// @dev Sets the executor to a new account (`newExecutor`).
-    /// @notice Can only be called by the current owner.
-    function setExecutor(address _executor) public onlyExecutor {
-        executor = _executor;
-    }
-
-    function governanceToken() public view virtual returns (address) {
-        return _governanceToken;
+    function getThreshold() external view returns (uint256) {
+        return quorumThreshold;
     }
 
     function getDelegatorVotes(address delegatee, address delegator)
@@ -77,10 +74,22 @@ contract LinearVoting {
         return delegations[delegatee].votes[delegator];
     }
 
+    /// @dev Sets the executor to a new account (`newExecutor`).
+    /// @notice Can only be called by the current owner.
+    function setAvatar(address _avatar) public onlyAvatar {
+        avatar = _avatar;
+    }
+
+    /// @dev Updates the quorum needed to pass a proposal, only executor.
+    /// @param _quorumThreshold the voting quorum threshold.
+    function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
+        quorumThreshold = _quorumThreshold;
+    }
+
     // todo erc712 delegation
     // ensure all votes are delegated
     function delegateVotes(address delegatee, uint256 amount) external {
-        IERC20(_governanceToken).safeTransferFrom(
+        IERC20(governanceToken).safeTransferFrom(
             msg.sender,
             address(this),
             amount
@@ -101,7 +110,7 @@ contract LinearVoting {
             "TW024"
         );
         require(delegations[delegatee].votes[msg.sender] >= amount, "TW020");
-        IERC20(_governanceToken).safeTransfer(msg.sender, amount);
+        IERC20(governanceToken).safeTransfer(msg.sender, amount);
         delegations[delegatee].votes[msg.sender] = delegations[delegatee]
             .votes[msg.sender]
             .sub(amount);
@@ -113,9 +122,9 @@ contract LinearVoting {
     function vote(uint256 proposalId, uint8 vote) public {
         delegations[msg.sender].undelegateDelay =
             block.timestamp +
-            IProposal(_proposalModule).getProposalWindow();
+            IProposal(proposalModule).getProposalWindow();
         require(checkBlock(msg.sender), "TW021");
-        IProposal(_proposalModule).receiveVote(
+        IProposal(proposalModule).receiveVote(
             msg.sender,
             proposalId,
             vote,
@@ -142,9 +151,9 @@ contract LinearVoting {
         nonces[signer]++;
         delegations[signer].undelegateDelay =
             block.timestamp +
-            IProposal(_proposalModule).getProposalWindow();
+            IProposal(proposalModule).getProposalWindow();
         require(checkBlock(msg.sender), "TW021");
-        IProposal(_proposalModule).receiveVote(
+        IProposal(proposalModule).receiveVote(
             signer,
             proposalId,
             vote,

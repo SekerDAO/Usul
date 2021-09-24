@@ -3,6 +3,7 @@
 pragma solidity ^0.8.6;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
+import "./interfaces/IVoting.sol";
 
 /// @title Seele Module - A Zodiac module that enables a voting agnostic proposal mechanism.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
@@ -45,7 +46,6 @@ contract ProposalModule is Module {
     uint256 public totalProposalCount; // total number of submitted proposals
     uint256 public proposalWindow; // the length of time voting is valid for a proposal
     uint256 public gracePeriod = 60 seconds; // 3 days;
-    uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
     address internal constant SENTINEL_STRATEGY = address(0x1);
 
     // mapping of proposal id to proposal
@@ -65,11 +65,11 @@ contract ProposalModule is Module {
         _;
     }
 
-    modifier isPassed(uint256 proposalId) {
+    modifier isPassed(uint256 proposalId, address votingStrategy) {
         require(proposals[proposalId].canceled == false, "the proposal was canceled before passing");
         require(proposals[proposalId].executionCounter != 0, "the proposal has already been executed fully");
         require(proposals[proposalId].yesVotes > proposals[proposalId].noVotes, "the yesVotes must be strictly over the noVotes");
-        require(proposals[proposalId].yesVotes + proposals[proposalId].abstainVotes >= quorumThreshold, "a quorum has not been reached for the proposal");
+        require(proposals[proposalId].yesVotes + proposals[proposalId].abstainVotes >= IVoting(votingStrategy).getThreshold(), "a quorum has not been reached for the proposal");
         require(
             proposals[proposalId].yesVotes >= proposals[proposalId].noVotes,
             "More no votes than yes votes"
@@ -80,24 +80,23 @@ contract ProposalModule is Module {
     event ProposalCreated(uint256 number);
     event GracePeriodStarted(uint256 endDate);
     event ProposalExecuted(uint256 id);
-    event SeeleSetup(address initiator, uint256 proposalWindow, uint256 quorumThreshold);
+    event SeeleSetup(address initiator, uint256 proposalWindow);
     event EnabledStrategy(address strategy);
     event DisabledStrategy(address strategy);
 
     // move threshold to voting contracts
-    constructor(uint256 _proposalWindow, uint256 _quorumThreshold) {
-        bytes memory initParams = abi.encode(_proposalWindow, _quorumThreshold);
+    constructor(uint256 _proposalWindow) {
+        bytes memory initParams = abi.encode(_proposalWindow);
         setUp(initParams);
     }
 
     function setUp(bytes memory initParams) public override {
-        (uint256 _proposalWindow, uint256 _quorumThreshold) = abi.decode(initParams, (uint256, uint256));
+        (uint256 _proposalWindow) = abi.decode(initParams, (uint256));
         __Ownable_init();
         require(_proposalWindow >= 1, "proposal window must be greater than 1");
         proposalWindow = _proposalWindow * 1 minutes; //days;
-        quorumThreshold = _quorumThreshold;
         setupStrategies();
-        emit SeeleSetup(msg.sender, _proposalWindow, _quorumThreshold);
+        emit SeeleSetup(msg.sender, _proposalWindow);
     }
 
     function setupStrategies() internal {
@@ -217,12 +216,6 @@ contract ProposalModule is Module {
         return proposalWindow;
     }
 
-    /// @dev Updates the quorum needed to pass a proposal, only executor.
-    /// @param _quorumThreshold the voting quorum threshold.
-    function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
-        quorumThreshold = _quorumThreshold;
-    }
-
     /// @dev Updates the time that proposals are active for voting.
     /// @param newWindow the voting window.
     function updateproposalWindow(uint256 newWindow) external onlyAvatar {
@@ -287,7 +280,7 @@ contract ProposalModule is Module {
         emit ProposalCreated(totalProposalCount - 1);
     }
 
-    function startQueue(uint256 proposalId) external isPassed(proposalId) {
+    function startQueue(uint256 proposalId) external isPassed(proposalId, proposals[proposalId].votingStrategy) {
         require(proposals[proposalId].deadline <= block.timestamp, "TW014");
         require(proposals[proposalId].canceled == false, "TW023");
         proposals[proposalId].gracePeriod = block.timestamp + gracePeriod;
@@ -302,7 +295,7 @@ contract ProposalModule is Module {
         bytes memory data,
         Enum.Operation operation,
         uint256 txIndex
-    ) external isPassed(proposalId) {
+    ) external isPassed(proposalId, proposals[proposalId].votingStrategy) {
         require(
             block.timestamp >= proposals[proposalId].gracePeriod &&
                 proposals[proposalId].gracePeriod != 0,
@@ -337,7 +330,7 @@ contract ProposalModule is Module {
         Enum.Operation[] memory operations,
         uint256 startIndex,
         uint256 txCount
-    ) external isPassed(proposalId) {
+    ) external isPassed(proposalId, proposals[proposalId].votingStrategy) {
         require(
             block.timestamp >= proposals[proposalId].gracePeriod &&
                 proposals[proposalId].gracePeriod != 0,

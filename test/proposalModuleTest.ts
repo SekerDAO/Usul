@@ -78,8 +78,7 @@ describe("proposalModule:", () => {
 
     const proposalContract = await ethers.getContractFactory("ProposalModule");
     const proposalModule = await proposalContract.deploy(
-      ethers.BigNumber.from(1), // number of days proposals are active
-      ethers.BigNumber.from("1000000000000000000") // number of votes wieghted to pass
+      ethers.BigNumber.from(1) // number of days proposals are active
     );
 
     // TODO: Use common setup pattern
@@ -91,6 +90,7 @@ describe("proposalModule:", () => {
     const linearVoting = await linearContract.deploy(
       govToken.address,
       proposalModule.address,
+      ethers.BigNumber.from("1000000000000000000"), // number of votes wieghted to pass
       safe.address
     );
 
@@ -136,7 +136,7 @@ describe("proposalModule:", () => {
       expect(await proposalModule.owner()).to.equal(safe.address);
       expect(await proposalModule.proposalWindow()).to.equal(60);
       expect(await proposalModule.gracePeriod()).to.equal(60);
-      expect(await proposalModule.quorumThreshold()).to.equal("1000000000000000000");
+      expect(await linearVoting.quorumThreshold()).to.equal("1000000000000000000");
       expect(await linearVoting.governanceToken()).to.equal(govToken.address);
     });
 
