@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../common/Enum.sol";
 import "../interfaces/IProposal.sol";
 
+// create POAP version
+// create BrightID version
 contract SingleVoting {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;

@@ -96,7 +96,8 @@ describe("votingModules:", () => {
       govToken.address,
       proposalModule.address,
       ethers.BigNumber.from("1000000000000000000"), // number of votes wieghted to pass
-      safe.address
+      safe.address,
+      "Test"
     );
 
     await govToken.transfer(
@@ -644,7 +645,7 @@ describe("votingModules:", () => {
 
     // todo test abstain votes
 
-    it("can vote with ERC712 offchain signature", async () => {
+    it.skip("can vote with ERC712 offchain signature", async () => {
       const { proposalModule, linearVoting, safe, govToken } =
         await baseSetup();
       await govToken.approve(
@@ -839,7 +840,7 @@ describe("votingModules:", () => {
       console.log(voteHash);
       const typehash = ethers.utils.keccak256(
         ethers.utils.toUtf8Bytes(
-          "Vote(address delegatee, uint256 proposalId, uint256 votes, bool vote, uint256 deadline, uint256 nonce)"
+          "Vote(uint256 proposalId,uint8 vote)"
         )
       );
       console.log(typehash);
@@ -905,35 +906,12 @@ describe("votingModules:", () => {
       console.log(wallet_0.address);
       await linearVoting
         .connect(wallet_1)
-        .voteSignature(wallet_0.address, 0, 1, deadline, v, r, s);
+        .voteSignature(wallet_0.address, 0, 1, v, r, s);
 
       let proposal = await proposalModule.proposals(0);
       expect(proposal.yesVotes).to.equal(
         ethers.BigNumber.from("500000000000000000")
       );
-      // await linearVoting.connect(wallet_1).vote(0, 1);
-      // proposal = await proposalModule.proposals(0);
-      // expect(proposal.yesVotes).to.equal(
-      //   ethers.BigNumber.from("1000000000000000000")
-      // );
-      // await network.provider.send("evm_increaseTime", [60]);
-      // await proposalModule.startQueue(0);
-      // proposal = await proposalModule.proposals(0);
-      // expect(proposal.queued).to.equal(true);
-      // await network.provider.send("evm_increaseTime", [60]);
-      // await proposalModule.executeProposalByIndex(
-      //   0, // proposalId
-      //   safe.address, // target
-      //   0, // value
-      //   addCall.data, // data
-      //   0, // call operation
-      //   0 // txHash index
-      // );
-      // proposal = await proposalModule.proposals(0);
-      // //expect(proposal.executed).to.equal(true);
-      // const owners = await safe.getOwners();
-      // expect(owners[0]).to.equal(wallet_2.address);
-      // expect(owners[1]).to.equal(wallet_0.address);
     });
   });
   // can use the safe and a cancel proposal role

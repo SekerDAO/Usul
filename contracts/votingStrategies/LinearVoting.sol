@@ -4,26 +4,15 @@ pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "../common/Enum.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "../interfaces/IProposal.sol";
 
-contract LinearVoting {
-    using SafeMath for uint256;
+// refactor with OZ delegation 
+contract LinearVoting is EIP712 {
     using SafeERC20 for IERC20;
 
-    bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
-        0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
-    // keccak256(
-    //     "EIP712Domain(uint256 chainId,address verifyingContract)"
-    // );
-
-    // todo FIX
-    bytes32 public constant VOTE_TYPEHASH =
-        0x17c0c894efb0e2d2868a370783df75623a0365af090e935de3c5f6f761aaa153;
-    // keccak256(
-    //     "Vote(address delegatee, uint256 proposalId, uint256 votes, bool vote, uint256 deadline, uint256 nonce)"
-    // );
+    bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(uint256 proposalId,uint8 vote)");
 
     struct Delegation {
         mapping(address => uint256) votes;
@@ -37,6 +26,7 @@ contract LinearVoting {
     uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
     /// @dev Address that this module will pass transactions to.
     address public avatar;
+    string private _name;
 
     mapping(address => uint256) public nonces;
     mapping(address => Delegation) public delegations;
@@ -53,12 +43,28 @@ contract LinearVoting {
         address _governanceToken,
         address _proposalModule,
         uint256 _quorumThreshold,
-        address _avatar
-    ) {
+        address _avatar,
+        string memory name_
+    ) EIP712(name_, version()) {
         governanceToken = _governanceToken;
         proposalModule = _proposalModule;
         quorumThreshold = _quorumThreshold;
         avatar = _avatar;
+        _name = name_;
+    }
+
+    /**
+     * @dev See {IGovernor-name}.
+     */
+    function name() public view virtual returns (string memory) {
+        return _name;
+    }
+
+    /**
+     * @dev See {IGovernor-version}.
+     */
+    function version() public view virtual returns (string memory) {
+        return "1";
     }
 
     function getThreshold() external view returns (uint256) {
@@ -95,11 +101,10 @@ contract LinearVoting {
             amount
         );
         delegations[delegatee].votes[msg.sender] = delegations[delegatee]
-            .votes[msg.sender]
-            .add(amount);
+            .votes[msg.sender] + amount;
         delegations[delegatee].lastBlock = block.number;
         // can make the total 1-1 here
-        delegations[delegatee].total = delegations[delegatee].total.add(amount);
+        delegations[delegatee].total = delegations[delegatee].total + amount;
     }
 
     // todo remove
@@ -112,9 +117,8 @@ contract LinearVoting {
         require(delegations[delegatee].votes[msg.sender] >= amount, "TW020");
         IERC20(governanceToken).safeTransfer(msg.sender, amount);
         delegations[delegatee].votes[msg.sender] = delegations[delegatee]
-            .votes[msg.sender]
-            .sub(amount);
-        delegations[delegatee].total = delegations[delegatee].total.sub(amount);
+            .votes[msg.sender] - amount;
+        delegations[delegatee].total = delegations[delegatee].total - amount;
     }
 
     // todo: erc712 voting
@@ -136,28 +140,29 @@ contract LinearVoting {
         address delegatee,
         uint256 proposalId,
         uint8 vote,
-        uint256 deadline,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) external {
-        require(block.timestamp <= deadline, "Deadline Expired");
-        bytes32 voteHash = getVoteHash(delegatee, proposalId, vote, deadline);
-        address signer = ecrecover(voteHash, v, r, s);
-        require(
-            signer != address(0) && signer == delegatee,
-            "signer doesn not match delegatee"
+        address voter = ECDSA.recover(
+            _hashTypedDataV4(keccak256(abi.encode(VOTE_TYPEHASH, proposalId, vote))),
+            v,
+            r,
+            s
         );
-        nonces[signer]++;
-        delegations[signer].undelegateDelay =
+        require(
+            voter != address(0) && voter == delegatee,
+            "voter doesn not match delegatee"
+        );
+        delegations[voter].undelegateDelay =
             block.timestamp +
             IProposal(proposalModule).getProposalWindow();
         require(checkBlock(msg.sender), "TW021");
         IProposal(proposalModule).receiveVote(
-            signer,
+            voter,
             proposalId,
             vote,
-            calculateWeight(signer)
+            calculateWeight(voter)
         );
     }
 
@@ -169,55 +174,6 @@ contract LinearVoting {
 
     function checkBlock(address delegatee) public view returns (bool) {
         return (delegations[delegatee].lastBlock != block.number);
-    }
-
-    /// @dev Generates the data for the module transaction hash (required for signing)
-    function generateVoteHashData(
-        address delegatee,
-        uint256 proposalId,
-        uint8 vote,
-        uint256 deadline
-    ) public view returns (bytes memory) {
-        uint256 chainId = getChainId();
-        bytes32 domainSeparator = keccak256(
-            abi.encode(
-                DOMAIN_SEPARATOR_TYPEHASH,
-                // keccak256(bytes(name)),
-                // keccak256(bytes("1")),
-                chainId,
-                this
-            )
-        );
-        bytes32 voteHash = keccak256(
-            abi.encode(
-                VOTE_TYPEHASH,
-                delegatee,
-                proposalId,
-                delegations[delegatee].votes[delegatee],
-                vote,
-                deadline,
-                nonces[delegatee]
-            )
-        );
-        return
-            abi.encodePacked(
-                bytes1(0x19),
-                bytes1(0x01),
-                domainSeparator,
-                voteHash
-            );
-    }
-
-    function getVoteHash(
-        address delegatee,
-        uint256 proposalId,
-        uint8 vote,
-        uint256 deadline
-    ) public view returns (bytes32) {
-        return
-            keccak256(
-                generateVoteHashData(delegatee, proposalId, vote, deadline)
-            );
     }
 
     /// @dev Returns the chain id used by this contract.

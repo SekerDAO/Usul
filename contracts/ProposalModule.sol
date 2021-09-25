@@ -27,15 +27,25 @@ contract ProposalModule is Module {
         Abstain
     }
 
+    enum ProposalState {
+        Active,
+        Canceled,
+        Defeated,
+        Succeeded,
+        TimeLocked,
+        Executed,
+        Executing
+    }
+
     struct Proposal {
         uint256 yesVotes; // the total number of YES votes for this proposal
         uint256 noVotes; // the total number of NO votes for this proposal
         uint256 abstainVotes; // introduce abstain votes
-        bool queued;
+        //bool timeLocked;
         uint256 deadline; // voting deadline TODO: consider using block number
         address proposer;
         bool canceled;
-        uint256 gracePeriod; // queue period for safety
+        uint256 timeLockPeriod; // queue period for safety
         mapping(address => bool) hasVoted; // mapping voter / delegator to boolean
         bool[] executed; // txindexes
         bytes32[] txHashes;
@@ -45,13 +55,13 @@ contract ProposalModule is Module {
 
     uint256 public totalProposalCount; // total number of submitted proposals
     uint256 public proposalWindow; // the length of time voting is valid for a proposal
-    uint256 public gracePeriod = 60 seconds; // 3 days;
+    uint256 public timeLockPeriod = 60 seconds; // 3 days;
     address internal constant SENTINEL_STRATEGY = address(0x1);
 
     // mapping of proposal id to proposal
     mapping(uint256 => Proposal) public proposals;
     // mapping to track if a user has an open proposal
-    mapping(address => bool) public activeProposal;
+    //mapping(address => bool) public activeProposal;
     // Mapping of modules
     mapping(address => address) internal strategies;
 
@@ -65,20 +75,19 @@ contract ProposalModule is Module {
         _;
     }
 
-    modifier isPassed(uint256 proposalId, address votingStrategy) {
-        require(proposals[proposalId].canceled == false, "the proposal was canceled before passing");
-        require(proposals[proposalId].executionCounter != 0, "the proposal has already been executed fully");
-        require(proposals[proposalId].yesVotes > proposals[proposalId].noVotes, "the yesVotes must be strictly over the noVotes");
-        require(proposals[proposalId].yesVotes + proposals[proposalId].abstainVotes >= IVoting(votingStrategy).getThreshold(), "a quorum has not been reached for the proposal");
-        require(
-            proposals[proposalId].yesVotes >= proposals[proposalId].noVotes,
-            "More no votes than yes votes"
-        );
-        _;
-    }
+    // modifier isExecutable(uint256 proposalId) {
+    //     require(proposals[proposalId].canceled == false, "the proposal was canceled before passing");
+    //     require(proposals[proposalId].executionCounter != 0, "the proposal has already been executed fully");
+    //     require(
+    //         block.timestamp >= proposals[proposalId].timeLockPeriod &&
+    //             proposals[proposalId].timeLockPeriod != 0,
+    //         "TW015"
+    //     );
+    //     _;
+    // }
 
     event ProposalCreated(uint256 number);
-    event GracePeriodStarted(uint256 endDate);
+    event TimeLockPeriodStarted(uint256 endDate);
     event ProposalExecuted(uint256 id);
     event SeeleSetup(address initiator, uint256 proposalWindow);
     event EnabledStrategy(address strategy);
@@ -182,7 +191,7 @@ contract ProposalModule is Module {
     /// @param proposalId the proposal to inspect.
     /// @param index the transaction to inspect.
     /// @return boolean.
-    function isExecuted(uint256 proposalId, uint256 index)
+    function isTxExecuted(uint256 proposalId, uint256 index)
         public
         view
         returns (bool)
@@ -210,8 +219,8 @@ contract ProposalModule is Module {
         return proposals[proposalId].hasVoted[account];
     }
 
-    /// @dev Returns the length of time that proposals are active for voting.
-    /// @return length of proposals.
+    /// @dev Updates the time that proposals are active for voting.
+    /// @return proposal time window.
     function getProposalWindow() public view returns (uint256) {
         return proposalWindow;
     }
@@ -223,9 +232,9 @@ contract ProposalModule is Module {
     }
 
     /// @dev Updates the grace period time after a proposal passed before it can execute.
-    /// @param gracePeriod the new delay before execution.
-    function updateGracePeriod(uint256 gracePeriod) external onlyAvatar {
-        gracePeriod = gracePeriod;
+    /// @param newTimeLockPeriod the new delay before execution.
+    function updateTimeLockPeriod(uint256 newTimeLockPeriod) external onlyAvatar {
+        timeLockPeriod = newTimeLockPeriod;
     }
 
     /// @dev Receives a vote and weight from a voting strategy.
@@ -241,8 +250,9 @@ contract ProposalModule is Module {
     ) external strategyOnly {
         require(msg.sender == proposals[proposalId].votingStrategy, "vote from incorrect strategy");
         require(proposals[proposalId].hasVoted[voter] == false, "account has already voted");
-        require(proposals[proposalId].canceled == false, "proposal has been canceled during vote window");
-        require(proposals[proposalId].deadline >= block.timestamp, "proposal voting window has passed");
+        // require(proposals[proposalId].canceled == false, "proposal has been canceled during vote window");
+        // require(proposals[proposalId].deadline >= block.timestamp, "proposal voting window has passed");
+        require(state(proposalId) == ProposalState.Active, "voting period no longer active");
 
         proposals[proposalId].hasVoted[voter] = true;
 
@@ -269,23 +279,24 @@ contract ProposalModule is Module {
         for (uint256 i; i < txHashes.length; i++) {
             proposals[totalProposalCount].executed.push(false);
         }
-        require(activeProposal[msg.sender] == false, "TW011");
+        //require(activeProposal[msg.sender] == false, "TW011");
         proposals[totalProposalCount].executionCounter = txHashes.length;
         proposals[totalProposalCount].txHashes = txHashes;
         proposals[totalProposalCount].deadline = block.timestamp + proposalWindow;
         proposals[totalProposalCount].proposer = msg.sender;
         proposals[totalProposalCount].votingStrategy = votingStrategy;
-        activeProposal[msg.sender] = true;
+        //activeProposal[msg.sender] = true;
         totalProposalCount++;
         emit ProposalCreated(totalProposalCount - 1);
     }
 
-    function startQueue(uint256 proposalId) external isPassed(proposalId, proposals[proposalId].votingStrategy) {
-        require(proposals[proposalId].deadline <= block.timestamp, "TW014");
-        require(proposals[proposalId].canceled == false, "TW023");
-        proposals[proposalId].gracePeriod = block.timestamp + gracePeriod;
-        proposals[proposalId].queued = true;
-        emit GracePeriodStarted(proposals[proposalId].gracePeriod);
+    function startTimeLock(uint256 proposalId) external {
+        // require(proposals[proposalId].deadline <= block.timestamp, "TW014");
+        // require(proposals[proposalId].canceled == false, "TW023");
+        require(state(proposalId) == ProposalState.Succeeded, "cannot start timelock, proposal did not succeed");
+        proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
+        //proposals[proposalId].timeLocked = true;
+        emit TimeLockPeriodStarted(proposals[proposalId].timeLockPeriod);
     }
 
     function executeProposalByIndex(
@@ -295,12 +306,8 @@ contract ProposalModule is Module {
         bytes memory data,
         Enum.Operation operation,
         uint256 txIndex
-    ) external isPassed(proposalId, proposals[proposalId].votingStrategy) {
-        require(
-            block.timestamp >= proposals[proposalId].gracePeriod &&
-                proposals[proposalId].gracePeriod != 0,
-            "TW015"
-        );
+    ) external {
+        require(state(proposalId) == ProposalState.Executing, "proposal is not in execution state");
         require(proposals[proposalId].executed[txIndex] == false, "TW009");
         bytes32 txHash = getTransactionHash(
             target,
@@ -316,9 +323,9 @@ contract ProposalModule is Module {
         );
         proposals[proposalId].executed[txIndex] = true;
         proposals[proposalId].executionCounter--;
-        if (isProposalFullyExecuted(proposalId)) {
-            activeProposal[proposals[proposalId].proposer] = false;
-        }
+        // if (proposals[proposalId].executionCounter == 0) {
+        //     proposals[proposalId].executed = true;
+        // }
         exec(target, value, data, operation);
     }
 
@@ -330,13 +337,8 @@ contract ProposalModule is Module {
         Enum.Operation[] memory operations,
         uint256 startIndex,
         uint256 txCount
-    ) external isPassed(proposalId, proposals[proposalId].votingStrategy) {
-        require(
-            block.timestamp >= proposals[proposalId].gracePeriod &&
-                proposals[proposalId].gracePeriod != 0,
-            "TW015"
-        );
-        //require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "");
+    ) external {
+        require(state(proposalId) == ProposalState.Executing, "proposal is not in execution state");
         require(
             targets.length == values.length && targets.length == data.length,
             "TW029"
@@ -362,34 +364,55 @@ contract ProposalModule is Module {
             // todo, dont require, check if successful
             require(exec(targets[i], values[i], data[i], operations[i]));
         }
-        if (isProposalFullyExecuted(proposalId)) {
-            activeProposal[proposals[proposalId].proposer] = false;
-        }
+        // if (proposals[proposalId].executionCounter == 0) {
+        //     proposals[proposalId].executed = true;
+        // }
     }
 
-    function isProposalFullyExecuted(uint256 proposalId)
-        public
-        view
-        returns (bool)
-    {
-        if (proposals[proposalId].executionCounter == 0) {
-            return true;
+    function isPassed(uint256 proposalId, address votingStrategy) public view returns (bool) {
+        require(proposals[proposalId].canceled == false, "the proposal was canceled before passing");
+        require(proposals[proposalId].yesVotes > proposals[proposalId].noVotes, "the yesVotes must be strictly over the noVotes");
+        require(proposals[proposalId].yesVotes + proposals[proposalId].abstainVotes >= IVoting(votingStrategy).getThreshold(), "a quorum has not been reached for the proposal");
+        return true;
+    }
+
+    function state(uint256 proposalId) public view returns (ProposalState) {
+        Proposal storage _proposal = proposals[proposalId];
+
+        if (_proposal.executionCounter == 0) {
+            return ProposalState.Executed;
+        } else if (_proposal.canceled) {
+            return ProposalState.Canceled;
+        } else if (_proposal.deadline >= block.timestamp) {
+            return ProposalState.Active;
+        } else if (_proposal.deadline < block.timestamp && _proposal.timeLockPeriod == 0) {
+            return
+                isPassed(proposalId, _proposal.votingStrategy)
+                    ? ProposalState.Succeeded
+                    : ProposalState.Defeated;
+        //} else if (_proposal.timeLockPeriod !=0 && block.timestamp < _proposal.timeLockPeriod) {
+        } else if (block.timestamp < _proposal.timeLockPeriod) {    
+            return ProposalState.TimeLocked;
+        //} else if (_proposal.timeLockPeriod !=0 && block.timestamp > _proposal.timeLockPeriod) {
+        } else if (block.timestamp > _proposal.timeLockPeriod) {
+            return ProposalState.Executing;
         } else {
-            return false;
+            revert("unknown proposal id state");
         }
     }
 
     function cancelProposal(uint256 proposalId) external {
-        require(proposals[proposalId].canceled == false, "TW016");
-        require(proposals[proposalId].executionCounter > 0, "TW017");
+        Proposal storage _proposal = proposals[proposalId];
+        require(_proposal.canceled == false, "TW016");
+        require(_proposal.executionCounter > 0, "TW017");
         // proposal guardian can be put in the roles module
         require(
-            proposals[proposalId].proposer == msg.sender ||
+            _proposal.proposer == msg.sender ||
                 msg.sender == avatar,
             "TW019"
         );
-        proposals[proposalId].canceled = true;
-        activeProposal[proposals[proposalId].proposer] = false;
+        _proposal.canceled = true;
+        //activeProposal[proposals[proposalId].proposer] = false;
     }
 
     /// @dev Generates the data for the module transaction hash (required for signing)

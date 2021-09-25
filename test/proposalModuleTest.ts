@@ -91,7 +91,8 @@ describe("proposalModule:", () => {
       govToken.address,
       proposalModule.address,
       ethers.BigNumber.from("1000000000000000000"), // number of votes wieghted to pass
-      safe.address
+      safe.address,
+      "Test"
     );
 
     await govToken.transfer(
@@ -135,7 +136,7 @@ describe("proposalModule:", () => {
       expect(await proposalModule.totalProposalCount()).to.equal(0);
       expect(await proposalModule.owner()).to.equal(safe.address);
       expect(await proposalModule.proposalWindow()).to.equal(60);
-      expect(await proposalModule.gracePeriod()).to.equal(60);
+      expect(await proposalModule.timeLockPeriod()).to.equal(60);
       expect(await linearVoting.quorumThreshold()).to.equal("1000000000000000000");
       expect(await linearVoting.governanceToken()).to.equal(govToken.address);
     });
@@ -147,7 +148,7 @@ describe("proposalModule:", () => {
   });
 
   describe("proposals", async () => {
-    it("can execute add safe admin DAO proposal", async () => {
+    it.only("can execute add safe admin DAO proposal", async () => {
       const { proposalModule, linearVoting, safe, govToken } =
         await baseSetup();
       await govToken.approve(
@@ -193,6 +194,7 @@ describe("proposalModule:", () => {
       );
       await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.vote(0, 1);
+      expect(await proposalModule.state(0)).to.equal(0);
       let proposal = await proposalModule.proposals(0);
       expect(proposal.executionCounter).to.equal(1);
       expect(proposal.yesVotes).to.equal(
@@ -203,12 +205,12 @@ describe("proposalModule:", () => {
       expect(proposal.canceled).to.equal(false);
       //expect(proposal.txHashes[0]).to.equal(txHash);
       await network.provider.send("evm_increaseTime", [60]);
-      await proposalModule.startQueue(0);
+      await proposalModule.startTimeLock(0);
       proposal = await proposalModule.proposals(0);
-      expect(proposal.queued).to.equal(true);
+      expect(await proposalModule.state(0)).to.equal(4);
       expect(proposal.executionCounter).to.equal(1);
       await network.provider.send("evm_increaseTime", [60]);
-
+      expect(await proposalModule.state(0)).to.equal(4);
       await proposalModule.executeProposalByIndex(
         0, // proposalId
         safe.address, // target
@@ -218,12 +220,12 @@ describe("proposalModule:", () => {
         0 // txHash index
       );
       proposal = await proposalModule.proposals(0);
-      const isExecuted = await proposalModule.isExecuted(0, 0);
+      const isExecuted = await proposalModule.isTxExecuted(0, 0);
       expect(isExecuted).to.equal(true);
       const owners = await safe.getOwners();
       expect(owners[0]).to.equal(wallet_2.address);
       expect(owners[1]).to.equal(wallet_0.address);
-      expect(proposal.queued).to.equal(true);
+      expect(await proposalModule.state(0)).to.equal(5);
       expect(proposal.executionCounter).to.equal(0);
     });
 

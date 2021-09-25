@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../common/Enum.sol";
 import "../interfaces/IProposal.sol";
 
+// create BrightID version
 contract MemberLinearVoting {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
