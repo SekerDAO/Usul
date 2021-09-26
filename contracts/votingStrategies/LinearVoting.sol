@@ -21,18 +21,40 @@ contract LinearVoting is EIP712 {
         uint256 total;
     }
 
+    enum VoteType {
+        Against,
+        For,
+        Abstain
+    }
+
+    struct ProposalVoting {
+        uint256 yesVotes; // the total number of YES votes for this proposal
+        uint256 noVotes; // the total number of NO votes for this proposal
+        uint256 abstainVotes; // introduce abstain votes
+        uint256 deadline; // voting deadline TODO: consider using block number
+        mapping(address => bool) hasVoted;
+    }
+
+    uint256 public proposalWindow; // the length of time voting is valid for a proposal
     address public governanceToken;
-    address public proposalModule;
+    address public seeleModule;
     uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
+    uint256 public totalProposalCount; // total number of submitted proposals
     /// @dev Address that this module will pass transactions to.
     address public avatar;
     string private _name;
 
     mapping(address => uint256) public nonces;
     mapping(address => Delegation) public delegations;
+    mapping(uint256 => ProposalVoting) public proposals;
 
     modifier onlyAvatar() {
         require(msg.sender == avatar, "TW001");
+        _;
+    }
+
+    modifier onlySeele() {
+        require(msg.sender == seeleModule, "only seele module may enter");
         _;
     }
 
@@ -40,14 +62,16 @@ contract LinearVoting is EIP712 {
     event VotesUndelegated(uint256 number);
 
     constructor(
+        uint256 _proposalWindow,
         address _governanceToken,
-        address _proposalModule,
+        address _seeleModule,
         uint256 _quorumThreshold,
         address _avatar,
         string memory name_
     ) EIP712(name_, version()) {
+        proposalWindow = _proposalWindow;
         governanceToken = _governanceToken;
-        proposalModule = _proposalModule;
+        seeleModule = _seeleModule;
         quorumThreshold = _quorumThreshold;
         avatar = _avatar;
         _name = name_;
@@ -121,9 +145,59 @@ contract LinearVoting is EIP712 {
         delegations[delegatee].total = delegations[delegatee].total - amount;
     }
 
+    /// @dev Updates the time that proposals are active for voting.
+    /// @return proposal time window.
+    function getProposalWindow() public view returns (uint256) {
+        return proposalWindow;
+    }
+
+    /// @dev Updates the time that proposals are active for voting.
+    /// @param newWindow the voting window.
+    function updateproposalWindow(uint256 newWindow) external onlyAvatar {
+        proposalWindow = newWindow;
+    }
+
     // todo: erc712 voting
+    /// @dev Returns true if an account has voted on a specific proposal.
+    /// @param proposalId the proposal to inspect.
+    /// @param account the account to inspect.
+    /// @return boolean.
+    function hasVoted(uint256 proposalId, address account) public view returns (bool) {
+        return proposals[proposalId].hasVoted[account];
+    }
 
     function vote(uint256 proposalId, uint8 vote) public {
+        delegations[msg.sender].undelegateDelay =
+            block.timestamp +
+            IProposal(proposalModule).getProposalWindow();
+        require(checkBlock(msg.sender), "TW021");
+
+        proposals[proposalId].hasVoted[voter] = true;
+        uint256 weight = calculateWeight(msg.sender);
+        if (vote == uint8(VoteType.Against)) {
+            proposals[proposalId].noVotes =
+                proposals[proposalId].noVotes +
+                weight;
+        } else if (vote == uint8(VoteType.For)) {
+            proposals[proposalId].yesVotes =
+                proposals[proposalId].yesVotes +
+                weight;
+        } else if (vote == uint8(VoteType.Abstain)) {
+            proposals[proposalId].abstainVotes =
+                proposals[proposalId].abstainVotes +
+                weight;
+        } else {
+            revert("invalid value for enum VoteType");
+        }
+        // IProposal(proposalModule).receiveVote(
+        //     msg.sender,
+        //     proposalId,
+        //     vote,
+        //     calculateWeight(msg.sender)
+        // );
+    }
+
+    function receiveProposal(uint256 proposalId, uint8 vote) public {
         delegations[msg.sender].undelegateDelay =
             block.timestamp +
             IProposal(proposalModule).getProposalWindow();
@@ -166,6 +240,27 @@ contract LinearVoting is EIP712 {
         );
     }
 
+    function isPassed(uint256 proposalId, address votingStrategy) public view returns (bool) {
+        require(proposals[proposalId].canceled == false, "the proposal was canceled before passing");
+        require(proposals[proposalId].yesVotes > proposals[proposalId].noVotes, "the yesVotes must be strictly over the noVotes");
+        require(proposals[proposalId].yesVotes + proposals[proposalId].abstainVotes >= IVoting(votingStrategy).getThreshold(), "a quorum has not been reached for the proposal");
+        return true;
+    }
+
+    function cancelProposal(uint256 proposalId) external {
+        Proposal storage _proposal = proposals[proposalId];
+        require(_proposal.canceled == false, "TW016");
+        require(_proposal.executionCounter > 0, "TW017");
+        // proposal guardian can be put in the roles module
+        require(
+            _proposal.proposer == msg.sender ||
+                msg.sender == avatar,
+            "TW019"
+        );
+        _proposal.canceled = true;
+        //activeProposal[proposals[proposalId].proposer] = false;
+    }
+    
     function calculateWeight(address delegatee) public view returns (uint256) {
         uint256 votes = delegations[delegatee].votes[delegatee];
         require(delegations[delegatee].total > 0, "TW035");
