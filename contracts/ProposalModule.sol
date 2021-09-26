@@ -3,7 +3,7 @@
 pragma solidity ^0.8.6;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
-import "./interfaces/IVoting.sol";
+import "./interfaces/IStrategy.sol";
 
 /// @title Seele Module - A Zodiac module that enables a voting agnostic proposal mechanism.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
@@ -20,13 +20,6 @@ contract ProposalModule is Module {
     //     "Transaction(address to,uint256 value,bytes data,uint8 operation,uint256 nonce)"
     // );
 
-    /// @dev Supported vote types. Matches Governor Bravo ordering.
-    // enum VoteType {
-    //     Against,
-    //     For,
-    //     Abstain
-    // }
-
     enum ProposalState {
         Active,
         Canceled,
@@ -38,23 +31,17 @@ contract ProposalModule is Module {
     }
 
     struct Proposal {
-        // uint256 yesVotes; // the total number of YES votes for this proposal
-        // uint256 noVotes; // the total number of NO votes for this proposal
-        // uint256 abstainVotes; // introduce abstain votes
-        //bool timeLocked;
-        // uint256 deadline; // voting deadline TODO: consider using block number
         address proposer;
         bool canceled;
+        bool successful;
         uint256 timeLockPeriod; // queue period for safety
-        // mapping(address => bool) hasVoted; // mapping voter / delegator to boolean
-        bool[] executed; // txindexes
+        bool[] executed; // maybe can be derived from counter
         bytes32[] txHashes;
         uint256 executionCounter;
         address votingStrategy; // the module that is allowed to vote on this
     }
 
-    // uint256 public totalProposalCount; // total number of submitted proposals
-    //uint256 public proposalWindow; // the length of time voting is valid for a proposal
+    uint256 public totalProposalCount; // total number of submitted proposals
     uint256 public timeLockPeriod = 60 seconds; // 3 days;
     address internal constant SENTINEL_STRATEGY = address(0x1);
 
@@ -75,38 +62,23 @@ contract ProposalModule is Module {
         _;
     }
 
-    // modifier isExecutable(uint256 proposalId) {
-    //     require(proposals[proposalId].canceled == false, "the proposal was canceled before passing");
-    //     require(proposals[proposalId].executionCounter != 0, "the proposal has already been executed fully");
-    //     require(
-    //         block.timestamp >= proposals[proposalId].timeLockPeriod &&
-    //             proposals[proposalId].timeLockPeriod != 0,
-    //         "TW015"
-    //     );
-    //     _;
-    // }
-
-    event ProposalCreated(uint256 number);
+    event ProposalCreated(address strategy, uint256 proposalNumber);
+    event TransactionExecuted(bytes32 txHash);
+    event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
     event TimeLockPeriodStarted(uint256 endDate);
     event ProposalExecuted(uint256 id);
-    event SeeleSetup(address initiator, uint256 proposalWindow);
+    event SeeleSetup(address initiator);
     event EnabledStrategy(address strategy);
     event DisabledStrategy(address strategy);
 
     // move threshold to voting contracts
-    constructor(uint256 _proposalWindow) {
-        bytes memory initParams = abi.encode(_proposalWindow);
-        setUp(initParams);
+    constructor() {
+        __Ownable_init();
+        setupStrategies();
+        emit SeeleSetup(msg.sender);
     }
 
-    function setUp(bytes memory initParams) public override {
-        (uint256 _proposalWindow) = abi.decode(initParams, (uint256));
-        __Ownable_init();
-        require(_proposalWindow >= 1, "proposal window must be greater than 1");
-        proposalWindow = _proposalWindow * 1 minutes; //days;
-        setupStrategies();
-        emit SeeleSetup(msg.sender, _proposalWindow);
-    }
+    function setUp(bytes memory initializeParams) public override {}
 
     function setupStrategies() internal {
         require(
@@ -211,96 +183,50 @@ contract ProposalModule is Module {
         return proposals[proposalId].txHashes[index];
     }
 
-    // /// @dev Returns true if an account has voted on a specific proposal.
-    // /// @param proposalId the proposal to inspect.
-    // /// @param account the account to inspect.
-    // /// @return boolean.
-    // function hasVoted(uint256 proposalId, address account) public view returns (bool) {
-    //     return proposals[proposalId].hasVoted[account];
-    // }
-
-    // /// @dev Updates the time that proposals are active for voting.
-    // /// @return proposal time window.
-    // function getProposalWindow() public view returns (uint256) {
-    //     return proposalWindow;
-    // }
-
-    // /// @dev Updates the time that proposals are active for voting.
-    // /// @param newWindow the voting window.
-    // function updateproposalWindow(uint256 newWindow) external onlyAvatar {
-    //     proposalWindow = newWindow;
-    // }
-
     /// @dev Updates the grace period time after a proposal passed before it can execute.
     /// @param newTimeLockPeriod the new delay before execution.
     function updateTimeLockPeriod(uint256 newTimeLockPeriod) external onlyAvatar {
         timeLockPeriod = newTimeLockPeriod;
     }
 
-    // /// @dev Receives a vote and weight from a voting strategy.
-    // /// @param voter the account that is casting the vote.
-    // /// @param proposalId identifier of the proposal to receive the vote.
-    // /// @param vote a VoteType enum, 0 = no, 1 = yes, 2 = abstain.
-    // /// @param weight the weight of the vote determined by the strategy.
-    // function receiveVote(
-    //     address voter,
-    //     uint256 proposalId,
-    //     uint8 vote,
-    //     uint256 weight
-    // ) external strategyOnly {
-    //     require(msg.sender == proposals[proposalId].votingStrategy, "vote from incorrect strategy");
-    //     require(proposals[proposalId].hasVoted[voter] == false, "account has already voted");
-    //     // require(proposals[proposalId].canceled == false, "proposal has been canceled during vote window");
-    //     // require(proposals[proposalId].deadline >= block.timestamp, "proposal voting window has passed");
-    //     require(state(proposalId) == ProposalState.Active, "voting period no longer active");
-
-    //     // proposals[proposalId].hasVoted[voter] = true;
-
-    //     // if (vote == uint8(VoteType.Against)) {
-    //     //     proposals[proposalId].noVotes =
-    //     //         proposals[proposalId].noVotes +
-    //     //         weight;
-    //     // } else if (vote == uint8(VoteType.For)) {
-    //     //     proposals[proposalId].yesVotes =
-    //     //         proposals[proposalId].yesVotes +
-    //     //         weight;
-    //     // } else if (vote == uint8(VoteType.Abstain)) {
-    //     //     proposals[proposalId].abstainVotes =
-    //     //         proposals[proposalId].abstainVotes +
-    //     //         weight;
-    //     // } else {
-    //     //     revert("invalid value for enum VoteType");
-    //     // }
-    // }
-
-    function submitProposal(bytes32[] memory txHashes, address votingStrategy) public {
+    /// @dev Submits a new proposal.
+    /// @param txHashes an array of hashed transaction data to execute
+    /// @param votingStrategy the voting strategy to be used with this proposal
+    function submitProposal(bytes32[] memory txHashes, address votingStrategy) external {
         require(isStrategyEnabled(votingStrategy), "voting strategy is not enabled for proposal");
-        // TODO: consider mapping here
         for (uint256 i; i < txHashes.length; i++) {
             proposals[totalProposalCount].executed.push(false);
         }
         //require(activeProposal[msg.sender] == false, "TW011");
         proposals[totalProposalCount].executionCounter = txHashes.length;
         proposals[totalProposalCount].txHashes = txHashes;
-        proposals[totalProposalCount].deadline = block.timestamp + proposalWindow;
         proposals[totalProposalCount].proposer = msg.sender;
         proposals[totalProposalCount].votingStrategy = votingStrategy;
         //activeProposal[msg.sender] = true;
         totalProposalCount++;
-        call out to strategy
-        emit ProposalCreated(totalProposalCount - 1);
+        IStrategy(votingStrategy).receiveProposal(totalProposalCount - 1);
+        emit ProposalCreated(votingStrategy, totalProposalCount - 1);
     }
 
+    /// @dev Begins the timelock phase of a successful proposal
+    /// @param proposalId the identifier of the proposal 
     function startTimeLock(uint256 proposalId) external strategyOnly {
-        // require(proposals[proposalId].deadline <= block.timestamp, "TW014");
-        // require(proposals[proposalId].canceled == false, "TW023");
-        require(msg.sender == proposals[proposalId].votingStrategy, "successful proposal incorrect strategy");
-        require(state(proposalId) == ProposalState.Succeeded, "cannot start timelock, proposal did not succeed");
+        require(msg.sender == proposals[proposalId].votingStrategy, "cannot start timelock, incorrect strategy");
+        require(state(proposalId) == ProposalState.Active, "cannot start timelock, proposal is not active");
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
+        proposals[proposalId].successful = true;
         //proposals[proposalId].timeLocked = true;
         emit TimeLockPeriodStarted(proposals[proposalId].timeLockPeriod);
     }
 
+    /// @dev Executes a transaction inside of a proposal.
+    /// @notice Transactions must be called in ascending index order    
+    /// @param proposalId the identifier of the proposal
+    /// @param target the contract to be called by the avatar
+    /// @param value ether value to pass with the call
+    /// @param data the data to be executed from the call
+    /// @param operation Call or Delegatecall
+    /// @param txIndex the index of the transaction to execute
     function executeProposalByIndex(
         uint256 proposalId,
         address target,
@@ -310,7 +236,7 @@ contract ProposalModule is Module {
         uint256 txIndex
     ) external {
         require(state(proposalId) == ProposalState.Executing, "proposal is not in execution state");
-        require(proposals[proposalId].executed[txIndex] == false, "TW009");
+        require(proposals[proposalId].executed[txIndex] == false, "transaction is already executed");
         bytes32 txHash = getTransactionHash(
             target,
             value,
@@ -318,19 +244,26 @@ contract ProposalModule is Module {
             Enum.Operation.Call,
             0
         );
-        require(proposals[proposalId].txHashes[txIndex] == txHash, "TW031");
+        require(proposals[proposalId].txHashes[txIndex] == txHash, "transaction hash does not match indexed hash");
         require(
             txIndex == 0 || proposals[proposalId].executed[txIndex - 1],
-            "TW033"
+            "transaction is not in ascending order of execution"
         );
         proposals[proposalId].executed[txIndex] = true;
         proposals[proposalId].executionCounter--;
-        // if (proposals[proposalId].executionCounter == 0) {
-        //     proposals[proposalId].executed = true;
-        // }
         exec(target, value, data, operation);
+        emit TransactionExecuted(txHash);
     }
 
+    /// @dev Executes batches of transactions inside of a proposal.
+    /// @notice Transactions must be called in ascending index order
+    /// @param proposalId the identifier of the proposal
+    /// @param targets the contracts to be called by the avatar
+    /// @param values ether values to pass with the calls
+    /// @param data the data to be executed from the calls
+    /// @param operations Calls or Delegatecalls
+    /// @param startIndex the start index of the transactions to execute
+    /// @param txCount the number of txs to execute in this batch
     function executeProposalBatch(
         uint256 proposalId,
         address[] memory targets,
@@ -343,16 +276,15 @@ contract ProposalModule is Module {
         require(state(proposalId) == ProposalState.Executing, "proposal is not in execution state");
         require(
             targets.length == values.length && targets.length == data.length,
-            "TW029"
+            "execution parameters missmatch"
         );
-        require(targets.length != 0, "TW030");
+        require(targets.length != 0, "no transactions to execute supplied to batch");
         require(
             startIndex == 0 || proposals[proposalId].executed[startIndex - 1],
-            "TW034"
+            "starting from an index out of ascending order"
         );
         for (uint256 i = startIndex; i < startIndex + txCount; i++) {
             // TODO: allow nonces?
-            // TODO: figure out how to keep ordered exectution
             bytes32 txHash = getTransactionHash(
                 targets[i],
                 values[i],
@@ -366,17 +298,8 @@ contract ProposalModule is Module {
             // todo, dont require, check if successful
             require(exec(targets[i], values[i], data[i], operations[i]));
         }
-        // if (proposals[proposalId].executionCounter == 0) {
-        //     proposals[proposalId].executed = true;
-        // }
+        emit TransactionExecutedBatch(startIndex, startIndex + txCount);
     }
-
-    // function isPassed(uint256 proposalId, address votingStrategy) public view returns (bool) {
-    //     require(proposals[proposalId].canceled == false, "the proposal was canceled before passing");
-    //     require(proposals[proposalId].yesVotes > proposals[proposalId].noVotes, "the yesVotes must be strictly over the noVotes");
-    //     require(proposals[proposalId].yesVotes + proposals[proposalId].abstainVotes >= IVoting(votingStrategy).getThreshold(), "a quorum has not been reached for the proposal");
-    //     return true;
-    // }
 
     function state(uint256 proposalId) public view returns (ProposalState) {
         Proposal storage _proposal = proposals[proposalId];
@@ -385,13 +308,8 @@ contract ProposalModule is Module {
             return ProposalState.Executed;
         } else if (_proposal.canceled) {
             return ProposalState.Canceled;
-        } else if (_proposal.deadline >= block.timestamp) {
+        } else if (_proposal.timeLockPeriod == 0) {
             return ProposalState.Active;
-        } else if (_proposal.deadline < block.timestamp && _proposal.timeLockPeriod == 0) {
-            return
-                isPassed(proposalId, _proposal.votingStrategy)
-                    ? ProposalState.Succeeded
-                    : ProposalState.Defeated;
         //} else if (_proposal.timeLockPeriod !=0 && block.timestamp < _proposal.timeLockPeriod) {
         } else if (block.timestamp < _proposal.timeLockPeriod) {    
             return ProposalState.TimeLocked;
@@ -402,20 +320,6 @@ contract ProposalModule is Module {
             revert("unknown proposal id state");
         }
     }
-
-    // function cancelProposal(uint256 proposalId) external {
-    //     Proposal storage _proposal = proposals[proposalId];
-    //     require(_proposal.canceled == false, "TW016");
-    //     require(_proposal.executionCounter > 0, "TW017");
-    //     // proposal guardian can be put in the roles module
-    //     require(
-    //         _proposal.proposer == msg.sender ||
-    //             msg.sender == avatar,
-    //         "TW019"
-    //     );
-    //     _proposal.canceled = true;
-    //     //activeProposal[proposals[proposalId].proposer] = false;
-    // }
 
     /// @dev Generates the data for the module transaction hash (required for signing)
     function generateTransactionHashData(

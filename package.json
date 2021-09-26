@@ -51,6 +51,6 @@
   },
   "dependencies": {
     "@gnosis.pm/zodiac": "1.0.1",
-    "@openzeppelin/contracts": "4.0.0"
+    "@openzeppelin/contracts": "4.3.2"
   }
 }
