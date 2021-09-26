@@ -211,8 +211,8 @@ contract ProposalModule is Module {
     /// @dev Begins the timelock phase of a successful proposal
     /// @param proposalId the identifier of the proposal 
     function startTimeLock(uint256 proposalId) external strategyOnly {
-        require(msg.sender == proposals[proposalId].votingStrategy, "cannot start timelock, incorrect strategy");
         require(state(proposalId) == ProposalState.Active, "cannot start timelock, proposal is not active");
+        require(msg.sender == proposals[proposalId].votingStrategy, "cannot start timelock, incorrect strategy");
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
         proposals[proposalId].successful = true;
         //proposals[proposalId].timeLocked = true;
@@ -310,11 +310,9 @@ contract ProposalModule is Module {
             return ProposalState.Canceled;
         } else if (_proposal.timeLockPeriod == 0) {
             return ProposalState.Active;
-        //} else if (_proposal.timeLockPeriod !=0 && block.timestamp < _proposal.timeLockPeriod) {
         } else if (block.timestamp < _proposal.timeLockPeriod) {    
             return ProposalState.TimeLocked;
-        //} else if (_proposal.timeLockPeriod !=0 && block.timestamp > _proposal.timeLockPeriod) {
-        } else if (block.timestamp > _proposal.timeLockPeriod) {
+        } else if (block.timestamp >= _proposal.timeLockPeriod) {
             return ProposalState.Executing;
         } else {
             revert("unknown proposal id state");
