@@ -9,7 +9,7 @@
 // import "../interfaces/IProposal.sol";
 
 // // refactor with OZ delegation 
-// contract LinearVoting is EIP712 {
+// contract StakedVoting is EIP712 {
 //     using SafeERC20 for IERC20;
 
 //     bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(uint256 proposalId,uint8 vote)");

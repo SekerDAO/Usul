@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "../interfaces/IProposal.sol";
 
 // refactor with OZ delegation 
-contract LinearVoting is EIP712 {
+contract OZLinearVoting is EIP712 {
     using SafeERC20 for IERC20;
 
     bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(uint256 proposalId,uint8 vote)");
@@ -26,6 +26,7 @@ contract LinearVoting is EIP712 {
         uint256 noVotes; // the total number of NO votes for this proposal
         uint256 abstainVotes; // introduce abstain votes
         uint256 deadline; // voting deadline TODO: consider using block number
+        uint256 startBlock; // the starting block of the proposal
         mapping(address => bool) hasVoted;
     }
 
@@ -58,7 +59,7 @@ contract LinearVoting is EIP712 {
         address _avatar,
         string memory name_
     ) EIP712(name_, version()) {
-        proposalWindow = _proposalWindow;
+        proposalWindow = _proposalWindow * 1 seconds; // switch to hours in prod
         governanceToken = _governanceToken;
         seeleModule = _seeleModule;
         quorumThreshold = _quorumThreshold;
@@ -115,7 +116,7 @@ contract LinearVoting is EIP712 {
     /// @dev Submits a vote for a proposal.
     /// @param proposalId the proposal to vote for.
     /// @param support against, for, or abstain.
-    function vote(uint256 proposalId, uint8 support) internal {
+    function vote(uint256 proposalId, uint8 support) external {
         _vote(proposalId, msg.sender, support);
     }
 
@@ -144,7 +145,7 @@ contract LinearVoting is EIP712 {
     function _vote(uint256 proposalId, address voter, uint8 support) internal {
         require(block.timestamp <= proposals[proposalId].deadline, "voting window has passed");
         require(!hasVoted(proposalId, voter), "voter has already voted");
-        uint256 weight = calculateWeight(msg.sender, proposals[proposalId].deadline - proposalWindow);
+        uint256 weight = calculateWeight(msg.sender, proposals[proposalId].startBlock);
         proposals[proposalId].hasVoted[voter] = true;
         if (support == uint8(VoteType.Against)) {
             proposals[proposalId].noVotes =
@@ -167,13 +168,15 @@ contract LinearVoting is EIP712 {
     /// @param proposalId the proposal to vote for.
     function receiveProposal(uint256 proposalId) public onlySeele {
         proposals[proposalId].deadline = proposalWindow + block.timestamp;
+        proposals[proposalId].startBlock = block.number;
     }
 
     /// @dev Calls the proposal module to notify that a quorum has been reached.
     /// @param proposalId the proposal to vote for.
     function finalizeVote(uint256 proposalId) public {
-        require(isPassed(proposalId), "proposal has not succeeded");
-        IProposal(seeleModule).startTimeLock(proposalId);
+        if (isPassed(proposalId)) {
+            IProposal(seeleModule).startTimeLock(proposalId);
+        }
     }
 
     /// @dev Determines if a proposal has succeeded.
@@ -182,6 +185,7 @@ contract LinearVoting is EIP712 {
     function isPassed(uint256 proposalId) public view returns (bool) {
         require(proposals[proposalId].yesVotes > proposals[proposalId].noVotes, "the yesVotes must be strictly over the noVotes");
         require(proposals[proposalId].yesVotes + proposals[proposalId].abstainVotes >= quorumThreshold, "a quorum has not been reached for the proposal");
+        require(proposals[proposalId].deadline < block.timestamp, "voting window has not passed yet");
         return true;
     }
     

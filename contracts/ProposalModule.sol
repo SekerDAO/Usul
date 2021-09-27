@@ -208,6 +208,22 @@ contract ProposalModule is Module {
         emit ProposalCreated(votingStrategy, totalProposalCount - 1);
     }
 
+    /// @dev Cancels a proposal.
+    /// @param proposalId the proposal to cancel.
+    function cancelProposal(uint256 proposalId) external {
+        Proposal storage _proposal = proposals[proposalId];
+        require(_proposal.executionCounter > 0, "nothing to cancel");
+        require(_proposal.canceled == false, "proposal is already canceled");
+        // proposal guardian can be put in the roles module
+        require(
+            _proposal.proposer == msg.sender ||
+                msg.sender == avatar,
+            "cancel proposal from non-owner or governance"
+        );
+        _proposal.canceled = true;
+        //activeProposal[proposals[proposalId].proposer] = false;
+    }
+
     /// @dev Begins the timelock phase of a successful proposal
     /// @param proposalId the identifier of the proposal 
     function startTimeLock(uint256 proposalId) external strategyOnly {
@@ -301,9 +317,11 @@ contract ProposalModule is Module {
         emit TransactionExecutedBatch(startIndex, startIndex + txCount);
     }
 
+    /// @dev Get the state of a proposal
+    /// @param proposalId the identifier of the proposal
+    /// @return ProposalState the enum of the state of the proposal
     function state(uint256 proposalId) public view returns (ProposalState) {
         Proposal storage _proposal = proposals[proposalId];
-
         if (_proposal.executionCounter == 0) {
             return ProposalState.Executed;
         } else if (_proposal.canceled) {
