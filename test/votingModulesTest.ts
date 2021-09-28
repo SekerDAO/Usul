@@ -88,13 +88,8 @@ describe("votingModules:", () => {
       AddressZero
     );
 
-    const proposalContract = await ethers.getContractFactory("ProposalModule");
-    const proposalModule = await proposalContract.deploy();
-
-    // TODO: Use common setup pattern
-    await proposalModule.setAvatar(safe.address);
-    await proposalModule.setTarget(safe.address);
-    await proposalModule.transferOwnership(safe.address);
+    const proposalContract = await ethers.getContractFactory("SeeleModule");
+    const proposalModule = await proposalContract.deploy(safe.address, safe.address, safe.address);
 
     const linearContract = await ethers.getContractFactory("OZLinearVoting");
     const linearVoting = await linearContract.deploy(
@@ -254,7 +249,7 @@ describe("votingModules:", () => {
       await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.vote(0, 1);
       await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
-        "voting window has not passed yet"
+        "voting period has not passed yet"
       );
     });
 
@@ -318,7 +313,7 @@ describe("votingModules:", () => {
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await network.provider.send("evm_mine");
       let block = await network.provider.send("eth_blockNumber");
-      const weight = await linearVoting.calculateWeight(wallet_2.address, 18);
+      const weight = await linearVoting.calculateWeight(wallet_2.address, 14);
       expect(weight).to.equal(ethers.BigNumber.from("1000000000000000000"));
       await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.connect(wallet_2).vote(0, 1);

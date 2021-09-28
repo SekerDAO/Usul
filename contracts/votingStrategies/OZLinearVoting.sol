@@ -29,7 +29,7 @@ contract OZLinearVoting is EIP712 {
     }
 
     ERC20Votes public immutable governanceToken;
-    uint256 public proposalWindow; // the length of time voting is valid for a proposal
+    uint256 public votingPeriod; // the length of time voting is valid for a proposal
     address public seeleModule;
     uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
     /// @dev Address that this module will pass transactions to.
@@ -50,14 +50,14 @@ contract OZLinearVoting is EIP712 {
     }
 
     constructor(
-        uint256 _proposalWindow,
+        uint256 _votingPeriod,
         ERC20Votes _governanceToken,
         address _seeleModule,
         uint256 _quorumThreshold,
         address _avatar,
         string memory name_
     ) EIP712(name_, version()) {
-        proposalWindow = _proposalWindow * 1 seconds; // switch to hours in prod
+        votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         governanceToken = _governanceToken;
         seeleModule = _seeleModule;
         quorumThreshold = _quorumThreshold;
@@ -92,15 +92,15 @@ contract OZLinearVoting is EIP712 {
     }
 
     /// @dev Updates the time that proposals are active for voting.
-    /// @return proposal time window.
-    function getProposalWindow() public view returns (uint256) {
-        return proposalWindow;
+    /// @return votingPeriod time window.
+    function getVotingPeriod() public view returns (uint256) {
+        return votingPeriod;
     }
 
     /// @dev Updates the time that proposals are active for voting.
-    /// @param newWindow the voting window.
-    function updateproposalWindow(uint256 newWindow) external onlyAvatar {
-        proposalWindow = newWindow;
+    /// @param newPeriod the voting window.
+    function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
+        votingPeriod = newPeriod;
     }
 
     /// @dev Returns true if an account has voted on a specific proposal.
@@ -153,7 +153,7 @@ contract OZLinearVoting is EIP712 {
     ) internal {
         require(
             block.timestamp <= proposals[proposalId].deadline,
-            "voting window has passed"
+            "voting period has passed"
         );
         require(!hasVoted(proposalId, voter), "voter has already voted");
         uint256 weight = calculateWeight(
@@ -181,7 +181,7 @@ contract OZLinearVoting is EIP712 {
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param proposalId the proposal to vote for.
     function receiveProposal(uint256 proposalId) public onlySeele {
-        proposals[proposalId].deadline = proposalWindow + block.timestamp;
+        proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
     }
 
@@ -209,7 +209,7 @@ contract OZLinearVoting is EIP712 {
         );
         require(
             proposals[proposalId].deadline < block.timestamp,
-            "voting window has not passed yet"
+            "voting period has not passed yet"
         );
         return true;
     }

@@ -63,13 +63,8 @@ describe("proposalModule:", () => {
       AddressZero
     );
 
-    const proposalContract = await ethers.getContractFactory("ProposalModule");
-    const proposalModule = await proposalContract.deploy();
-
-    // TODO: Use common setup pattern
-    await proposalModule.setAvatar(safe.address);
-    await proposalModule.setTarget(safe.address);
-    await proposalModule.transferOwnership(safe.address);
+    const proposalContract = await ethers.getContractFactory("SeeleModule");
+    const proposalModule = await proposalContract.deploy(safe.address, safe.address, safe.address);
 
     const VotingContract = await ethers.getContractFactory(
       "TestVotingStrategy"

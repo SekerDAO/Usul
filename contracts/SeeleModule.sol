@@ -7,7 +7,7 @@ import "./interfaces/IStrategy.sol";
 
 /// @title Seele Module - A Zodiac module that enables a voting agnostic proposal mechanism.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
-contract ProposalModule is Module {
+contract SeeleModule is Module {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
     // keccak256(
@@ -70,18 +70,44 @@ contract ProposalModule is Module {
     event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
     event TimeLockPeriodStarted(uint256 endDate);
     event ProposalExecuted(uint256 id);
-    event SeeleSetup(address initiator);
+    event SeeleSetup(
+        address indexed initiator,
+        address indexed owner,
+        address indexed avatar,
+        address target
+    );
     event EnabledStrategy(address strategy);
     event DisabledStrategy(address strategy);
 
     // move threshold to voting contracts
-    constructor() {
-        __Ownable_init();
-        setupStrategies();
-        emit SeeleSetup(msg.sender);
+    constructor(
+        address _owner,
+        address _avatar,
+        address _target
+    ) {
+        bytes memory initParams = abi.encode(
+            _owner,
+            _avatar,
+            _target
+        );
+        setUp(initParams);
     }
 
-    function setUp(bytes memory initializeParams) public override {}
+    function setUp(bytes memory initParams) public override {
+        (
+            address _owner,
+            address _avatar,
+            address _target
+        ) = abi.decode(initParams, (address, address, address));
+        __Ownable_init();
+        require(_avatar != address(0), "Avatar can not be zero address");
+        require(_target != address(0), "Target can not be zero address");
+        avatar = _avatar;
+        target = _target;
+        setupStrategies();
+        transferOwnership(_owner);
+        emit SeeleSetup(msg.sender, _owner, _avatar, _target);
+    }
 
     function setupStrategies() internal {
         require(
