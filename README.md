@@ -11,11 +11,12 @@ Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Seele Module.
 This module — another tool in the Zodiac DAO technology stack — provides a proposal core that can register swappable voting contracts, allowing DAOs to choose from various on-chain voting methods that best suit their needs.
 
 The available voting methods as of this time are...
-- Linear Voting ERC20 + delegation
-- Linear Voting ERC20 + Membership
+- OZ Linear Voting ERC20 + delegation
+- OZ Linear Voting ERC20 + Membership
+- Governor Bravo Linear Voting ERC20 + delegation
 - Quadratic Voting ERC20 + Membership
 - Single Voting
-- Commitment ERC20 Voting
+- Conviction ERC20 Voting
 
 ## Proposal Core
 
@@ -85,15 +86,17 @@ proposalModule.generateTransactionHashData
 
 These are external zodiac modifiers registered with the proposal module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
 
-### Linear Voting ERC20 delegation
+### (OpenZepplin) Linear Voting ERC20 delegation
 
-This strategy is similar to Compound or Gitcoin. It uses token weighted voting only with one-to-one weights based on token ownership.
+This strategy is similar to Compound or Gitcoin. It's inspired by the redesign of Governor Bravo by OpenZepplin uses token weighted voting only with one-to-one weights based on token ownership.
 
-If a delegate has a vote on an active proposal, no delegators will be able to undelegate until the proposal time-box has passed or the proposal has been canceled.
+Membership versions are supplied to gate voters similar to Moloch.
 
-### Linear Voting + Membership
+### (Compound) Governor Bravo Linear Voting Delegation
 
-This strategy adds a membership gate to the token weighted voting, similar to a moloch DAO.
+This strategy is a 1-1 functionally complete Governor Bravo from Compound. There are a few design choices that we make that separate this strategy from Governor Bravo like storing transaction hashes rather than transaction data directly on the proposal when initialized.
+
+Membership versions are supplied to gate voters similar to Moloch.
 
 ### Quadratic Voting + Membership
 
@@ -103,9 +106,9 @@ This strategy scales the power that large token holders have down. This needs to
 
 This strategy is a non-token based one. This is simply one vote per human.
 
-### Commitment Voting
+### Conviction Voting
 
-This strategy will scale the voting weight based on the amount of time the tokens have been vested in the contract.
+This strategy was created by Commons Stack and creates a non-time-boxed method of voting.
 
 ## Deploy 
 
