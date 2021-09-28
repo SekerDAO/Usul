@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "../interfaces/IProposal.sol";
 
-/// @title OpenZeppelin Linear Voting Strategy - A Seele module that enables compount like voting.
+/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
 contract OZLinearVoting is EIP712 {
     bytes32 public constant VOTE_TYPEHASH =

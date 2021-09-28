@@ -89,7 +89,11 @@ describe("votingModules:", () => {
     );
 
     const proposalContract = await ethers.getContractFactory("SeeleModule");
-    const proposalModule = await proposalContract.deploy(safe.address, safe.address, safe.address);
+    const proposalModule = await proposalContract.deploy(
+      safe.address,
+      safe.address,
+      safe.address
+    );
 
     const linearContract = await ethers.getContractFactory("OZLinearVoting");
     const linearVoting = await linearContract.deploy(
@@ -327,10 +331,10 @@ describe("votingModules:", () => {
       );
       await network.provider.send("evm_increaseTime", [60]);
       await linearVoting.finalizeVote(0);
-      expect(await proposalModule.state(0)).to.equal(4);
+      expect(await proposalModule.state(0)).to.equal(2);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
-      expect(await proposalModule.state(0)).to.equal(6);
+      expect(await proposalModule.state(0)).to.equal(4);
       await proposalModule.executeProposalByIndex(
         0, // proposalId
         safe.address, // target
@@ -339,7 +343,7 @@ describe("votingModules:", () => {
         0, // call operation
         0 // txHash index
       );
-      expect(await proposalModule.state(0)).to.equal(5);
+      expect(await proposalModule.state(0)).to.equal(3);
       const owners = await safe.getOwners();
       expect(owners[0]).to.equal(wallet_1.address);
       expect(owners[1]).to.equal(wallet_0.address);

@@ -23,8 +23,6 @@ contract SeeleModule is Module {
     enum ProposalState {
         Active,
         Canceled,
-        Defeated,
-        Succeeded,
         TimeLocked,
         Executed,
         Executing
@@ -69,6 +67,7 @@ contract SeeleModule is Module {
     event TransactionExecuted(bytes32 txHash);
     event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
     event TimeLockPeriodStarted(uint256 endDate);
+    event TimeLockUpdated(uint256 newTimeLockPeriod);
     event ProposalExecuted(uint256 id);
     event SeeleSetup(
         address indexed initiator,
@@ -224,6 +223,7 @@ contract SeeleModule is Module {
         onlyAvatar
     {
         timeLockPeriod = newTimeLockPeriod;
+        emit TimeLockUpdated(newTimeLockPeriod);
     }
 
     /// @dev Submits a new proposal.
@@ -239,12 +239,10 @@ contract SeeleModule is Module {
         for (uint256 i; i < txHashes.length; i++) {
             proposals[totalProposalCount].executed.push(false);
         }
-        //require(activeProposal[msg.sender] == false, "TW011");
         proposals[totalProposalCount].executionCounter = txHashes.length;
         proposals[totalProposalCount].txHashes = txHashes;
         proposals[totalProposalCount].proposer = msg.sender;
         proposals[totalProposalCount].votingStrategy = votingStrategy;
-        //activeProposal[msg.sender] = true;
         totalProposalCount++;
         IStrategy(votingStrategy).receiveProposal(totalProposalCount - 1);
         emit ProposalCreated(votingStrategy, totalProposalCount - 1);
@@ -262,7 +260,6 @@ contract SeeleModule is Module {
             "cancel proposal from non-owner or governance"
         );
         _proposal.canceled = true;
-        //activeProposal[proposals[proposalId].proposer] = false;
     }
 
     /// @dev Begins the timelock phase of a successful proposal
@@ -278,7 +275,6 @@ contract SeeleModule is Module {
         );
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
         proposals[proposalId].successful = true;
-        //proposals[proposalId].timeLocked = true;
         emit TimeLockPeriodStarted(proposals[proposalId].timeLockPeriod);
     }
 
