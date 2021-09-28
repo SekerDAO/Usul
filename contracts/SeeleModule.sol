@@ -4,6 +4,7 @@ pragma solidity ^0.8.6;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "./interfaces/IStrategy.sol";
+//import "./interfaces/IProposal.sol";
 
 /// @title Seele Module - A Zodiac module that enables a voting agnostic proposal mechanism.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
@@ -229,7 +230,8 @@ contract SeeleModule is Module {
     /// @dev Submits a new proposal.
     /// @param txHashes an array of hashed transaction data to execute
     /// @param votingStrategy the voting strategy to be used with this proposal
-    function submitProposal(bytes32[] memory txHashes, address votingStrategy)
+    /// @param data any extra data to pass to the voting strategy
+    function submitProposal(bytes32[] memory txHashes, address votingStrategy, bytes memory data)
         external
     {
         require(
@@ -244,7 +246,7 @@ contract SeeleModule is Module {
         proposals[totalProposalCount].proposer = msg.sender;
         proposals[totalProposalCount].votingStrategy = votingStrategy;
         totalProposalCount++;
-        IStrategy(votingStrategy).receiveProposal(totalProposalCount - 1);
+        IStrategy(votingStrategy).receiveProposal(totalProposalCount - 1, data);
         emit ProposalCreated(votingStrategy, totalProposalCount - 1);
     }
 

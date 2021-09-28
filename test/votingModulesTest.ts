@@ -204,7 +204,7 @@ describe("votingModules:", () => {
       const { proposalModule, linearVoting, govToken, addCall, txHash } =
         await baseSetup();
       await govToken.delegate(wallet_0.address);
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       const proposal = await linearVoting.proposals(0);
       expect(proposal.yesVotes).to.equal(ethers.BigNumber.from(0));
       await linearVoting.vote(0, 1);
@@ -220,7 +220,7 @@ describe("votingModules:", () => {
       const { proposalModule, linearVoting, govToken, addCall, txHash } =
         await baseSetup();
       await govToken.delegate(wallet_0.address);
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       const proposal = await linearVoting.proposals(0);
       expect(proposal.yesVotes).to.equal(ethers.BigNumber.from(0));
       await linearVoting.vote(0, 1);
@@ -233,7 +233,7 @@ describe("votingModules:", () => {
       const { proposalModule, linearVoting, govToken, addCall, txHash } =
         await baseSetup();
       await govToken.connect(wallet_2).delegate(wallet_0.address);
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
       let proposal = await linearVoting.proposals(0);
       expect(proposal.yesVotes).to.equal(
@@ -250,7 +250,7 @@ describe("votingModules:", () => {
         await baseSetup();
       await govToken.connect(wallet_2).delegate(wallet_0.address);
       await govToken.connect(wallet_1).delegate(wallet_0.address);
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
       await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
         "voting period has not passed yet"
@@ -283,7 +283,7 @@ describe("votingModules:", () => {
     //     addCall.operation,
     //     0
     //   );
-    //   await proposalModule.submitProposal([txHash], linearVoting.address);
+    //   await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
     //   await govToken
     //     .connect(wallet_1)
     //     .approve(
@@ -319,7 +319,7 @@ describe("votingModules:", () => {
       let block = await network.provider.send("eth_blockNumber");
       const weight = await linearVoting.calculateWeight(wallet_2.address, 14);
       expect(weight).to.equal(ethers.BigNumber.from("1000000000000000000"));
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.connect(wallet_2).vote(0, 1);
       await govToken.connect(wallet_2).delegate(wallet_3.address);
       await linearVoting.connect(wallet_3).vote(0, 1);
@@ -363,10 +363,10 @@ describe("votingModules:", () => {
       await govToken.delegate(wallet_0.address);
       await govToken.connect(wallet_2).delegate(wallet_2.address);
       await govToken.connect(wallet_1).delegate(wallet_1.address);
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await proposalModule
         .connect(wallet_1)
-        .submitProposal([txHash_1], linearVoting.address);
+        .submitProposal([txHash_1], linearVoting.address, "0x");
       await linearVoting.connect(wallet_1).vote(0, 1);
       await linearVoting.connect(wallet_1).vote(1, 1);
       await linearVoting.connect(wallet_2).vote(0, 1);
@@ -403,7 +403,7 @@ describe("votingModules:", () => {
       await govToken.connect(wallet_2).delegate(wallet_2.address);
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await network.provider.send("evm_mine");
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.connect(wallet_2).vote(0, 1);
       await linearVoting.connect(wallet_1).vote(0, 0);
       let proposal = await linearVoting.proposals(0);
@@ -425,7 +425,7 @@ describe("votingModules:", () => {
       await govToken.connect(wallet_2).delegate(wallet_2.address);
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await network.provider.send("evm_mine");
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.connect(wallet_2).vote(0, 1);
       await linearVoting.connect(wallet_1).vote(0, 2);
       let proposal = await linearVoting.proposals(0);
@@ -456,7 +456,7 @@ describe("votingModules:", () => {
         transferCall.operation,
         0
       );
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
       let proposal = await proposalModule.proposals(0);
       await network.provider.send("evm_increaseTime", [60]);
@@ -513,7 +513,7 @@ describe("votingModules:", () => {
         addCall.operation,
         0
       );
-      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       // -------
       const voteHash = await linearVoting.getVoteHash(
         wallet_0.address,

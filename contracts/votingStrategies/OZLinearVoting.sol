@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "../interfaces/IProposal.sol";
+//import "../interfaces/IStrategy.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
@@ -40,7 +41,7 @@ contract OZLinearVoting is EIP712 {
     mapping(uint256 => ProposalVoting) public proposals;
 
     modifier onlyAvatar() {
-        require(msg.sender == avatar, "TW001");
+        require(msg.sender == avatar, "only avatar module may enter");
         _;
     }
 
@@ -180,7 +181,8 @@ contract OZLinearVoting is EIP712 {
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param proposalId the proposal to vote for.
-    function receiveProposal(uint256 proposalId) public onlySeele {
+    /// @param data any extra data to pass to the voting strategy
+    function receiveProposal(uint256 proposalId, bytes memory data) external onlySeele {
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
     }
