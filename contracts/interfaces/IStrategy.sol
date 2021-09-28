@@ -2,8 +2,7 @@
 
 pragma solidity ^0.8.6;
 
-interface IStrategy
- {
+interface IStrategy {
     function calculateWeight(address delegatee) external view returns (uint256);
 
     function startVoting(address delegatee) external;

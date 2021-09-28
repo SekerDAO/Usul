@@ -71,9 +71,13 @@ describe("proposalModule:", () => {
     await proposalModule.setTarget(safe.address);
     await proposalModule.transferOwnership(safe.address);
 
-    const VotingContract = await ethers.getContractFactory("TestVotingStrategy");
+    const VotingContract = await ethers.getContractFactory(
+      "TestVotingStrategy"
+    );
     const votingStrategy = await VotingContract.deploy(proposalModule.address);
-    const votingStrategy_2 = await VotingContract.deploy(proposalModule.address);
+    const votingStrategy_2 = await VotingContract.deploy(
+      proposalModule.address
+    );
 
     const addCall = buildContractCall(
       safe,
@@ -133,8 +137,7 @@ describe("proposalModule:", () => {
   // can use the safe and a cancel proposal role
   describe("setUp", async () => {
     it("proposal module is initialized", async () => {
-      const { proposalModule, votingStrategy, safe } =
-        await baseSetup();
+      const { proposalModule, votingStrategy, safe } = await baseSetup();
       expect(await proposalModule.avatar()).to.equal(safe.address);
       expect(await proposalModule.totalProposalCount()).to.equal(0);
       expect(await proposalModule.owner()).to.equal(safe.address);
@@ -179,7 +182,7 @@ describe("proposalModule:", () => {
       await votingStrategy.finalizeVote(0);
       expect(await proposalModule.state(0)).to.equal(4);
       await network.provider.send("evm_increaseTime", [60]);
-      await network.provider.send('evm_mine');
+      await network.provider.send("evm_mine");
       expect(await proposalModule.state(0)).to.equal(6);
       proposal = await proposalModule.proposals(0);
       expect(proposal.executionCounter).to.equal(1);
@@ -215,25 +218,35 @@ describe("proposalModule:", () => {
       await proposalModule.submitProposal([txHash], votingStrategy_2.address);
       let proposal = await proposalModule.proposals(0);
       expect(proposal.votingStrategy).to.equal(votingStrategy_2.address);
-      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith("cannot start timelock, incorrect strategy");
+      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
+        "cannot start timelock, incorrect strategy"
+      );
     });
 
     it("should revert if starting time lock with no proposal", async () => {
-      const { proposalModule, votingStrategy, safe } =
-        await baseSetup();
-      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith("cannot start timelock, proposal is not active");
+      const { proposalModule, votingStrategy, safe } = await baseSetup();
+      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
+        "cannot start timelock, proposal is not active"
+      );
     });
 
     it("can execute multiple add safe admin DAO proposal", async () => {
-      const { proposalModule, votingStrategy, safe, addCall, addCall_1, txHash, txHash_1 } =
-        await baseSetup();
+      const {
+        proposalModule,
+        votingStrategy,
+        safe,
+        addCall,
+        addCall_1,
+        txHash,
+        txHash_1,
+      } = await baseSetup();
       await proposalModule.submitProposal(
         [txHash, txHash_1],
         votingStrategy.address
       );
       await votingStrategy.finalizeVote(0);
       await network.provider.send("evm_increaseTime", [60]);
-      await network.provider.send('evm_mine');
+      await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
       expect(proposal.executionCounter).to.equal(2);
       await proposalModule.executeProposalByIndex(
@@ -298,7 +311,7 @@ describe("proposalModule:", () => {
         1
       );
       await network.provider.send("evm_increaseTime", [60]);
-      await network.provider.send('evm_mine');
+      await network.provider.send("evm_mine");
       await expect(
         proposalModule.executeProposalByIndex(
           0, // proposalId
@@ -332,7 +345,6 @@ describe("proposalModule:", () => {
       expect(await proposalModule.state(0)).to.equal(1);
     });
 
-
     it("can cancel a proposal by Safe", async () => {
       const { proposalModule, votingStrategy, safe, txHash } =
         await baseSetup();
@@ -361,12 +373,13 @@ describe("proposalModule:", () => {
         [wallet_0]
       );
       let proposal = await proposalModule.proposals(0);
-      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith("cannot start timelock, proposal is not active");
+      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
+        "cannot start timelock, proposal is not active"
+      );
     });
 
     it("can execute batch remove owners", async () => {
-      const { proposalModule, votingStrategy, safe } =
-        await baseSetup();
+      const { proposalModule, votingStrategy, safe } = await baseSetup();
       const wallets = [wallet_0, wallet_1, wallet_2];
       for (let i = 1; i < 3; i++) {
         await executeContractCallWithSigners(
@@ -426,7 +439,7 @@ describe("proposalModule:", () => {
       );
       await votingStrategy.finalizeVote(0);
       await network.provider.send("evm_increaseTime", [60]);
-      await network.provider.send('evm_mine');
+      await network.provider.send("evm_mine");
       await proposalModule.executeProposalBatch(
         0, // proposalId
         [safe.address, safe.address, safe.address],

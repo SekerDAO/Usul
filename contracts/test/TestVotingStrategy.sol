@@ -4,14 +4,11 @@ pragma solidity ^0.8.6;
 
 import "../interfaces/IProposal.sol";
 
-contract TestVotingStrategy{
-	address public seeleModule;
+contract TestVotingStrategy {
+    address public seeleModule;
 
-    constructor(
-        address _seeleModule
-    ) {
+    constructor(address _seeleModule) {
         seeleModule = _seeleModule;
-
     }
 
     function finalizeVote(uint256 proposalId) public {

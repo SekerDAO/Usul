@@ -3,17 +3,15 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"; // maybe not needed
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "../interfaces/IProposal.sol";
 
-// refactor with OZ delegation 
+/// @title OpenZeppelin Linear Voting Strategy - A Seele module that enables compount like voting.
+/// @author Nathan Ginnever - <team@tokenwalk.org>
 contract OZLinearVoting is EIP712 {
-    using SafeERC20 for IERC20;
-
-    bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(uint256 proposalId,uint8 vote)");
-
+    bytes32 public constant VOTE_TYPEHASH =
+        keccak256("Vote(uint256 proposalId,uint8 vote)");
 
     enum VoteType {
         Against,
@@ -109,7 +107,11 @@ contract OZLinearVoting is EIP712 {
     /// @param proposalId the proposal to inspect.
     /// @param account the account to inspect.
     /// @return boolean.
-    function hasVoted(uint256 proposalId, address account) public view returns (bool) {
+    function hasVoted(uint256 proposalId, address account)
+        public
+        view
+        returns (bool)
+    {
         return proposals[proposalId].hasVoted[account];
     }
 
@@ -134,7 +136,9 @@ contract OZLinearVoting is EIP712 {
         bytes32 s
     ) external {
         address voter = ECDSA.recover(
-            _hashTypedDataV4(keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))),
+            _hashTypedDataV4(
+                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
+            ),
             v,
             r,
             s
@@ -142,10 +146,20 @@ contract OZLinearVoting is EIP712 {
         _vote(proposalId, voter, support);
     }
 
-    function _vote(uint256 proposalId, address voter, uint8 support) internal {
-        require(block.timestamp <= proposals[proposalId].deadline, "voting window has passed");
+    function _vote(
+        uint256 proposalId,
+        address voter,
+        uint8 support
+    ) internal {
+        require(
+            block.timestamp <= proposals[proposalId].deadline,
+            "voting window has passed"
+        );
         require(!hasVoted(proposalId, voter), "voter has already voted");
-        uint256 weight = calculateWeight(msg.sender, proposals[proposalId].startBlock);
+        uint256 weight = calculateWeight(
+            msg.sender,
+            proposals[proposalId].startBlock
+        );
         proposals[proposalId].hasVoted[voter] = true;
         if (support == uint8(VoteType.Against)) {
             proposals[proposalId].noVotes =
@@ -183,13 +197,28 @@ contract OZLinearVoting is EIP712 {
     /// @param proposalId the proposal to vote for.
     /// @return boolean.
     function isPassed(uint256 proposalId) public view returns (bool) {
-        require(proposals[proposalId].yesVotes > proposals[proposalId].noVotes, "the yesVotes must be strictly over the noVotes");
-        require(proposals[proposalId].yesVotes + proposals[proposalId].abstainVotes >= quorumThreshold, "a quorum has not been reached for the proposal");
-        require(proposals[proposalId].deadline < block.timestamp, "voting window has not passed yet");
+        require(
+            proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
+            "the yesVotes must be strictly over the noVotes"
+        );
+        require(
+            proposals[proposalId].yesVotes +
+                proposals[proposalId].abstainVotes >=
+                quorumThreshold,
+            "a quorum has not been reached for the proposal"
+        );
+        require(
+            proposals[proposalId].deadline < block.timestamp,
+            "voting window has not passed yet"
+        );
         return true;
     }
-    
-    function calculateWeight(address delegatee, uint256 blockNumber) public view returns (uint256) {
+
+    function calculateWeight(address delegatee, uint256 blockNumber)
+        public
+        view
+        returns (uint256)
+    {
         return governanceToken.getPastVotes(delegatee, blockNumber);
     }
 

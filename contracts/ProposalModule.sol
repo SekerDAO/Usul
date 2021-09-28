@@ -58,7 +58,10 @@ contract ProposalModule is Module {
     }
 
     modifier strategyOnly() {
-        require(strategies[msg.sender] != address(0), "Strategy not authorized");
+        require(
+            strategies[msg.sender] != address(0),
+            "Strategy not authorized"
+        );
         _;
     }
 
@@ -100,7 +103,10 @@ contract ProposalModule is Module {
             strategy != address(0) && strategy != SENTINEL_STRATEGY,
             "Invalid strategy"
         );
-        require(strategies[prevStrategy] == strategy, "Strategy already disabled");
+        require(
+            strategies[prevStrategy] == strategy,
+            "Strategy already disabled"
+        );
         strategies[prevStrategy] = strategies[strategy];
         strategies[strategy] = address(0);
         emit DisabledStrategy(strategy);
@@ -123,7 +129,9 @@ contract ProposalModule is Module {
     /// @dev Returns if a strategy is enabled
     /// @return True if the strategy is enabled
     function isStrategyEnabled(address _strategy) public view returns (bool) {
-        return SENTINEL_STRATEGY != _strategy && strategies[_strategy] != address(0);
+        return
+            SENTINEL_STRATEGY != _strategy &&
+            strategies[_strategy] != address(0);
     }
 
     /// @dev Returns array of strategy.
@@ -185,15 +193,23 @@ contract ProposalModule is Module {
 
     /// @dev Updates the grace period time after a proposal passed before it can execute.
     /// @param newTimeLockPeriod the new delay before execution.
-    function updateTimeLockPeriod(uint256 newTimeLockPeriod) external onlyAvatar {
+    function updateTimeLockPeriod(uint256 newTimeLockPeriod)
+        external
+        onlyAvatar
+    {
         timeLockPeriod = newTimeLockPeriod;
     }
 
     /// @dev Submits a new proposal.
     /// @param txHashes an array of hashed transaction data to execute
     /// @param votingStrategy the voting strategy to be used with this proposal
-    function submitProposal(bytes32[] memory txHashes, address votingStrategy) external {
-        require(isStrategyEnabled(votingStrategy), "voting strategy is not enabled for proposal");
+    function submitProposal(bytes32[] memory txHashes, address votingStrategy)
+        external
+    {
+        require(
+            isStrategyEnabled(votingStrategy),
+            "voting strategy is not enabled for proposal"
+        );
         for (uint256 i; i < txHashes.length; i++) {
             proposals[totalProposalCount].executed.push(false);
         }
@@ -216,8 +232,7 @@ contract ProposalModule is Module {
         require(_proposal.canceled == false, "proposal is already canceled");
         // proposal guardian can be put in the roles module
         require(
-            _proposal.proposer == msg.sender ||
-                msg.sender == avatar,
+            _proposal.proposer == msg.sender || msg.sender == avatar,
             "cancel proposal from non-owner or governance"
         );
         _proposal.canceled = true;
@@ -225,10 +240,16 @@ contract ProposalModule is Module {
     }
 
     /// @dev Begins the timelock phase of a successful proposal
-    /// @param proposalId the identifier of the proposal 
+    /// @param proposalId the identifier of the proposal
     function startTimeLock(uint256 proposalId) external strategyOnly {
-        require(state(proposalId) == ProposalState.Active, "cannot start timelock, proposal is not active");
-        require(msg.sender == proposals[proposalId].votingStrategy, "cannot start timelock, incorrect strategy");
+        require(
+            state(proposalId) == ProposalState.Active,
+            "cannot start timelock, proposal is not active"
+        );
+        require(
+            msg.sender == proposals[proposalId].votingStrategy,
+            "cannot start timelock, incorrect strategy"
+        );
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
         proposals[proposalId].successful = true;
         //proposals[proposalId].timeLocked = true;
@@ -236,7 +257,7 @@ contract ProposalModule is Module {
     }
 
     /// @dev Executes a transaction inside of a proposal.
-    /// @notice Transactions must be called in ascending index order    
+    /// @notice Transactions must be called in ascending index order
     /// @param proposalId the identifier of the proposal
     /// @param target the contract to be called by the avatar
     /// @param value ether value to pass with the call
@@ -251,8 +272,14 @@ contract ProposalModule is Module {
         Enum.Operation operation,
         uint256 txIndex
     ) external {
-        require(state(proposalId) == ProposalState.Executing, "proposal is not in execution state");
-        require(proposals[proposalId].executed[txIndex] == false, "transaction is already executed");
+        require(
+            state(proposalId) == ProposalState.Executing,
+            "proposal is not in execution state"
+        );
+        require(
+            proposals[proposalId].executed[txIndex] == false,
+            "transaction is already executed"
+        );
         bytes32 txHash = getTransactionHash(
             target,
             value,
@@ -260,7 +287,10 @@ contract ProposalModule is Module {
             Enum.Operation.Call,
             0
         );
-        require(proposals[proposalId].txHashes[txIndex] == txHash, "transaction hash does not match indexed hash");
+        require(
+            proposals[proposalId].txHashes[txIndex] == txHash,
+            "transaction hash does not match indexed hash"
+        );
         require(
             txIndex == 0 || proposals[proposalId].executed[txIndex - 1],
             "transaction is not in ascending order of execution"
@@ -289,12 +319,18 @@ contract ProposalModule is Module {
         uint256 startIndex,
         uint256 txCount
     ) external {
-        require(state(proposalId) == ProposalState.Executing, "proposal is not in execution state");
+        require(
+            state(proposalId) == ProposalState.Executing,
+            "proposal is not in execution state"
+        );
         require(
             targets.length == values.length && targets.length == data.length,
             "execution parameters missmatch"
         );
-        require(targets.length != 0, "no transactions to execute supplied to batch");
+        require(
+            targets.length != 0,
+            "no transactions to execute supplied to batch"
+        );
         require(
             startIndex == 0 || proposals[proposalId].executed[startIndex - 1],
             "starting from an index out of ascending order"
@@ -328,7 +364,7 @@ contract ProposalModule is Module {
             return ProposalState.Canceled;
         } else if (_proposal.timeLockPeriod == 0) {
             return ProposalState.Active;
-        } else if (block.timestamp < _proposal.timeLockPeriod) {    
+        } else if (block.timestamp < _proposal.timeLockPeriod) {
             return ProposalState.TimeLocked;
         } else if (block.timestamp >= _proposal.timeLockPeriod) {
             return ProposalState.Executing;

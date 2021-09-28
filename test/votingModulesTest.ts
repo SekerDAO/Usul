@@ -182,27 +182,21 @@ describe("votingModules:", () => {
 
   describe("openzepplin linear voting module", async () => {
     it("can delegate votes to self", async () => {
-      const { proposalModule, linearVoting, govToken } =
-        await baseSetup();
+      const { proposalModule, linearVoting, govToken } = await baseSetup();
       const bal = await govToken.balanceOf(wallet_0.address);
-      await govToken.delegate(wallet_0.address)
+      await govToken.delegate(wallet_0.address);
       const delegatation = await govToken.getVotes(wallet_0.address);
       expect(delegatation).to.equal("49997000000000000000000");
     });
 
     it("can delegate votes to others", async () => {
-      const { proposalModule, linearVoting, govToken } =
-        await baseSetup();
+      const { proposalModule, linearVoting, govToken } = await baseSetup();
       await govToken.connect(wallet_1).approve(linearVoting.address, 1000);
-      await govToken
-        .connect(wallet_1)
-        .delegate(wallet_0.address);
+      await govToken.connect(wallet_1).delegate(wallet_0.address);
       let delegatation = await govToken.getVotes(wallet_0.address);
       expect(delegatation).to.equal("1000000000000000000");
       await govToken.connect(wallet_2).approve(linearVoting.address, 1000);
-      await govToken
-        .connect(wallet_2)
-        .delegate(wallet_0.address);
+      await govToken.connect(wallet_2).delegate(wallet_0.address);
       delegatation = await govToken.getVotes(wallet_0.address);
       expect(delegatation).to.equal("2000000000000000000");
     });
@@ -210,7 +204,7 @@ describe("votingModules:", () => {
     it("can vote past the threshold with delegation", async () => {
       const { proposalModule, linearVoting, govToken, addCall, txHash } =
         await baseSetup();
-      await govToken.delegate(wallet_0.address)
+      await govToken.delegate(wallet_0.address);
       await proposalModule.submitProposal([txHash], linearVoting.address);
       const proposal = await linearVoting.proposals(0);
       expect(proposal.yesVotes).to.equal(ethers.BigNumber.from(0));
@@ -226,20 +220,20 @@ describe("votingModules:", () => {
     it("can vote only once per proposal", async () => {
       const { proposalModule, linearVoting, govToken, addCall, txHash } =
         await baseSetup();
-      await govToken.delegate(wallet_0.address)
+      await govToken.delegate(wallet_0.address);
       await proposalModule.submitProposal([txHash], linearVoting.address);
       const proposal = await linearVoting.proposals(0);
       expect(proposal.yesVotes).to.equal(ethers.BigNumber.from(0));
       await linearVoting.vote(0, 1);
-      await expect(linearVoting.vote(0, 1)).to.be.revertedWith("voter has already voted");
+      await expect(linearVoting.vote(0, 1)).to.be.revertedWith(
+        "voter has already voted"
+      );
     });
 
     it("cannot finalize if not past threshold", async () => {
       const { proposalModule, linearVoting, govToken, addCall, txHash } =
         await baseSetup();
-      await govToken
-        .connect(wallet_2)
-        .delegate(wallet_0.address);
+      await govToken.connect(wallet_2).delegate(wallet_0.address);
       await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.vote(0, 1);
       let proposal = await linearVoting.proposals(0);
@@ -247,21 +241,21 @@ describe("votingModules:", () => {
         ethers.BigNumber.from("1000000000000000000")
       );
       await network.provider.send("evm_increaseTime", [60]);
-      await expect(linearVoting.finalizeVote(0)).to.be.revertedWith("a quorum has not been reached for the proposal");
+      await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
+        "a quorum has not been reached for the proposal"
+      );
     });
 
     it("cannot enter queue if not past deadline", async () => {
       const { proposalModule, linearVoting, govToken, addCall, txHash } =
         await baseSetup();
-      await govToken
-        .connect(wallet_2)
-        .delegate(wallet_0.address);
-      await govToken
-        .connect(wallet_1)
-        .delegate(wallet_0.address);
+      await govToken.connect(wallet_2).delegate(wallet_0.address);
+      await govToken.connect(wallet_1).delegate(wallet_0.address);
       await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.vote(0, 1);
-      await expect(linearVoting.finalizeVote(0)).to.be.revertedWith("voting window has not passed yet");
+      await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
+        "voting window has not passed yet"
+      );
     });
 
     // // hardhat currently will not revert when manual
@@ -320,17 +314,16 @@ describe("votingModules:", () => {
     it("can vote past the threshold with independent delegatation", async () => {
       const { proposalModule, safe, linearVoting, govToken, addCall, txHash } =
         await baseSetup();
-      await govToken
-        .connect(wallet_2)
-        .delegate(wallet_2.address);
-      await govToken
-        .connect(wallet_1)
-        .delegate(wallet_1.address);
-      await network.provider.send('evm_mine');
+      await govToken.connect(wallet_2).delegate(wallet_2.address);
+      await govToken.connect(wallet_1).delegate(wallet_1.address);
+      await network.provider.send("evm_mine");
+      let block = await network.provider.send("eth_blockNumber");
       const weight = await linearVoting.calculateWeight(wallet_2.address, 18);
       expect(weight).to.equal(ethers.BigNumber.from("1000000000000000000"));
       await proposalModule.submitProposal([txHash], linearVoting.address);
       await linearVoting.connect(wallet_2).vote(0, 1);
+      await govToken.connect(wallet_2).delegate(wallet_3.address);
+      await linearVoting.connect(wallet_3).vote(0, 1);
       let proposal = await linearVoting.proposals(0);
       await linearVoting.connect(wallet_1).vote(0, 1);
       proposal = await linearVoting.proposals(0);
@@ -341,7 +334,7 @@ describe("votingModules:", () => {
       await linearVoting.finalizeVote(0);
       expect(await proposalModule.state(0)).to.equal(4);
       await network.provider.send("evm_increaseTime", [60]);
-      await network.provider.send('evm_mine');
+      await network.provider.send("evm_mine");
       expect(await proposalModule.state(0)).to.equal(6);
       await proposalModule.executeProposalByIndex(
         0, // proposalId
@@ -358,15 +351,19 @@ describe("votingModules:", () => {
     });
 
     it("can vote on multiple proposals", async () => {
-      const { proposalModule, safe, linearVoting, govToken, addCall, txHash, addCall_1, txHash_1 } =
-        await baseSetup();
+      const {
+        proposalModule,
+        safe,
+        linearVoting,
+        govToken,
+        addCall,
+        txHash,
+        addCall_1,
+        txHash_1,
+      } = await baseSetup();
       await govToken.delegate(wallet_0.address);
-      await govToken
-        .connect(wallet_2)
-        .delegate(wallet_2.address);
-      await govToken
-        .connect(wallet_1)
-        .delegate(wallet_1.address);
+      await govToken.connect(wallet_2).delegate(wallet_2.address);
+      await govToken.connect(wallet_1).delegate(wallet_1.address);
       await proposalModule.submitProposal([txHash], linearVoting.address);
       await proposalModule
         .connect(wallet_1)
@@ -401,9 +398,47 @@ describe("votingModules:", () => {
       expect(owners[2]).to.equal(wallet_0.address);
     });
 
-    // // todo test no votes
+    it("can't pass proposal without more yes votes", async () => {
+      const { proposalModule, safe, linearVoting, govToken, addCall, txHash } =
+        await baseSetup();
+      await govToken.connect(wallet_2).delegate(wallet_2.address);
+      await govToken.connect(wallet_1).delegate(wallet_1.address);
+      await network.provider.send("evm_mine");
+      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await linearVoting.connect(wallet_2).vote(0, 1);
+      await linearVoting.connect(wallet_1).vote(0, 0);
+      let proposal = await linearVoting.proposals(0);
+      expect(proposal.yesVotes).to.equal(
+        ethers.BigNumber.from("1000000000000000000")
+      );
+      expect(proposal.noVotes).to.equal(
+        ethers.BigNumber.from("1000000000000000000")
+      );
+      await network.provider.send("evm_increaseTime", [60]);
+      await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
+        "the yesVotes must be strictly over the noVotes"
+      );
+    });
 
-    // // todo test abstain votes
+    it("abstain votes add to quorum", async () => {
+      const { proposalModule, safe, linearVoting, govToken, addCall, txHash } =
+        await baseSetup();
+      await govToken.connect(wallet_2).delegate(wallet_2.address);
+      await govToken.connect(wallet_1).delegate(wallet_1.address);
+      await network.provider.send("evm_mine");
+      await proposalModule.submitProposal([txHash], linearVoting.address);
+      await linearVoting.connect(wallet_2).vote(0, 1);
+      await linearVoting.connect(wallet_1).vote(0, 2);
+      let proposal = await linearVoting.proposals(0);
+      expect(proposal.yesVotes).to.equal(
+        ethers.BigNumber.from("1000000000000000000")
+      );
+      expect(proposal.abstainVotes).to.equal(
+        ethers.BigNumber.from("1000000000000000000")
+      );
+      await network.provider.send("evm_increaseTime", [60]);
+      await expect(linearVoting.finalizeVote(0));
+    });
 
     it("can complete a funding proposals", async () => {
       const { proposalModule, govToken, linearVoting, safe } =
@@ -635,9 +670,7 @@ describe("votingModules:", () => {
       // ---------
       console.log(voteHash);
       const typehash = ethers.utils.keccak256(
-        ethers.utils.toUtf8Bytes(
-          "Vote(uint256 proposalId,uint8 vote)"
-        )
+        ethers.utils.toUtf8Bytes("Vote(uint256 proposalId,uint8 vote)")
       );
       console.log(typehash);
       const abi = ethers.utils.defaultAbiCoder.encode(
