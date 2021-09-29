@@ -1,0 +1,334 @@
+// SPDX-License-Identifier: LGPL-3.0-only
+
+pragma solidity >=0.8.0;
+
+import "../interfaces/IProposal.sol";
+import "../interfaces/RealitioV3.sol";
+
+contract RealityERC20Voting {
+    bytes32 public constant INVALIDATED =
+        0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
+
+    enum VoteType {
+        Against,
+        For,
+        Abstain
+    }
+
+    struct ProposalVoting {
+
+        uint256 yesVotes; // the total number of YES votes for this proposal
+        uint256 noVotes; // the total number of NO votes for this proposal
+        uint256 abstainVotes; // introduce abstain votes
+        uint256 deadline; // voting deadline TODO: consider using block number
+        uint256 startBlock; // the starting block of the proposal
+        mapping(address => bool) hasVoted;
+    }
+
+    event ProposalQuestionCreated(
+        bytes32 indexed questionId,
+        string indexed proposalId
+    );
+
+    event RealityModuleSetup(
+        address indexed initiator,
+        address indexed owner,
+        address indexed avatar,
+        address target
+    );
+
+    RealitioV3 public oracle;
+    uint256 public template;
+    uint32 public questionTimeout;
+    uint32 public questionCooldown;
+    uint32 public answerExpiration;
+    address public questionArbitrator;
+    uint256 public minimumBond;
+    address public seeleModule;
+    /// @dev Address that this module will pass transactions to.
+    address public avatar;
+
+    // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
+    mapping(bytes32 => bytes32) public questionIds;
+    // Mapping of questionHash to transactionHash to execution state
+    mapping(bytes32 => mapping(bytes32 => bool))
+        public executedProposalTransactions;
+
+    mapping(address => uint256) public nonces;
+    mapping(uint256 => ProposalVoting) public proposals;
+
+    modifier onlyAvatar() {
+        require(msg.sender == avatar, "only avatar module may enter");
+        _;
+    }
+
+    modifier onlySeele() {
+        require(msg.sender == seeleModule, "only seele module may enter");
+        _;
+    }
+
+    constructor(
+        address _avatar,
+        address _seeleModule,
+        RealitioV3 _oracle,
+        uint32 timeout,
+        uint32 cooldown,
+        uint32 expiration,
+        uint256 bond,
+        uint256 templateId,
+        address arbitrator
+    ) {
+        require(timeout > 0, "Timeout has to be greater 0");
+        require(
+            expiration == 0 || expiration - cooldown >= 60,
+            "There need to be at least 60s between end of cooldown and expiration"
+        );
+        oracle = _oracle;
+        answerExpiration = expiration;
+        questionTimeout = timeout;
+        questionCooldown = cooldown;
+        questionArbitrator = arbitrator;
+        minimumBond = bond;
+        template = templateId;
+        seeleModule = _seeleModule;
+        avatar = _avatar;
+    }
+
+    /// @notice This can only be called by the avatar through governance
+    function setQuestionTimeout(uint32 timeout) public onlyAvatar {
+        require(timeout > 0, "Timeout has to be greater 0");
+        questionTimeout = timeout;
+    }
+
+    /// @dev Sets the cooldown before an answer is usable.
+    /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
+    /// @notice This can only be called by the owner
+    /// @notice There need to be at least 60 seconds between end of cooldown and expiration
+    function setQuestionCooldown(uint32 cooldown) public onlyAvatar {
+        uint32 expiration = answerExpiration;
+        require(
+            expiration == 0 || expiration - cooldown >= 60,
+            "There need to be at least 60s between end of cooldown and expiration"
+        );
+        questionCooldown = cooldown;
+    }
+
+    /// @dev Sets the duration for which a positive answer is valid.
+    /// @param expiration Duration that a positive answer of the oracle is valid in seconds (or 0 if valid forever)
+    /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
+    /// @notice There need to be at least 60 seconds between end of cooldown and expiration
+    /// @notice This can only be called by the owner
+    function setAnswerExpiration(uint32 expiration) public onlyAvatar {
+        require(
+            expiration == 0 || expiration - questionCooldown >= 60,
+            "There need to be at least 60s between end of cooldown and expiration"
+        );
+        answerExpiration = expiration;
+    }
+
+    /// @dev Sets the minimum bond that is required for an answer to be accepted.
+    /// @param bond Minimum bond that is required for an answer to be accepted
+    /// @notice This can only be called by the owner
+    function setMinimumBond(uint256 bond) public onlyAvatar {
+        minimumBond = bond;
+    }
+
+    /// @dev Sets the template that should be used for future questions.
+    /// @param templateId ID of the template that should be used for proposal questions
+    /// @notice Check https://github.com/realitio/realitio-dapp#structuring-and-fetching-information for more information
+    /// @notice This can only be called by the owner
+    function setTemplate(uint256 templateId) public onlyAvatar {
+        template = templateId;
+    } 
+
+    /// @dev Sets the question arbitrator that will be used for future questions.
+    /// @param arbitrator Address of the arbitrator
+    /// @notice This can only be called by the owner
+    function setArbitrator(address arbitrator) public onlyAvatar {
+        questionArbitrator = arbitrator;
+    }
+
+    /// @dev Sets the executor to a new account (`newExecutor`).
+    /// @notice Can only be called by the current owner.
+    function setAvatar(address _avatar) public onlyAvatar {
+        avatar = _avatar;
+    }
+
+    /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
+    /// @param proposalId the proposal to vote for.
+    /// @param data any extra data to pass to the voting strategy
+    function receiveProposal(uint256 proposalId, bytes calldata data) external onlySeele {
+        (bytes32[] memory txHashes, string memory id, uint256 nonce) = abi.decode(data, (bytes32[], string, uint256));
+        // We generate the question string used for the oracle
+        string memory question = buildQuestion(id, txHashes);
+        bytes32 questionHash = keccak256(bytes(question));
+        if (nonce > 0) {
+            // Previous nonce must have been invalidated by the oracle.
+            // However, if the proposal was internally invalidated, it should not be possible to ask it again.
+            bytes32 currentQuestionId = questionIds[questionHash];
+            require(
+                currentQuestionId != INVALIDATED,
+                "This proposal has been marked as invalid"
+            );
+            require(
+                oracle.resultFor(currentQuestionId) == INVALIDATED,
+                "Previous proposal was not invalidated"
+            );
+        } else {
+            require(
+                questionIds[questionHash] == bytes32(0),
+                "Proposal has already been submitted"
+            );
+        }
+        bytes32 expectedQuestionId = getQuestionId(question, nonce);
+        // Set the question hash for this question id
+        questionIds[questionHash] = expectedQuestionId;
+        bytes32 questionId = askQuestion(question, nonce);
+        require(expectedQuestionId == questionId, "Unexpected question id");
+        emit ProposalQuestionCreated(questionId, id);
+        // proposals[proposalId].deadline = votingPeriod + block.timestamp;
+        // proposals[proposalId].startBlock = block.number;
+    }
+
+    /// @dev Calls the proposal module to notify that a quorum has been reached.
+    /// @param proposalId the proposal to vote for.
+    function finalizeVote(uint256 proposalId) public {
+        IProposal(seeleModule).receiveStrategy(proposalId);
+    }
+
+    /// @dev Build the question by combining the proposalId and the hex string of the hash of the txHashes
+    /// @param proposalId Id of the proposal that proposes to execute the transactions represented by the txHashes
+    /// @param txHashes EIP-712 Hashes of the transactions that should be executed
+    function buildQuestion(string memory proposalId, bytes32[] memory txHashes)
+        public
+        pure
+        returns (string memory)
+    {
+        string memory txsHash = bytes32ToAsciiString(
+            keccak256(abi.encodePacked(txHashes))
+        );
+        return string(abi.encodePacked(proposalId, bytes3(0xe2909f), txsHash));
+    }
+
+    /// @dev Generate the question id.
+    /// @notice It is required that this is the same as for the oracle implementation used.
+    function getQuestionId(string memory question, uint256 nonce)
+        public
+        view
+        returns (bytes32)
+    {
+        // Ask the question with a starting time of 0, so that it can be immediately answered
+        bytes32 contentHash = keccak256(
+            abi.encodePacked(template, uint32(0), question)
+        );
+        return
+            keccak256(
+                abi.encodePacked(
+                    contentHash,
+                    questionArbitrator,
+                    questionTimeout,
+                    minimumBond,
+                    oracle,
+                    this,
+                    nonce
+                )
+            );
+    }
+
+    function askQuestion(string memory question, uint256 nonce)
+        internal
+        returns (bytes32)
+    {
+        // Ask the question with a starting time of 0, so that it can be immediately answered
+        return
+            RealitioV3ERC20(address(oracle)).askQuestionWithMinBondERC20(
+                template,
+                question,
+                questionArbitrator,
+                questionTimeout,
+                0,
+                nonce,
+                minimumBond,
+                0
+            );
+    }
+
+    /// @dev Marks a proposal as invalid, preventing execution of the connected transactions
+    /// @param proposalId Id that should identify the proposal uniquely
+    /// @param txHashes EIP-712 hashes of the transactions that should be executed
+    /// @notice This can only be called by the owner
+    function markProposalAsInvalid(
+        string memory proposalId,
+        bytes32[] memory txHashes // owner only is checked in markProposalAsInvalidByHash(bytes32)
+    ) public {
+        string memory question = buildQuestion(proposalId, txHashes);
+        bytes32 questionHash = keccak256(bytes(question));
+        markProposalAsInvalidByHash(questionHash);
+    }
+
+    /// @dev Marks a question hash as invalid, preventing execution of the connected transactions
+    /// @param questionHash Question hash calculated based on the proposal id and txHashes
+    /// @notice This can only be called by the owner
+    function markProposalAsInvalidByHash(bytes32 questionHash)
+        public
+        onlyAvatar
+    {
+        questionIds[questionHash] = INVALIDATED;
+    }
+
+    /// @dev Marks a proposal with an expired answer as invalid, preventing execution of the connected transactions
+    /// @param questionHash Question hash calculated based on the proposal id and txHashes
+    function markProposalWithExpiredAnswerAsInvalid(bytes32 questionHash)
+        public
+    {
+        uint32 expirationDuration = answerExpiration;
+        require(expirationDuration > 0, "Answers are valid forever");
+        bytes32 questionId = questionIds[questionHash];
+        require(questionId != INVALIDATED, "Proposal is already invalidated");
+        require(
+            questionId != bytes32(0),
+            "No question id set for provided proposal"
+        );
+        require(
+            oracle.resultFor(questionId) == bytes32(uint256(1)),
+            "Only positive answers can expire"
+        );
+        uint32 finalizeTs = oracle.getFinalizeTS(questionId);
+        require(
+            finalizeTs + uint256(expirationDuration) < block.timestamp,
+            "Answer has not expired yet"
+        );
+        questionIds[questionHash] = INVALIDATED;
+    }
+
+    function bytes32ToAsciiString(bytes32 _bytes)
+        internal
+        pure
+        returns (string memory)
+    {
+        bytes memory s = new bytes(64);
+        for (uint256 i = 0; i < 32; i++) {
+            uint8 b = uint8(bytes1(_bytes << (i * 8)));
+            uint8 hi = uint8(b) / 16;
+            uint8 lo = uint8(b) % 16;
+            s[2 * i] = char(hi);
+            s[2 * i + 1] = char(lo);
+        }
+        return string(s);
+    }
+
+    function char(uint8 b) internal pure returns (bytes1 c) {
+        if (b < 10) return bytes1(b + 0x30);
+        else return bytes1(b + 0x57);
+    }
+
+    /// @dev Returns the chain id used by this contract.
+    function getChainId() public view returns (uint256) {
+        uint256 id;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+}

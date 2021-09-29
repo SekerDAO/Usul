@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity ^0.8.6;
+pragma solidity >=0.8.0;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "./interfaces/IStrategy.sol";
@@ -266,7 +266,7 @@ contract SeeleModule is Module {
 
     /// @dev Begins the timelock phase of a successful proposal
     /// @param proposalId the identifier of the proposal
-    function startTimeLock(uint256 proposalId) external strategyOnly {
+    function receiveStrategy(uint256 proposalId) external strategyOnly {
         require(
             state(proposalId) == ProposalState.Active,
             "cannot start timelock, proposal is not active"

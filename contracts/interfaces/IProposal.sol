@@ -3,5 +3,5 @@
 pragma solidity ^0.8.6;
 
 interface IProposal {
-    function startTimeLock(uint256 proposalId) external;
+    function receiveStrategy(uint256 proposalId) external;
 }

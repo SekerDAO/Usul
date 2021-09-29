@@ -12,7 +12,7 @@ contract TestVotingStrategy {
     }
 
     function finalizeVote(uint256 proposalId) public {
-        IProposal(seeleModule).startTimeLock(proposalId);
+        IProposal(seeleModule).receiveStrategy(proposalId);
     }
 
     function receiveProposal(uint256 proposalId, bytes memory data) public {}

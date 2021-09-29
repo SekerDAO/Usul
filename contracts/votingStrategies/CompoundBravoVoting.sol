@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity ^0.8.6;
+pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20VotesComp.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -212,7 +212,7 @@ contract CompoundBravoVoting is EIP712 {
     /// @param proposalId the proposal to vote for.
     function finalizeVote(uint256 proposalId) public {
         if (isPassed(proposalId)) {
-            IProposal(seeleModule).startTimeLock(proposalId);
+            IProposal(seeleModule).receiveStrategy(proposalId);
         }
     }
 

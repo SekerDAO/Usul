@@ -15,7 +15,7 @@ import { ecsign } from "ethereumjs-util";
 const deadline =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-describe("votingModules:", () => {
+describe("linearVotingStrategies:", () => {
   const [
     wallet_0,
     wallet_1,
