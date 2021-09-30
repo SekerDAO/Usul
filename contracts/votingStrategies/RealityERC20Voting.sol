@@ -139,6 +139,7 @@ contract RealityERC20Voting {
         // We generate the question string used for the oracle
         string memory question = buildQuestion(id, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
+        questionHashes[proposalId] = questionHash;
         if (nonce > 0) {
             // Previous nonce must have been invalidated by the oracle.
             // However, if the proposal was internally invalidated, it should not be possible to ask it again.
