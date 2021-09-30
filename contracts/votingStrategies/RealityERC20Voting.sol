@@ -9,22 +9,6 @@ contract RealityERC20Voting {
     bytes32 public constant INVALIDATED =
         0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
-    enum VoteType {
-        Against,
-        For,
-        Abstain
-    }
-
-    struct ProposalVoting {
-
-        uint256 yesVotes; // the total number of YES votes for this proposal
-        uint256 noVotes; // the total number of NO votes for this proposal
-        uint256 abstainVotes; // introduce abstain votes
-        uint256 deadline; // voting deadline TODO: consider using block number
-        uint256 startBlock; // the starting block of the proposal
-        mapping(address => bool) hasVoted;
-    }
-
     event ProposalQuestionCreated(
         bytes32 indexed questionId,
         string indexed proposalId
@@ -48,6 +32,7 @@ contract RealityERC20Voting {
     /// @dev Address that this module will pass transactions to.
     address public avatar;
 
+    mapping(uint256 => bytes32) public questionHashes;
     // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
     mapping(bytes32 => bytes32) public questionIds;
     // Mapping of questionHash to transactionHash to execution state
@@ -55,7 +40,6 @@ contract RealityERC20Voting {
         public executedProposalTransactions;
 
     mapping(address => uint256) public nonces;
-    mapping(uint256 => ProposalVoting) public proposals;
 
     modifier onlyAvatar() {
         require(msg.sender == avatar, "only avatar module may enter");
@@ -186,13 +170,37 @@ contract RealityERC20Voting {
         bytes32 questionId = askQuestion(question, nonce);
         require(expectedQuestionId == questionId, "Unexpected question id");
         emit ProposalQuestionCreated(questionId, id);
-        // proposals[proposalId].deadline = votingPeriod + block.timestamp;
-        // proposals[proposalId].startBlock = block.number;
     }
 
     /// @dev Calls the proposal module to notify that a quorum has been reached.
     /// @param proposalId the proposal to vote for.
     function finalizeVote(uint256 proposalId) public {
+        // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
+        bytes32 questionHash = questionHashes[proposalId];
+        // Lookup question id for this proposal
+        bytes32 questionId = questionIds[questionHash];
+        // Check that the result of the question is 1 (true)
+        require(
+            oracle.resultFor(questionId) == bytes32(uint256(1)),
+            "Transaction was not approved"
+        );
+        uint256 minBond = minimumBond;
+        require(
+            minBond == 0 || minBond <= oracle.getBond(questionId),
+            "Bond on question not high enough"
+        );
+        uint32 finalizeTs = oracle.getFinalizeTS(questionId);
+        // The answer is valid in the time after the cooldown and before the expiration time (if set).
+        require(
+            finalizeTs + uint256(questionCooldown) < block.timestamp,
+            "Wait for additional cooldown"
+        );
+        uint32 expiration = answerExpiration;
+        require(
+            expiration == 0 ||
+                finalizeTs + uint256(expiration) >= block.timestamp,
+            "Answer has expired"
+        );
         IProposal(seeleModule).receiveStrategy(proposalId);
     }
 

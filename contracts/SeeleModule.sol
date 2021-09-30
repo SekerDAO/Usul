@@ -41,7 +41,7 @@ contract SeeleModule is Module {
     }
 
     uint256 public totalProposalCount; // total number of submitted proposals
-    uint256 public timeLockPeriod = 60 seconds; // 3 days;
+    uint256 public timeLockPeriod = 60 seconds; // 3 days; // consider leaving this up to each strat
     address internal constant SENTINEL_STRATEGY = address(0x1);
 
     // mapping of proposal id to proposal

@@ -81,11 +81,11 @@ describe("realityVotingStrategies:", () => {
         safe.address,
         proposalModule.address,
         oracle.address,
-        42,
-        23,
-        0,
-        0,
-        1337,
+        42, // timeout
+        0, // cooldown
+        0, // expiration
+        0, // bond
+        1337, // template id
         mock.address
     );
 
@@ -146,8 +146,8 @@ describe("realityVotingStrategies:", () => {
   });
 
   describe("setUp", async () => {
-    it("test", async () => {
-      const { proposalModule, realityVoting, mock, oracle, safe, txHash, txHash_1 } = await baseSetup();
+    it.only("test", async () => {
+      const { proposalModule, realityVoting, mock, oracle, safe, txHash, txHash_1, addCall } = await baseSetup();
       const id = "some_random_id";
       const question = await realityVoting.buildQuestion(id, [txHash]);
       const questionId = await realityVoting.getQuestionId(question, 0);
@@ -160,6 +160,32 @@ describe("realityVotingStrategies:", () => {
       await expect(
           proposalModule.submitProposal([txHash], realityVoting.address, abi)
       ).to.emit(realityVoting, "ProposalQuestionCreated").withArgs(questionId, id)
+      const block = await ethers.provider.getBlock("latest")
+      //await mock.reset()
+      //await mock.givenMethodReturnUint(oracle.interface.getSighash("getBond"), 7331)
+      await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
+      await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+
+      //await nextBlockTime(hre, block.timestamp + 24)
+      await realityVoting.finalizeVote(0);
+      await network.provider.send("evm_increaseTime", [60]);
+      await network.provider.send("evm_mine");
+      await proposalModule.executeProposalByIndex(
+        0, // proposalId
+        safe.address, // target
+        0, // value
+        addCall.data, // data
+        0, // call operation
+        0 // txHash index
+      );
+      expect(await proposalModule.state(0)).to.equal(3);
+      let proposal = await proposalModule.proposals(0);
+      let isExecuted = await proposalModule.isTxExecuted(0, 0);
+      expect(isExecuted).to.equal(true);
+      const owners = await safe.getOwners();
+      expect(owners[0]).to.equal(wallet_1.address);
+      expect(owners[1]).to.equal(wallet_0.address);
+      expect(proposal.executionCounter).to.equal(0);
     });
   });
   // can use the safe and a cancel proposal role
