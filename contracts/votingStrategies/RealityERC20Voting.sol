@@ -14,13 +14,6 @@ contract RealityERC20Voting {
         string indexed proposalId
     );
 
-    event RealityModuleSetup(
-        address indexed initiator,
-        address indexed owner,
-        address indexed avatar,
-        address target
-    );
-
     RealitioV3 public oracle;
     uint256 public template;
     uint32 public questionTimeout;

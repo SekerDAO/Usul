@@ -146,7 +146,7 @@ describe("realityVotingStrategies:", () => {
   });
 
   describe("setUp", async () => {
-    it.only("test", async () => {
+    it("test", async () => {
       const { proposalModule, realityVoting, mock, oracle, safe, txHash, txHash_1, addCall } = await baseSetup();
       const id = "some_random_id";
       const question = await realityVoting.buildQuestion(id, [txHash]);
