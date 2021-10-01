@@ -295,7 +295,7 @@ contract SeeleModule is Module {
         bytes memory data,
         Enum.Operation operation,
         uint256 txIndex
-    ) external {
+    ) public {
         require(
             state(proposalId) == ProposalState.Executing,
             "proposal is not in execution state"
@@ -321,7 +321,7 @@ contract SeeleModule is Module {
         );
         proposals[proposalId].executed[txIndex] = true;
         proposals[proposalId].executionCounter--;
-        exec(target, value, data, operation);
+        require(exec(target, value, data, operation));
         emit TransactionExecuted(txHash);
     }
 
@@ -343,10 +343,10 @@ contract SeeleModule is Module {
         uint256 startIndex,
         uint256 txCount
     ) external {
-        require(
-            state(proposalId) == ProposalState.Executing,
-            "proposal is not in execution state"
-        );
+        // require(
+        //     state(proposalId) == ProposalState.Executing,
+        //     "proposal is not in execution state"
+        // );
         require(
             targets.length == values.length && targets.length == data.length,
             "execution parameters missmatch"
@@ -361,18 +361,19 @@ contract SeeleModule is Module {
         );
         for (uint256 i = startIndex; i < startIndex + txCount; i++) {
             // TODO: allow nonces?
-            bytes32 txHash = getTransactionHash(
-                targets[i],
-                values[i],
-                data[i],
-                Enum.Operation.Call,
-                0
-            );
-            require(proposals[proposalId].txHashes[i] == txHash, "TW032");
-            proposals[proposalId].executionCounter--;
-            proposals[proposalId].executed[i] = true;
+            executeProposalByIndex(proposalId, targets[i], values[i], data[i], operations[i], i);
+            // bytes32 txHash = getTransactionHash(
+            //     targets[i],
+            //     values[i],
+            //     data[i],
+            //     Enum.Operation.Call,
+            //     0
+            // );
+            // require(proposals[proposalId].txHashes[i] == txHash, "TW032");
+            // proposals[proposalId].executionCounter--;
+            // proposals[proposalId].executed[i] = true;
             // todo, dont require, check if successful
-            require(exec(targets[i], values[i], data[i], operations[i]));
+            //require(exec(targets[i], values[i], data[i], operations[i]));
         }
         emit TransactionExecutedBatch(startIndex, startIndex + txCount);
     }
