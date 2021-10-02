@@ -2,10 +2,10 @@
 
 pragma solidity >=0.8.0;
 
-import "../interfaces/IProposal.sol";
+import "./Strategy.sol";
 import "../interfaces/RealitioV3.sol";
 
-contract RealityERC20Voting {
+contract RealityERC20Voting is Strategy {
     bytes32 public constant INVALIDATED =
         0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 
@@ -21,9 +21,6 @@ contract RealityERC20Voting {
     uint32 public answerExpiration;
     address public questionArbitrator;
     uint256 public minimumBond;
-    address public seeleModule;
-    /// @dev Address that this module will pass transactions to.
-    address public avatar;
 
     mapping(uint256 => bytes32) public questionHashes;
     // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
@@ -33,16 +30,6 @@ contract RealityERC20Voting {
         public executedProposalTransactions;
 
     mapping(address => uint256) public nonces;
-
-    modifier onlyAvatar() {
-        require(msg.sender == avatar, "only avatar module may enter");
-        _;
-    }
-
-    modifier onlySeele() {
-        require(msg.sender == seeleModule, "only seele module may enter");
-        _;
-    }
 
     constructor(
         address _avatar,
@@ -125,16 +112,10 @@ contract RealityERC20Voting {
         questionArbitrator = arbitrator;
     }
 
-    /// @dev Sets the executor to a new account (`newExecutor`).
-    /// @notice Can only be called by the current owner.
-    function setAvatar(address _avatar) public onlyAvatar {
-        avatar = _avatar;
-    }
-
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param proposalId the proposal to vote for.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(uint256 proposalId, bytes calldata data) external onlySeele {
+    function receiveProposal(uint256 proposalId, bytes calldata data) external override onlySeele {
         (bytes32[] memory txHashes, string memory id, uint256 nonce) = abi.decode(data, (bytes32[], string, uint256));
         // We generate the question string used for the oracle
         string memory question = buildQuestion(id, txHashes);
@@ -168,7 +149,16 @@ contract RealityERC20Voting {
 
     /// @dev Calls the proposal module to notify that a quorum has been reached.
     /// @param proposalId the proposal to vote for.
-    function finalizeVote(uint256 proposalId) public {
+    function finalizeVote(uint256 proposalId) public override {
+        if (isPassed(proposalId)) {
+            IProposal(seeleModule).receiveStrategy(proposalId);
+        }
+    }
+
+    /// @dev Determines if a proposal has succeeded.
+    /// @param proposalId the proposal to vote for.
+    /// @return boolean.
+    function isPassed(uint256 proposalId) public view override returns (bool) {
         // We use the hash of the question to check the execution state, as the other parameters might change, but the question not
         bytes32 questionHash = questionHashes[proposalId];
         // Lookup question id for this proposal
@@ -195,7 +185,7 @@ contract RealityERC20Voting {
                 finalizeTs + uint256(expiration) >= block.timestamp,
             "Answer has expired"
         );
-        IProposal(seeleModule).receiveStrategy(proposalId);
+        return true;
     }
 
     /// @dev Build the question by combining the proposalId and the hex string of the hash of the txHashes

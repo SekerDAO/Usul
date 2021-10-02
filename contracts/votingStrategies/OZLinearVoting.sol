@@ -3,14 +3,13 @@
 pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
-import "../interfaces/IProposal.sol";
-//import "../interfaces/IStrategy.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "./Strategy.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
-contract OZLinearVoting is EIP712 {
+contract OZLinearVoting is Strategy, EIP712 {
     bytes32 public constant VOTE_TYPEHASH =
         keccak256("Vote(uint256 proposalId,uint8 vote)");
 
@@ -31,24 +30,11 @@ contract OZLinearVoting is EIP712 {
 
     ERC20Votes public immutable governanceToken;
     uint256 public votingPeriod; // the length of time voting is valid for a proposal
-    address public seeleModule;
     uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
-    /// @dev Address that this module will pass transactions to.
-    address public avatar;
     string private _name;
 
     mapping(address => uint256) public nonces;
     mapping(uint256 => ProposalVoting) public proposals;
-
-    modifier onlyAvatar() {
-        require(msg.sender == avatar, "only avatar module may enter");
-        _;
-    }
-
-    modifier onlySeele() {
-        require(msg.sender == seeleModule, "only seele module may enter");
-        _;
-    }
 
     constructor(
         uint256 _votingPeriod,
@@ -63,7 +49,6 @@ contract OZLinearVoting is EIP712 {
         seeleModule = _seeleModule;
         quorumThreshold = _quorumThreshold;
         avatar = _avatar;
-        _name = name_;
     }
 
     /// @dev ERC712 name.
@@ -78,12 +63,6 @@ contract OZLinearVoting is EIP712 {
 
     function getThreshold() external view returns (uint256) {
         return quorumThreshold;
-    }
-
-    /// @dev Sets the executor to a new account (`newExecutor`).
-    /// @notice Can only be called by the current owner.
-    function setAvatar(address _avatar) public onlyAvatar {
-        avatar = _avatar;
     }
 
     /// @dev Updates the quorum needed to pass a proposal, only executor.
@@ -119,7 +98,7 @@ contract OZLinearVoting is EIP712 {
     /// @dev Submits a vote for a proposal.
     /// @param proposalId the proposal to vote for.
     /// @param support against, for, or abstain.
-    function vote(uint256 proposalId, uint8 support) external {
+    function vote(uint256 proposalId, uint8 support) external virtual {
         _vote(proposalId, msg.sender, support);
     }
 
@@ -135,7 +114,7 @@ contract OZLinearVoting is EIP712 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external {
+    ) external virtual {
         address voter = ECDSA.recover(
             _hashTypedDataV4(
                 keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
@@ -182,14 +161,14 @@ contract OZLinearVoting is EIP712 {
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param proposalId the proposal to vote for.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(uint256 proposalId, bytes memory data) external onlySeele {
+    function receiveProposal(uint256 proposalId, bytes memory data) external override onlySeele {
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
     }
 
     /// @dev Calls the proposal module to notify that a quorum has been reached.
     /// @param proposalId the proposal to vote for.
-    function finalizeVote(uint256 proposalId) public {
+    function finalizeVote(uint256 proposalId) public override {
         if (isPassed(proposalId)) {
             IProposal(seeleModule).receiveStrategy(proposalId);
         }
@@ -198,7 +177,7 @@ contract OZLinearVoting is EIP712 {
     /// @dev Determines if a proposal has succeeded.
     /// @param proposalId the proposal to vote for.
     /// @return boolean.
-    function isPassed(uint256 proposalId) public view returns (bool) {
+    function isPassed(uint256 proposalId) public view override returns (bool) {
         require(
             proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
             "the yesVotes must be strictly over the noVotes"

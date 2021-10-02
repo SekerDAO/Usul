@@ -26,7 +26,8 @@ contract SeeleModule is Module {
         Canceled,
         TimeLocked,
         Executed,
-        Executing
+        Executing,
+        Expired
     }
 
     struct Proposal {
@@ -41,7 +42,8 @@ contract SeeleModule is Module {
     }
 
     uint256 public totalProposalCount; // total number of submitted proposals
-    uint256 public timeLockPeriod = 60 seconds; // 3 days; // consider leaving this up to each strat
+    //uint256 public expiry; // time after which execution of a proposals is not valid
+    uint256 public timeLockPeriod; // 3 days; // consider leaving this up to each strat
     address internal constant SENTINEL_STRATEGY = address(0x1);
 
     // mapping of proposal id to proposal
@@ -83,12 +85,14 @@ contract SeeleModule is Module {
     constructor(
         address _owner,
         address _avatar,
-        address _target
+        address _target,
+        uint256 _timeLockPeriod
     ) {
         bytes memory initParams = abi.encode(
             _owner,
             _avatar,
-            _target
+            _target,
+            _timeLockPeriod
         );
         setUp(initParams);
     }
@@ -97,13 +101,16 @@ contract SeeleModule is Module {
         (
             address _owner,
             address _avatar,
-            address _target
-        ) = abi.decode(initParams, (address, address, address));
+            address _target,
+            uint256 _timeLockPeriod
+        ) = abi.decode(initParams, (address, address, address, uint256));
         __Ownable_init();
+        require(_owner != address(0), "Avatar can not be zero address");
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
         avatar = _avatar;
         target = _target;
+        timeLockPeriod = _timeLockPeriod * 1 seconds;
         setupStrategies();
         transferOwnership(_owner);
         emit SeeleSetup(msg.sender, _owner, _avatar, _target);

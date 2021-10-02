@@ -70,7 +70,8 @@ describe("realityVotingStrategies:", () => {
     const proposalModule = await proposalContract.deploy(
       safe.address,
       safe.address,
-      safe.address
+      safe.address,
+      60
     );
 
     const Mock = await hre.ethers.getContractFactory("MockContract");
