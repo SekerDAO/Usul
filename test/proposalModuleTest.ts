@@ -91,6 +91,12 @@ describe("proposalModule:", () => {
       [wallet_3.address, 1],
       await safe.nonce()
     );
+    const addCall_2 = buildContractCall(
+      safe,
+      "addOwnerWithThreshold",
+      [wallet_4.address, 1],
+      await safe.nonce()
+    );
     const txHash = await proposalModule.getTransactionHash(
       addCall.to,
       addCall.value,
@@ -103,6 +109,13 @@ describe("proposalModule:", () => {
       addCall_1.value,
       addCall_1.data,
       addCall_1.operation,
+      0
+    );
+    const txHash_2 = await proposalModule.getTransactionHash(
+      addCall_2.to,
+      addCall_2.value,
+      addCall_2.data,
+      addCall_2.operation,
       0
     );
 
@@ -129,8 +142,10 @@ describe("proposalModule:", () => {
       votingStrategy_2,
       addCall,
       addCall_1,
+      addCall_2,
       txHash,
       txHash_1,
+      txHash_2
     };
   });
 
@@ -219,6 +234,11 @@ describe("proposalModule:", () => {
       await expect(proposalModule.updateTimeLockPeriod(1337)).to.be.revertedWith("only the avatar may enter");
     });
 
+    it("should revert if strategy is not enabled", async () => {
+      const { proposalModule, safe, txHash } = await baseSetup();
+      await expect(proposalModule.submitProposal([txHash], wallet_0.address, "0x")).to.be.revertedWith("voting strategy is not enabled for proposal");
+    });
+
     it("can update timelock period from proposal", async () => {
       const { proposalModule, safe, votingStrategy } = await baseSetup();
       const Call = buildContractCall(
@@ -293,6 +313,11 @@ describe("proposalModule:", () => {
         0 // txHash index
       );
       expect(await proposalModule.state(0)).to.equal(3);
+    });
+
+    it.skip("transaction should not be Executed", async () => {
+      const { proposalModule } = await baseSetup();
+      expect(await proposalModule.isTxExecuted(0, 0)).to.equal(0);
     });
 
     it("can execute add safe admin DAO proposal", async () => {
@@ -423,6 +448,64 @@ describe("proposalModule:", () => {
       expect(owners[0]).to.equal(wallet_3.address);
       expect(owners[1]).to.equal(wallet_2.address);
       expect(owners[2]).to.equal(wallet_0.address);
+      expect(proposal.executionCounter).to.equal(0);
+    });
+
+    it("it should revert with parameter length missmatch", async () => {
+
+    });
+
+    it("it should revert with transaction already executed", async () => {
+
+    });
+
+    it("it should revert no transactions are supplied to batch", async () => {
+
+    });
+
+    it("can execute multiple add safe admin DAO proposal batch", async () => {
+      const {
+        proposalModule,
+        votingStrategy,
+        safe,
+        addCall,
+        addCall_1,
+        addCall_2,
+        txHash,
+        txHash_1,
+        txHash_2
+      } = await baseSetup();
+      await proposalModule.submitProposal(
+        [txHash, txHash_1, txHash_2],
+        votingStrategy.address,
+        "0x"
+      );
+      await votingStrategy.finalizeVote(0);
+      await network.provider.send("evm_increaseTime", [60]);
+      await network.provider.send("evm_mine");
+      let proposal = await proposalModule.proposals(0);
+      expect(proposal.executionCounter).to.equal(3);
+      await proposalModule.executeProposalBatch(
+        0, // proposalId
+        [safe.address, safe.address, safe.address],
+        [0, 0, 0],
+        [addCall.data, addCall_1.data, addCall_2.data],
+        [0, 0, 0], // call options
+        0, // txHash start index
+        3 // tx length
+      );
+      proposal = await proposalModule.proposals(0);
+      let isExecuted = await proposalModule.isTxExecuted(0, 0);
+      expect(isExecuted).to.equal(true);
+      isExecuted = await proposalModule.isTxExecuted(0, 1);
+      expect(isExecuted).to.equal(true);
+      isExecuted = await proposalModule.isTxExecuted(0, 2);
+      expect(isExecuted).to.equal(true);
+      let owners = await safe.getOwners();
+      expect(owners[0]).to.equal(wallet_4.address);
+      expect(owners[1]).to.equal(wallet_3.address);
+      expect(owners[2]).to.equal(wallet_2.address);
+      expect(owners[3]).to.equal(wallet_0.address);
       expect(proposal.executionCounter).to.equal(0);
     });
 

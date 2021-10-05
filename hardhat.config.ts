@@ -2,6 +2,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@openzeppelin/hardhat-upgrades";
 import "solidity-coverage";
 import "hardhat-deploy";
+import "hardhat-gas-reporter"
 //import "@nomiclabs/hardhat-ethers";
 /**
  * @type import('hardhat/config').HardhatUserConfig
@@ -16,5 +17,8 @@ module.exports = {
         runs: 200
       }
     }
+  },
+  gasReporter: {
+    enabled: true
   }
 };
