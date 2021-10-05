@@ -4,7 +4,6 @@ pragma solidity >=0.8.0;
 
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "./interfaces/IStrategy.sol";
-//import "./interfaces/IProposal.sol";
 
 /// @title Seele Module - A Zodiac module that enables a voting agnostic proposal mechanism.
 /// @author Nathan Ginnever - <team@tokenwalk.org>

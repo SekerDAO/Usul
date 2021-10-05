@@ -1,237 +1,230 @@
-// // SPDX-License-Identifier: LGPL-3.0-only
+// SPDX-License-Identifier: LGPL-3.0-only
 
-// pragma solidity ^0.8.6;
+pragma solidity >=0.8.0;
 
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-// import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-// import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-// import "../common/Enum.sol";
-// import "../interfaces/IProposal.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "./Strategy.sol";
 
-// // create BrightID version
-// contract MemberLinearVoting {
-//     using SafeMath for uint256;
-//     using SafeERC20 for IERC20;
+/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
+/// @author Nathan Ginnever - <team@tokenwalk.org>
+contract MemberLinearVoting is Strategy, EIP712 {
+    bytes32 public constant VOTE_TYPEHASH =
+        keccak256("Vote(uint256 proposalId,uint8 vote)");
 
-//     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
-//         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
-//     // keccak256(
-//     //     "EIP712Domain(uint256 chainId,address verifyingContract)"
-//     // );
+    enum VoteType {
+        Against,
+        For,
+        Abstain
+    }
 
-//     // todo FIX
-//     bytes32 public constant VOTE_TYPEHASH =
-//         0x17c0c894efb0e2d2868a370783df75623a0365af090e935de3c5f6f761aaa153;
-//     // keccak256(
-//     //     "Vote(address delegatee, uint256 proposalId, uint256 votes, bool vote, uint256 deadline, uint256 nonce)"
-//     // );
+    struct ProposalVoting {
+        uint256 yesVotes; // the total number of YES votes for this proposal
+        uint256 noVotes; // the total number of NO votes for this proposal
+        uint256 abstainVotes; // introduce abstain votes
+        uint256 deadline; // voting deadline TODO: consider using block number
+        uint256 startBlock; // the starting block of the proposal
+        mapping(address => bool) hasVoted;
+    }
 
-//     struct Delegation {
-//         mapping(address => uint256) votes;
-//         uint256 undelegateDelay;
-//         uint256 lastBlock;
-//         uint256 total;
-//     }
+    IERC20 public immutable governanceToken;
+    uint256 public votingPeriod; // the length of time voting is valid for a proposal
+    uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
+    string private _name;
+    uint256 public memberCount;
 
-//     address private _governanceToken;
-//     address private _proposalModule;
-//     uint256 private _undelegateDelay;
-//     uint256 public memberCount;
-//     /// @dev Address that this module will pass transactions to.
-//     address public executor;
+    mapping(address => uint256) public nonces;
+    mapping(uint256 => ProposalVoting) public proposals;
+    mapping(address => bool) public members;
 
-//     mapping(address => uint256) public nonces;
-//     mapping(address => Delegation) public delegations;
-//     mapping(address => bool) public members;
+    modifier onlyMember() {
+        require(members[msg.sender] == true);
+        _;
+    }
 
-//     modifier onlyExecutor() {
-//         require(msg.sender == executor, "TW001");
-//         _;
-//     }
+    constructor(
+        uint256 _votingPeriod,
+        IERC20 _governanceToken,
+        address _seeleModule,
+        uint256 _quorumThreshold,
+        address _avatar,
+        string memory name_
+    ) EIP712(name_, version()) {
+        votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
+        governanceToken = _governanceToken;
+        seeleModule = _seeleModule;
+        quorumThreshold = _quorumThreshold;
+        avatar = _avatar;
+    }
 
-//     modifier onlyMember() {
-//         require(members[msg.sender] == true);
-//         _;
-//     }
+    /// @dev ERC712 name.
+    function name() public view virtual returns (string memory) {
+        return _name;
+    }
 
-//     event VotesDelegated(uint256 number);
-//     event VotesUndelegated(uint256 number);
+    ///@dev ERC712 version.
+    function version() public view virtual returns (string memory) {
+        return "1";
+    }
 
-//     constructor(
-//         address governanceToken_,
-//         address proposalModule_,
-//         uint256 undelgateDelay_,
-//         address executor_
-//     ) {
-//         _governanceToken = governanceToken_;
-//         _proposalModule = proposalModule_;
-//         _undelegateDelay = undelgateDelay_;
-//         executor = executor_;
-//     }
+    function getThreshold() external view returns (uint256) {
+        return quorumThreshold;
+    }
 
-//     function addMember(address member) public onlyExecutor {
-//         members[member] = true;
-//         memberCount++;
-//     }
+    /// @dev Updates the quorum needed to pass a proposal, only executor.
+    /// @param _quorumThreshold the voting quorum threshold.
+    function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
+        quorumThreshold = _quorumThreshold;
+    }
 
-//     function removeMember(address member) public onlyExecutor {
-//         members[member] = false;
-//         memberCount--;
-//     }
+    /// @dev Updates the time that proposals are active for voting.
+    /// @return votingPeriod time window.
+    function getVotingPeriod() public view returns (uint256) {
+        return votingPeriod;
+    }
 
-//     /// @dev Sets the executor to a new account (`newExecutor`).
-//     /// @notice Can only be called by the current owner.
-//     function setExecutor(address _executor) public onlyExecutor {
-//         executor = _executor;
-//     }
+    /// @dev Updates the time that proposals are active for voting.
+    /// @param newPeriod the voting window.
+    function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
+        votingPeriod = newPeriod;
+    }
 
-//     function governanceToken() public view virtual returns (address) {
-//         return _governanceToken;
-//     }
+    function addMember(address member) public onlyAvatar {
+        members[member] = true;
+        memberCount++;
+    }
 
-//     // todo erc712 delegation
+    function removeMember(address member) public onlyAvatar {
+        members[member] = false;
+        memberCount--;
+    }
 
-//     function delegateVotes(address delegatee, uint256 amount)
-//         external
-//         onlyMember
-//     {
-//         IERC20(_governanceToken).safeTransferFrom(
-//             msg.sender,
-//             address(this),
-//             amount
-//         );
-//         delegations[delegatee].votes[msg.sender] = amount;
-//         delegations[delegatee].lastBlock = block.number;
-//         // can make the total 1-1 here
-//         delegations[delegatee].total = delegations[delegatee].total.add(amount);
-//     }
+    /// @dev Returns true if an account has voted on a specific proposal.
+    /// @param proposalId the proposal to inspect.
+    /// @param account the account to inspect.
+    /// @return boolean.
+    function hasVoted(uint256 proposalId, address account)
+        public
+        view
+        returns (bool)
+    {
+        return proposals[proposalId].hasVoted[account];
+    }
 
-//     // todo erc712 undelegation
+    /// @dev Submits a vote for a proposal.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    function vote(uint256 proposalId, uint8 support) external virtual {
+        _vote(proposalId, msg.sender, support);
+    }
 
-//     function undelegateVotes(address delegatee, uint256 amount) external {
-//         require(
-//             delegations[delegatee].undelegateDelay <= block.timestamp,
-//             "TW024"
-//         );
-//         require(delegations[delegatee].votes[msg.sender] >= amount, "TW020");
-//         IERC20(_governanceToken).safeTransfer(msg.sender, amount);
-//         delegations[delegatee].votes[msg.sender] = delegations[delegatee]
-//             .votes[msg.sender]
-//             .sub(amount);
-//         delegations[delegatee].total = delegations[delegatee].total.sub(amount);
-//     }
+    /// @dev Submits a vote for a proposal by ERC712 signature.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    /// @param v the Signature v value.
+    /// @param r the Signature r value.
+    /// @param s the Signature s value.
+    function voteSignature(
+        uint256 proposalId,
+        uint8 support,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external virtual {
+        address voter = ECDSA.recover(
+            _hashTypedDataV4(
+                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
+            ),
+            v,
+            r,
+            s
+        );
+        _vote(proposalId, voter, support);
+    }
 
-//     // todo: erc712 voting
+    function _vote(
+        uint256 proposalId,
+        address voter,
+        uint8 support
+    ) internal {
+        require(
+            block.timestamp <= proposals[proposalId].deadline,
+            "voting period has passed"
+        );
+        require(!hasVoted(proposalId, voter), "voter has already voted");
+        uint256 weight = calculateWeight(msg.sender);
+        proposals[proposalId].hasVoted[voter] = true;
+        if (support == uint8(VoteType.Against)) {
+            proposals[proposalId].noVotes =
+                proposals[proposalId].noVotes +
+                weight;
+        } else if (support == uint8(VoteType.For)) {
+            proposals[proposalId].yesVotes =
+                proposals[proposalId].yesVotes +
+                weight;
+        } else if (support == uint8(VoteType.Abstain)) {
+            proposals[proposalId].abstainVotes =
+                proposals[proposalId].abstainVotes +
+                weight;
+        } else {
+            revert("invalid value for enum VoteType");
+        }
+    }
 
-//     function vote(uint256 proposalId, uint8 vote) public onlyMember {
-//         delegations[msg.sender].undelegateDelay =
-//             block.timestamp +
-//             IProposal(_proposalModule).getProposalWindow();
-//         require(checkBlock(msg.sender), "TW021");
-//         IProposal(_proposalModule).receiveVote(
-//             msg.sender,
-//             proposalId,
-//             vote,
-//             calculateWeight(msg.sender)
-//         );
-//     }
+    /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
+    /// @param proposalId the proposal to vote for.
+    /// @param data any extra data to pass to the voting strategy
+    function receiveProposal(uint256 proposalId, bytes memory data) external override onlySeele {
+        proposals[proposalId].deadline = votingPeriod + block.timestamp;
+        proposals[proposalId].startBlock = block.number;
+    }
 
-//     function voteSignature(
-//         address delegatee,
-//         uint256 proposalId,
-//         uint8 vote,
-//         uint256 deadline,
-//         uint8 v,
-//         bytes32 r,
-//         bytes32 s
-//     ) external {
-//         require(block.timestamp <= deadline, "Deadline Expired");
-//         bytes32 voteHash = getVoteHash(delegatee, proposalId, vote, deadline);
-//         address signer = ecrecover(voteHash, v, r, s);
-//         require(
-//             signer != address(0) && signer == delegatee,
-//             "signer doesn not match delegatee"
-//         );
-//         require(members[signer] == true, "not a member");
-//         nonces[signer]++;
-//         delegations[signer].undelegateDelay =
-//             block.timestamp +
-//             IProposal(_proposalModule).getProposalWindow();
-//         require(checkBlock(msg.sender), "TW021");
-//         IProposal(_proposalModule).receiveVote(
-//             signer,
-//             proposalId,
-//             vote,
-//             calculateWeight(signer)
-//         );
-//     }
+    /// @dev Calls the proposal module to notify that a quorum has been reached.
+    /// @param proposalId the proposal to vote for.
+    function finalizeVote(uint256 proposalId) public override {
+        if (isPassed(proposalId)) {
+            IProposal(seeleModule).receiveStrategy(proposalId);
+        }
+    }
 
-//     function calculateWeight(address delegatee) public view returns (uint256) {
-//         uint256 votes = delegations[delegatee].votes[delegatee];
-//         require(delegations[delegatee].total > 0, "TW035");
-//         return delegations[delegatee].total;
-//     }
+    /// @dev Determines if a proposal has succeeded.
+    /// @param proposalId the proposal to vote for.
+    /// @return boolean.
+    function isPassed(uint256 proposalId) public view override returns (bool) {
+        require(
+            proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
+            "the yesVotes must be strictly over the noVotes"
+        );
+        require(
+            proposals[proposalId].yesVotes +
+                proposals[proposalId].abstainVotes >=
+                quorumThreshold,
+            "a quorum has not been reached for the proposal"
+        );
+        require(
+            proposals[proposalId].deadline < block.timestamp,
+            "voting period has not passed yet"
+        );
+        return true;
+    }
 
-//     function checkBlock(address delegatee) public view returns (bool) {
-//         return (delegations[delegatee].lastBlock != block.number);
-//     }
+    function calculateWeight(address voter)
+        public
+        view
+        returns (uint256)
+    {	
+        require(members[voter], "voter is not a member");
+        return governanceToken.balanceOf(voter);
+    }
 
-//     /// @dev Generates the data for the module transaction hash (required for signing)
-//     function generateVoteHashData(
-//         address delegatee,
-//         uint256 proposalId,
-//         uint8 vote,
-//         uint256 deadline
-//     ) public view returns (bytes memory) {
-//         uint256 chainId = getChainId();
-//         bytes32 domainSeparator = keccak256(
-//             abi.encode(
-//                 DOMAIN_SEPARATOR_TYPEHASH,
-//                 // keccak256(bytes(name)),
-//                 // keccak256(bytes("1")),
-//                 chainId,
-//                 this
-//             )
-//         );
-//         bytes32 voteHash = keccak256(
-//             abi.encode(
-//                 VOTE_TYPEHASH,
-//                 delegatee,
-//                 proposalId,
-//                 delegations[delegatee].votes[delegatee],
-//                 vote,
-//                 deadline,
-//                 nonces[delegatee]
-//             )
-//         );
-//         return
-//             abi.encodePacked(
-//                 bytes1(0x19),
-//                 bytes1(0x01),
-//                 domainSeparator,
-//                 voteHash
-//             );
-//     }
-
-//     function getVoteHash(
-//         address delegatee,
-//         uint256 proposalId,
-//         uint8 vote,
-//         uint256 deadline
-//     ) public view returns (bytes32) {
-//         return
-//             keccak256(
-//                 generateVoteHashData(delegatee, proposalId, vote, deadline)
-//             );
-//     }
-
-//     /// @dev Returns the chain id used by this contract.
-//     function getChainId() public view returns (uint256) {
-//         uint256 id;
-//         // solium-disable-next-line security/no-inline-assembly
-//         assembly {
-//             id := chainid()
-//         }
-//         return id;
-//     }
-// }
+    /// @dev Returns the chain id used by this contract.
+    function getChainId() public view returns (uint256) {
+        uint256 id;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+}

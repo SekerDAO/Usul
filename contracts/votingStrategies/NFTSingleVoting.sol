@@ -2,13 +2,14 @@
 
 pragma solidity >=0.8.0;
 
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./Strategy.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
-contract SingleVoting is Strategy, EIP712 {
+contract NFTSingleVoting is Strategy, EIP712 {
     bytes32 public constant VOTE_TYPEHASH =
         keccak256("Vote(uint256 proposalId,uint8 vote)");
 
@@ -27,6 +28,7 @@ contract SingleVoting is Strategy, EIP712 {
         mapping(address => bool) hasVoted;
     }
 
+    IERC721 public immutable governanceToken;
     uint256 public votingPeriod; // the length of time voting is valid for a proposal
     uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
     string private _name;
@@ -43,12 +45,14 @@ contract SingleVoting is Strategy, EIP712 {
 
     constructor(
         uint256 _votingPeriod,
+        IERC721 _governanceToken,
         address _seeleModule,
         uint256 _quorumThreshold,
         address _avatar,
         string memory name_
     ) EIP712(name_, version()) {
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
+        governanceToken = _governanceToken;
         seeleModule = _seeleModule;
         quorumThreshold = _quorumThreshold;
         avatar = _avatar;
@@ -211,6 +215,7 @@ contract SingleVoting is Strategy, EIP712 {
         returns (uint256)
     {	
         require(members[voter], "voter is not a member");
+        require(governanceToken.balanceOf(voter) >= 1, "voter must own an NFT");
         return 1;
     }
 

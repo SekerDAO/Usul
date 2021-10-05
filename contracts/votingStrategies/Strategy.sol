@@ -24,6 +24,12 @@ abstract contract Strategy {
         avatar = _avatar;
     }
 
+    /// @dev Sets the executor to a new account (`newExecutor`).
+    /// @notice Can only be called by the current owner.
+    function setSeele(address _seele) public onlyAvatar {
+        seeleModule = _seele;
+    }
+
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param proposalId the proposal to vote for.
     /// @param data any extra data to pass to the voting strategy

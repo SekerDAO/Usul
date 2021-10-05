@@ -1,132 +1,235 @@
-// // SPDX-License-Identifier: LGPL-3.0-only
+// SPDX-License-Identifier: LGPL-3.0-only
 
-// pragma solidity ^0.8.6;
+pragma solidity >=0.8.0;
 
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-// import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-// import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-// import "../common/Enum.sol";
-// import "../interfaces/IProposal.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "./Strategy.sol";
 
-// contract MemberQuadraticVoting {
-//     using SafeMath for uint256;
-//     using SafeERC20 for IERC20;
+/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
+/// @author Nathan Ginnever - <team@tokenwalk.org>
+contract MemberLinearVoting is Strategy, EIP712 {
+    bytes32 public constant VOTE_TYPEHASH =
+        keccak256("Vote(uint256 proposalId,uint8 vote)");
 
-//     uint256 public memberCount;
-//     uint256 public unstakeDelay;
-//     address private _governanceToken;
-//     address private _proposalModule;
-//     /// @dev Address that this module will pass transactions to.
-//     address public avatar;
+    enum VoteType {
+        Against,
+        For,
+        Abstain
+    }
 
-//     struct Votes {
-//         bool member;
-//         uint256 votes;
-//         uint256 unstakeDelay;
-//         uint256 lastBlock;
-//     }
+    struct ProposalVoting {
+        uint256 yesVotes; // the total number of YES votes for this proposal
+        uint256 noVotes; // the total number of NO votes for this proposal
+        uint256 abstainVotes; // introduce abstain votes
+        uint256 deadline; // voting deadline TODO: consider using block number
+        uint256 startBlock; // the starting block of the proposal
+        mapping(address => bool) hasVoted;
+    }
 
-//     mapping(address => Votes) public votes;
+    IERC20 public immutable governanceToken;
+    uint256 public votingPeriod; // the length of time voting is valid for a proposal
+    uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
+    string private _name;
+    uint256 public memberCount;
 
-//     modifier onlyAvatar() {
-//         require(msg.sender == avatar, "TW001");
-//         _;
-//     }
+    mapping(address => uint256) public nonces;
+    mapping(uint256 => ProposalVoting) public proposals;
+    mapping(address => bool) public members;
 
-//     modifier onlyMember() {
-//         require(votes[msg.sender].member == true);
-//         _;
-//     }
+    modifier onlyMember() {
+        require(members[msg.sender] == true);
+        _;
+    }
 
-//     event VotesStaked(uint256 number);
-//     event VotesUnstaked(uint256 number);
+    constructor(
+        uint256 _votingPeriod,
+        IERC20 _governanceToken,
+        address _seeleModule,
+        uint256 _quorumThreshold,
+        address _avatar,
+        string memory name_
+    ) EIP712(name_, version()) {
+        votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
+        governanceToken = _governanceToken;
+        seeleModule = _seeleModule;
+        quorumThreshold = _quorumThreshold;
+        avatar = _avatar;
+    }
 
-//     constructor(
-//         address governanceToken_,
-//         address proposalModule_,
-//         address avatar_,
-//         uint256 unstakeDelay_
-//     ) {
-//         _governanceToken = governanceToken_;
-//         _proposalModule = proposalModule_;
-//         avatar = avatar_;
-//         unstakeDelay = unstakeDelay_;
-//     }
+    /// @dev ERC712 name.
+    function name() public view virtual returns (string memory) {
+        return _name;
+    }
 
-//     function addMember(address member) public onlyAvatar {
-//         votes[member].member = true;
-//         memberCount++;
-//     }
+    ///@dev ERC712 version.
+    function version() public view virtual returns (string memory) {
+        return "1";
+    }
 
-//     function removeMember(address member) public onlyAvatar {
-//         votes[member].member = false;
-//         memberCount--;
-//     }
+    function getThreshold() external view returns (uint256) {
+        return quorumThreshold;
+    }
 
-//     /// @dev Sets the executor to a new account (`newExecutor`).
-//     /// @notice Can only be called by the current owner.
-//     function setavatar(address _avatar) public onlyAvatar {
-//         avatar = _avatar;
-//     }
+    /// @dev Updates the quorum needed to pass a proposal, only executor.
+    /// @param _quorumThreshold the voting quorum threshold.
+    function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
+        quorumThreshold = _quorumThreshold;
+    }
 
-//     function governanceToken() public view virtual returns (address) {
-//         return _governanceToken;
-//     }
+    /// @dev Updates the time that proposals are active for voting.
+    /// @return votingPeriod time window.
+    function getVotingPeriod() public view returns (uint256) {
+        return votingPeriod;
+    }
 
-//     // todo erc712 delegation
+    /// @dev Updates the time that proposals are active for voting.
+    /// @param newPeriod the voting window.
+    function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
+        votingPeriod = newPeriod;
+    }
 
-//     function stakeVotes(address voter, uint256 amount) external onlyMember {
-//         IERC20(_governanceToken).safeTransferFrom(
-//             msg.sender,
-//             address(this),
-//             amount
-//         );
-//         votes[voter].votes = votes[voter].votes.add(amount);
-//         votes[voter].lastBlock = block.number;
-//         // can make the total 1-1 here
-//     }
+    function addMember(address member) public onlyAvatar {
+        members[member] = true;
+        memberCount++;
+    }
 
-//     // todo erc712 undelegation
+    function removeMember(address member) public onlyAvatar {
+        members[member] = false;
+        memberCount--;
+    }
 
-//     function unstakeVotes(uint256 amount) external {
-//         require(votes[msg.sender].unstakeDelay <= block.timestamp, "TW024");
-//         require(votes[msg.sender].votes >= amount, "TW020");
-//         IERC20(_governanceToken).safeTransfer(msg.sender, amount);
-//         votes[msg.sender].votes = votes[msg.sender].votes.sub(amount);
-//     }
+    /// @dev Returns true if an account has voted on a specific proposal.
+    /// @param proposalId the proposal to inspect.
+    /// @param account the account to inspect.
+    /// @return boolean.
+    function hasVoted(uint256 proposalId, address account)
+        public
+        view
+        returns (bool)
+    {
+        return proposals[proposalId].hasVoted[account];
+    }
 
-//     // todo: erc712 voting
+    /// @dev Submits a vote for a proposal.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    function vote(uint256 proposalId, uint8 support) external virtual {
+        _vote(proposalId, msg.sender, support);
+    }
 
-//     function vote(uint256 proposalId, uint8 vote) external onlyMember {
-//         startVoting(msg.sender);
-//         require(checkBlock(msg.sender), "TW021");
-//         IProposal(_proposalModule).receiveVote(
-//             msg.sender,
-//             proposalId,
-//             vote,
-//             calculateWeight(msg.sender)
-//         );
-//     }
+    /// @dev Submits a vote for a proposal by ERC712 signature.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    /// @param v the Signature v value.
+    /// @param r the Signature r value.
+    /// @param s the Signature s value.
+    function voteSignature(
+        uint256 proposalId,
+        uint8 support,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external virtual {
+        address voter = ECDSA.recover(
+            _hashTypedDataV4(
+                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
+            ),
+            v,
+            r,
+            s
+        );
+        _vote(proposalId, voter, support);
+    }
 
-//     function startVoting(address voter) internal {
-//         votes[voter].unstakeDelay = block.timestamp + unstakeDelay;
-//     }
+    function _vote(
+        uint256 proposalId,
+        address voter,
+        uint8 support
+    ) internal {
+        require(
+            block.timestamp <= proposals[proposalId].deadline,
+            "voting period has passed"
+        );
+        require(!hasVoted(proposalId, voter), "voter has already voted");
+        uint256 weight = calculateWeight(msg.sender);
+        proposals[proposalId].hasVoted[voter] = true;
+        if (support == uint8(VoteType.Against)) {
+            proposals[proposalId].noVotes =
+                proposals[proposalId].noVotes +
+                weight;
+        } else if (support == uint8(VoteType.For)) {
+            proposals[proposalId].yesVotes =
+                proposals[proposalId].yesVotes +
+                weight;
+        } else if (support == uint8(VoteType.Abstain)) {
+            proposals[proposalId].abstainVotes =
+                proposals[proposalId].abstainVotes +
+                weight;
+        } else {
+            revert("invalid value for enum VoteType");
+        }
+    }
 
-//     function calculateWeight(address voter) public view returns (uint256) {
-//         require(votes[voter].votes > 0, "TW035");
-//         return sqrt(votes[voter].votes);
-//     }
+    /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
+    /// @param proposalId the proposal to vote for.
+    /// @param data any extra data to pass to the voting strategy
+    function receiveProposal(uint256 proposalId, bytes memory data) external override onlySeele {
+        proposals[proposalId].deadline = votingPeriod + block.timestamp;
+        proposals[proposalId].startBlock = block.number;
+    }
 
-//     function checkBlock(address voter) public view returns (bool) {
-//         return (votes[voter].lastBlock != block.number);
-//     }
+    /// @dev Calls the proposal module to notify that a quorum has been reached.
+    /// @param proposalId the proposal to vote for.
+    function finalizeVote(uint256 proposalId) public override {
+        if (isPassed(proposalId)) {
+            IProposal(seeleModule).receiveStrategy(proposalId);
+        }
+    }
 
-//     function sqrt(uint256 x) internal pure returns (uint256 y) {
-//         uint256 z = (x + 1) / 2;
-//         y = x;
-//         while (z < y) {
-//             y = z;
-//             z = (x / z + z) / 2;
-//         }
-//     }
-// }
+    /// @dev Determines if a proposal has succeeded.
+    /// @param proposalId the proposal to vote for.
+    /// @return boolean.
+    function isPassed(uint256 proposalId) public view override returns (bool) {
+        require(
+            proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
+            "the yesVotes must be strictly over the noVotes"
+        );
+        require(
+            proposals[proposalId].yesVotes +
+                proposals[proposalId].abstainVotes >=
+                quorumThreshold,
+            "a quorum has not been reached for the proposal"
+        );
+        require(
+            proposals[proposalId].deadline < block.timestamp,
+            "voting period has not passed yet"
+        );
+        return true;
+    }
+
+    function calculateWeight(address voter) public view returns (uint256) {
+        require(members[voter], "voter is not a member");
+        return sqrt(governanceToken.balanceOf(voter));
+    }
+
+    /// @dev Returns the chain id used by this contract.
+    function getChainId() public view returns (uint256) {
+        uint256 id;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+
+    function sqrt(uint256 x) internal pure returns (uint256 y) {
+        uint256 z = (x + 1) / 2;
+        y = x;
+        while (z < y) {
+            y = z;
+            z = (x / z + z) / 2;
+        }
+    }
+}
