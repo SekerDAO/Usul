@@ -103,7 +103,7 @@ contract RealityERC20Voting is Strategy {
     /// @notice This can only be called by the owner
     function setTemplate(uint256 templateId) public onlyAvatar {
         template = templateId;
-    } 
+    }
 
     /// @dev Sets the question arbitrator that will be used for future questions.
     /// @param arbitrator Address of the arbitrator
@@ -115,8 +115,13 @@ contract RealityERC20Voting is Strategy {
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param proposalId the proposal to vote for.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(uint256 proposalId, bytes calldata data) external override onlySeele {
-        (bytes32[] memory txHashes, string memory id, uint256 nonce) = abi.decode(data, (bytes32[], string, uint256));
+    function receiveProposal(uint256 proposalId, bytes calldata data)
+        external
+        override
+        onlySeele
+    {
+        (bytes32[] memory txHashes, string memory id, uint256 nonce) = abi
+            .decode(data, (bytes32[], string, uint256));
         // We generate the question string used for the oracle
         string memory question = buildQuestion(id, txHashes);
         bytes32 questionHash = keccak256(bytes(question));

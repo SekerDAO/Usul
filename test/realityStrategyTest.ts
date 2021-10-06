@@ -16,11 +16,7 @@ const deadline =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
 describe("realityVotingStrategies:", () => {
-  const [
-    wallet_0,
-    wallet_1,
-    wallet_2,
-  ] = waffle.provider.getWallets();
+  const [wallet_0, wallet_1, wallet_2] = waffle.provider.getWallets();
   const chainId = ethers.BigNumber.from(network.config.chainId);
   const tx = {
     to: wallet_1.address,
@@ -66,7 +62,7 @@ describe("realityVotingStrategies:", () => {
       AddressZero
     );
 
-    const proposalContract = await ethers.getContractFactory("SeeleModule");
+    const proposalContract = await ethers.getContractFactory("Seele");
     const proposalModule = await proposalContract.deploy(
       safe.address,
       safe.address,
@@ -76,18 +72,23 @@ describe("realityVotingStrategies:", () => {
 
     const Mock = await hre.ethers.getContractFactory("MockContract");
     const mock = await Mock.deploy();
-    const oracle = await hre.ethers.getContractAt("RealitioV3ERC20", mock.address);
-    const RealityContract = await ethers.getContractFactory("RealityERC20Voting");
+    const oracle = await hre.ethers.getContractAt(
+      "RealitioV3ERC20",
+      mock.address
+    );
+    const RealityContract = await ethers.getContractFactory(
+      "RealityERC20Voting"
+    );
     const realityVoting = await RealityContract.deploy(
-        safe.address,
-        proposalModule.address,
-        oracle.address,
-        42, // timeout
-        0, // cooldown
-        0, // expiration
-        0, // bond
-        1337, // template id
-        mock.address
+      safe.address,
+      proposalModule.address,
+      oracle.address,
+      42, // timeout
+      0, // cooldown
+      0, // expiration
+      0, // bond
+      1337, // template id
+      mock.address
     );
 
     const addCall = buildContractCall(
@@ -148,24 +149,46 @@ describe("realityVotingStrategies:", () => {
 
   describe("setUp", async () => {
     it("test", async () => {
-      const { proposalModule, realityVoting, mock, oracle, safe, txHash, txHash_1, addCall } = await baseSetup();
+      const {
+        proposalModule,
+        realityVoting,
+        mock,
+        oracle,
+        safe,
+        txHash,
+        txHash_1,
+        addCall,
+      } = await baseSetup();
       const id = "some_random_id";
       const question = await realityVoting.buildQuestion(id, [txHash]);
       const questionId = await realityVoting.getQuestionId(question, 0);
-      const questionHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(question));
-      await mock.givenMethodReturnUint(oracle.interface.getSighash("askQuestionWithMinBondERC20"), questionId)
+      const questionHash = ethers.utils.keccak256(
+        ethers.utils.toUtf8Bytes(question)
+      );
+      await mock.givenMethodReturnUint(
+        oracle.interface.getSighash("askQuestionWithMinBondERC20"),
+        questionId
+      );
       const abi = ethers.utils.defaultAbiCoder.encode(
         ["bytes32[]", "string", "uint256"],
         [[txHash], id, 0]
       );
       await expect(
-          proposalModule.submitProposal([txHash], realityVoting.address, abi)
-      ).to.emit(realityVoting, "ProposalQuestionCreated").withArgs(questionId, id)
-      const block = await ethers.provider.getBlock("latest")
+        proposalModule.submitProposal([txHash], realityVoting.address, abi)
+      )
+        .to.emit(realityVoting, "ProposalQuestionCreated")
+        .withArgs(questionId, id);
+      const block = await ethers.provider.getBlock("latest");
       //await mock.reset()
       //await mock.givenMethodReturnUint(oracle.interface.getSighash("getBond"), 7331)
-      await mock.givenMethodReturnBool(oracle.interface.getSighash("resultFor"), true)
-      await mock.givenMethodReturnUint(oracle.interface.getSighash("getFinalizeTS"), block.timestamp)
+      await mock.givenMethodReturnBool(
+        oracle.interface.getSighash("resultFor"),
+        true
+      );
+      await mock.givenMethodReturnUint(
+        oracle.interface.getSighash("getFinalizeTS"),
+        block.timestamp
+      );
 
       //await nextBlockTime(hre, block.timestamp + 24)
       await realityVoting.finalizeVote(0);

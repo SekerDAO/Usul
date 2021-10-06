@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "./Strategy.sol";
 
-
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
 contract CompoundBravoVoting is Strategy, EIP712 {
@@ -94,7 +93,11 @@ contract CompoundBravoVoting is Strategy, EIP712 {
     /**
      * @dev See {IGovernorCompatibilityBravo-getReceipt}.
      */
-    function getReceipt(uint256 proposalId, address voter) public view returns (Receipt memory) {
+    function getReceipt(uint256 proposalId, address voter)
+        public
+        view
+        returns (Receipt memory)
+    {
         return proposals[proposalId].receipts[voter];
     }
 
@@ -157,9 +160,8 @@ contract CompoundBravoVoting is Strategy, EIP712 {
             "voting period has passed"
         );
         require(!hasVoted(proposalId, voter), "voter has already voted");
-        uint256 weight = SafeCast.toUint96(calculateWeight(
-            msg.sender,
-            proposals[proposalId].startBlock)
+        uint256 weight = SafeCast.toUint96(
+            calculateWeight(msg.sender, proposals[proposalId].startBlock)
         );
         proposals[proposalId].hasVoted[voter] = true;
         if (support == uint8(VoteType.Against)) {
@@ -181,8 +183,12 @@ contract CompoundBravoVoting is Strategy, EIP712 {
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param proposalId the proposal to vote for.
-    function receiveProposal(uint256 proposalId, bytes memory data) public override onlySeele {
-        (bytes32 _descriptionHash) = abi.decode(data, (bytes32));
+    function receiveProposal(uint256 proposalId, bytes memory data)
+        public
+        override
+        onlySeele
+    {
+        bytes32 _descriptionHash = abi.decode(data, (bytes32));
         proposals[proposalId].descriptionHash = _descriptionHash;
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;

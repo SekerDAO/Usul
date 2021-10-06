@@ -7,7 +7,7 @@ import "./interfaces/IStrategy.sol";
 
 /// @title Seele Module - A Zodiac module that enables a voting agnostic proposal mechanism.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
-contract SeeleModule is Module {
+contract Seele is Module {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
     // keccak256(
@@ -235,9 +235,11 @@ contract SeeleModule is Module {
     /// @param txHashes an array of hashed transaction data to execute
     /// @param votingStrategy the voting strategy to be used with this proposal
     /// @param data any extra data to pass to the voting strategy
-    function submitProposal(bytes32[] memory txHashes, address votingStrategy, bytes memory data)
-        external
-    {
+    function submitProposal(
+        bytes32[] memory txHashes,
+        address votingStrategy,
+        bytes memory data
+    ) external {
         require(
             isStrategyEnabled(votingStrategy),
             "voting strategy is not enabled for proposal"
@@ -361,7 +363,14 @@ contract SeeleModule is Module {
         );
         for (uint256 i = startIndex; i < startIndex + txCount; i++) {
             // TODO: allow nonces?
-            executeProposalByIndex(proposalId, targets[i], values[i], data[i], operations[i], i);
+            executeProposalByIndex(
+                proposalId,
+                targets[i],
+                values[i],
+                data[i],
+                operations[i],
+                i
+            );
         }
         emit TransactionExecutedBatch(startIndex, startIndex + txCount);
     }

@@ -88,7 +88,7 @@ describe("linearVotingStrategies:", () => {
       AddressZero
     );
 
-    const proposalContract = await ethers.getContractFactory("SeeleModule");
+    const proposalContract = await ethers.getContractFactory("Seele");
     const proposalModule = await proposalContract.deploy(
       safe.address,
       safe.address,

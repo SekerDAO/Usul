@@ -175,7 +175,11 @@ contract MemberLinearVoting is Strategy, EIP712 {
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param proposalId the proposal to vote for.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(uint256 proposalId, bytes memory data) external override onlySeele {
+    function receiveProposal(uint256 proposalId, bytes memory data)
+        external
+        override
+        onlySeele
+    {
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
     }
