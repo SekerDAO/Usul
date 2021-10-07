@@ -245,6 +245,28 @@ describe("proposalModule:", () => {
         proposalModule.receiveStrategy(0)
       ).to.be.revertedWith("Strategy not authorized");
     });
+
+    it("should revert if voting from the wrong strategy", async () => {
+      const { proposalModule, votingStrategy, votingStrategy_2, safe, txHash } =
+        await baseSetup();
+      await executeContractCallWithSigners(
+        safe,
+        proposalModule,
+        "enableStrategy",
+        [votingStrategy_2.address],
+        [wallet_0]
+      );
+      await proposalModule.submitProposal(
+        [txHash],
+        votingStrategy_2.address,
+        "0x"
+      );
+      let proposal = await proposalModule.proposals(0);
+      expect(proposal.votingStrategy).to.equal(votingStrategy_2.address);
+      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
+        "cannot start timelock, incorrect strategy"
+      );
+    });
   });
 
   describe("timelock", async () => {
@@ -303,6 +325,34 @@ describe("proposalModule:", () => {
         0 // txHash index
       );
       expect(await proposalModule.timeLockPeriod()).to.equal(1337);
+    });
+
+    it("should revert if starting timelock with no proposal", async () => {
+      const { proposalModule, votingStrategy, safe } = await baseSetup();
+      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
+        "cannot start timelock, proposal is not active"
+      );
+    });
+
+    it("should revert if timeLockPeriod has not passed", async () => {
+      const { safe, proposalModule, votingStrategy, addCall, txHash } =
+        await baseSetup();
+      await proposalModule.submitProposal(
+        [txHash],
+        votingStrategy.address,
+        "0x"
+      );
+      await votingStrategy.finalizeVote(0);
+      await expect(
+        proposalModule.executeProposalByIndex(
+          0, // proposalId
+          safe.address, // target
+          0, // value
+          addCall.data, // data
+          0, // call operation
+          0 // txHash index
+        )
+      ).to.be.revertedWith("proposal is not in execution state");
     });
   });
 
@@ -484,35 +534,6 @@ describe("proposalModule:", () => {
       expect(proposal.executionCounter).to.equal(0);
     });
 
-    it("should revert if voting from the wrong strategy", async () => {
-      const { proposalModule, votingStrategy, votingStrategy_2, safe, txHash } =
-        await baseSetup();
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "enableStrategy",
-        [votingStrategy_2.address],
-        [wallet_0]
-      );
-      await proposalModule.submitProposal(
-        [txHash],
-        votingStrategy_2.address,
-        "0x"
-      );
-      let proposal = await proposalModule.proposals(0);
-      expect(proposal.votingStrategy).to.equal(votingStrategy_2.address);
-      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
-        "cannot start timelock, incorrect strategy"
-      );
-    });
-
-    it("should revert if starting time lock with no proposal", async () => {
-      const { proposalModule, votingStrategy, safe } = await baseSetup();
-      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
-        "cannot start timelock, proposal is not active"
-      );
-    });
-
     it("can execute multiple add safe admin DAO proposal", async () => {
       const {
         proposalModule,
@@ -595,27 +616,6 @@ describe("proposalModule:", () => {
           2 // tx length
         )
       ).to.be.revertedWith("execution parameters missmatch");
-    });
-
-    it("it should revert if proposal not in execution state", async () => {
-      const { safe, proposalModule, votingStrategy, addCall, txHash } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        votingStrategy.address,
-        "0x"
-      );
-      await votingStrategy.finalizeVote(0);
-      await expect(
-        proposalModule.executeProposalByIndex(
-          0, // proposalId
-          safe.address, // target
-          0, // value
-          addCall.data, // data
-          0, // call operation
-          0 // txHash index
-        )
-      ).to.be.revertedWith("proposal is not in execution state");
     });
 
     it("it should revert with transaction already executed", async () => {
