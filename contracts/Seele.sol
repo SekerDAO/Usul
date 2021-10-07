@@ -55,14 +55,6 @@ contract Seele is Module {
         _;
     }
 
-    modifier strategyOnly() {
-        require(
-            strategies[msg.sender] != address(0),
-            "Strategy not authorized"
-        );
-        _;
-    }
-
     event ProposalCreated(address strategy, uint256 proposalNumber);
     event TransactionExecuted(bytes32 txHash);
     event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
@@ -102,7 +94,6 @@ contract Seele is Module {
             uint256 _timeLockPeriod
         ) = abi.decode(initParams, (address, address, address, uint256));
         __Ownable_init();
-        require(_owner != address(0), "Avatar can not be zero address");
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
         avatar = _avatar;
@@ -272,7 +263,11 @@ contract Seele is Module {
 
     /// @dev Begins the timelock phase of a successful proposal
     /// @param proposalId the identifier of the proposal
-    function receiveStrategy(uint256 proposalId) external strategyOnly {
+    function receiveStrategy(uint256 proposalId) external {
+        require(
+            strategies[msg.sender] != address(0),
+            "Strategy not authorized"
+        );
         require(
             state(proposalId) == ProposalState.Active,
             "cannot start timelock, proposal is not active"

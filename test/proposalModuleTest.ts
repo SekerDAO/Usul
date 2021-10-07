@@ -237,6 +237,14 @@ describe("proposalModule:", () => {
         proposalModule.submitProposal([txHash], wallet_0.address, "0x")
       ).to.be.revertedWith("voting strategy is not enabled for proposal");
     });
+
+    it("should revert if receiveStrategy is called from non-registered strat", async () => {
+      const { proposalModule, safe, txHash, votingStrategy } = await baseSetup();
+      await proposalModule.submitProposal([txHash], votingStrategy.address, "0x");
+      await expect(
+        proposalModule.receiveStrategy(0)
+      ).to.be.revertedWith("Strategy not authorized");
+    });
   });
 
   describe("timelock", async () => {
@@ -256,7 +264,7 @@ describe("proposalModule:", () => {
       expect(await proposalModule.timeLockPeriod()).to.equal(1337);
     });
 
-    it("should revert update timelock period if not from safe", async () => {
+    it("should revert update timelock period if not from avatar", async () => {
       const { proposalModule, safe } = await baseSetup();
       await expect(
         proposalModule.updateTimeLockPeriod(1337)
