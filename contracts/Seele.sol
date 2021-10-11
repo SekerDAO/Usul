@@ -75,7 +75,7 @@ contract Seele is Module {
         address _owner,
         address _avatar,
         address _target,
-        uint256 _timeLockPeriod
+        uint256 _timeLockPeriod // consider using delay modifier
     ) {
         bytes memory initParams = abi.encode(
             _owner,
@@ -325,6 +325,8 @@ contract Seele is Module {
         require(exec(target, value, data, operation));
         emit TransactionExecuted(txHash);
     }
+
+    // TODO: look deeper in to other batching options
 
     /// @dev Executes batches of transactions inside of a proposal.
     /// @notice Transactions must be called in ascending index order

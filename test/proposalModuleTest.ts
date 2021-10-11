@@ -37,8 +37,26 @@ describe("proposalModule:", () => {
     await factory
       .createProxy(singleton.address, "0x")
       .then((tx: any) => tx.wait());
+    const template2 = await factory.callStatic.createProxy(
+      singleton.address,
+      "0x"
+    );
+    await factory
+      .createProxy(singleton.address, "0x")
+      .then((tx: any) => tx.wait());
     const safe = GnosisSafeL2.attach(template);
     safe.setup(
+      [wallet_0.address],
+      1,
+      AddressZero,
+      "0x",
+      AddressZero,
+      AddressZero,
+      0,
+      AddressZero
+    );
+    const safe2 = GnosisSafeL2.attach(template2);
+    safe2.setup(
       [wallet_0.address],
       1,
       AddressZero,
@@ -125,6 +143,7 @@ describe("proposalModule:", () => {
       votingStrategy,
       votingStrategy_2,
       safe,
+      safe2,
       factory,
       addCall,
       addCall_1,
@@ -1011,6 +1030,42 @@ describe("proposalModule:", () => {
       let owners = await safe.getOwners();
       expect(owners[0]).to.equal("0x0000000000000000000000000000000000000002");
       expect(owners.length).to.equal(1);
+    });
+
+    it.only("can use another safe as voting strat", async () => {
+      const { proposalModule, votingStrategy, safe, safe2, txHash, addCall } = await baseSetup();
+      await executeContractCallWithSigners(
+        safe,
+        proposalModule,
+        "enableStrategy",
+        [safe2.address],
+        [wallet_0]
+      );
+      await proposalModule.submitProposal(
+        [txHash],
+        safe2.address,
+        "0x"
+      );
+      await executeContractCallWithSigners(
+        safe2,
+        proposalModule,
+        "receiveStrategy",
+        [0],
+        [wallet_0]
+      );
+      await network.provider.send("evm_increaseTime", [60]);
+      await network.provider.send("evm_mine");
+      await proposalModule.executeProposalByIndex(
+        0, // proposalId
+        safe.address, // target
+        0, // value
+        addCall.data, // data
+        0, // call operation
+        0 // txHash index
+      );
+      let owners = await safe.getOwners();
+      // expect(owners[0]).to.equal("0x0000000000000000000000000000000000000002");
+      // expect(owners.length).to.equal(1);
     });
   });
 });
