@@ -1032,7 +1032,7 @@ describe("proposalModule:", () => {
       expect(owners.length).to.equal(1);
     });
 
-    it.only("can use another safe as voting strat", async () => {
+    it("can use another safe as voting strat", async () => {
       const { proposalModule, votingStrategy, safe, safe2, txHash, addCall } = await baseSetup();
       await executeContractCallWithSigners(
         safe,
@@ -1064,8 +1064,8 @@ describe("proposalModule:", () => {
         0 // txHash index
       );
       let owners = await safe.getOwners();
-      // expect(owners[0]).to.equal("0x0000000000000000000000000000000000000002");
-      // expect(owners.length).to.equal(1);
+      expect(owners[0]).to.equal(wallet_2.address);
+      expect(owners[1]).to.equal(wallet_0.address);
     });
   });
 });

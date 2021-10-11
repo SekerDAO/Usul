@@ -58,7 +58,7 @@ contract Seele is Module {
     event ProposalCreated(address strategy, uint256 proposalNumber);
     event TransactionExecuted(bytes32 txHash);
     event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
-    event TimeLockPeriodStarted(uint256 endDate);
+    event StrategyFinalized(uint256 proposalId, uint256 endDate);
     event TimeLockUpdated(uint256 newTimeLockPeriod);
     event ProposalExecuted(uint256 id);
     event SeeleSetup(
@@ -132,6 +132,8 @@ contract Seele is Module {
         strategies[strategy] = address(0);
         emit DisabledStrategy(strategy);
     }
+
+    // consider different timelock for each strat
 
     /// @dev Enables a voting strategy that can vote on proposals
     /// @param strategy Address of the strategy to be enabled
@@ -276,9 +278,10 @@ contract Seele is Module {
             msg.sender == proposals[proposalId].votingStrategy,
             "cannot start timelock, incorrect strategy"
         );
+        // make switch for some strats to bypass this
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
         proposals[proposalId].successful = true;
-        emit TimeLockPeriodStarted(proposals[proposalId].timeLockPeriod);
+        emit StrategyFinalized(proposalId, proposals[proposalId].timeLockPeriod);
     }
 
     /// @dev Executes a transaction inside of a proposal.
@@ -322,11 +325,9 @@ contract Seele is Module {
         );
         proposals[proposalId].executed[txIndex] = true;
         proposals[proposalId].executionCounter--;
-        require(exec(target, value, data, operation));
+        require(exec(target, value, data, operation), "Module transaction failed");
         emit TransactionExecuted(txHash);
     }
-
-    // TODO: look deeper in to other batching options
 
     /// @dev Executes batches of transactions inside of a proposal.
     /// @notice Transactions must be called in ascending index order

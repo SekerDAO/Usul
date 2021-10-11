@@ -21,12 +21,6 @@ describe("linearVotingStrategies:", () => {
     wallet_1,
     wallet_2,
     wallet_3,
-    wallet_4,
-    wallet_5,
-    wallet_6,
-    wallet_7,
-    wallet_8,
-    wallet_9,
   ] = waffle.provider.getWallets();
   const chainId = ethers.BigNumber.from(network.config.chainId);
   const tx = {
@@ -58,7 +52,6 @@ describe("linearVotingStrategies:", () => {
       wallet_3.address,
       ethers.BigNumber.from("1000000000000000000")
     );
-    //console.log('Gov Token Deploy Cost ' + govToken.deployTransaction.gasLimit.toString())
 
     const GnosisSafeL2 = await hre.ethers.getContractFactory(
       "@gnosis.pm/safe-contracts/contracts/GnosisSafeL2.sol:GnosisSafeL2"
@@ -67,7 +60,6 @@ describe("linearVotingStrategies:", () => {
       "@gnosis.pm/safe-contracts/contracts/proxies/GnosisSafeProxyFactory.sol:GnosisSafeProxyFactory"
     );
     const singleton = await GnosisSafeL2.deploy();
-    //console.log('Gnosis Safe Deploy Cost ' + singleton.deployTransaction.gasLimit.toString())
     const factory = await FactoryContract.deploy();
     const template = await factory.callStatic.createProxy(
       singleton.address,
