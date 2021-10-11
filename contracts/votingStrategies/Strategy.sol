@@ -31,9 +31,8 @@ abstract contract Strategy {
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
-    /// @param proposalId the proposal to vote for.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(uint256 proposalId, bytes memory data)
+    function receiveProposal(bytes memory data)
         external
         virtual;
 

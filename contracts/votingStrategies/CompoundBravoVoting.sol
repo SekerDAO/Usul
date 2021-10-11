@@ -187,13 +187,13 @@ contract CompoundBravoVoting is Strategy, EIP712 {
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
-    /// @param proposalId the proposal to vote for.
-    function receiveProposal(uint256 proposalId, bytes memory data)
+    /// @param data the proposal to vote for.
+    function receiveProposal(bytes memory data)
         public
         override
         onlySeele
     {
-        bytes32 _descriptionHash = abi.decode(data, (bytes32));
+        (uint256 proposalId, bytes32 _descriptionHash) = abi.decode(data, (uint256, bytes32));
         proposals[proposalId].descriptionHash = _descriptionHash;
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;

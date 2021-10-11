@@ -17,5 +17,5 @@ contract TestVotingStrategy {
         IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
     }
 
-    function receiveProposal(uint256 proposalId, bytes memory data) public {}
+    function receiveProposal(bytes memory data) public {}
 }

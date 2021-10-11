@@ -226,7 +226,7 @@ contract Seele is Module {
         proposals[totalProposalCount].proposer = msg.sender;
         proposals[totalProposalCount].votingStrategy = votingStrategy;
         totalProposalCount++;
-        IStrategy(votingStrategy).receiveProposal(totalProposalCount - 1, data);
+        IStrategy(votingStrategy).receiveProposal(abi.encode(totalProposalCount - 1, data));
         emit ProposalCreated(votingStrategy, totalProposalCount - 1);
     }
 

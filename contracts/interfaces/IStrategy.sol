@@ -3,5 +3,5 @@
 pragma solidity ^0.8.6;
 
 interface IStrategy {
-    function receiveProposal(uint256 proposalId, bytes memory data) external;
+    function receiveProposal(bytes memory data) external;
 }
