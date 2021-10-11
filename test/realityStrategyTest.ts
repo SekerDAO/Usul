@@ -66,8 +66,7 @@ describe("realityVotingStrategies:", () => {
     const proposalModule = await proposalContract.deploy(
       safe.address,
       safe.address,
-      safe.address,
-      60
+      safe.address
     );
 
     const Mock = await hre.ethers.getContractFactory("MockContract");
@@ -88,7 +87,8 @@ describe("realityVotingStrategies:", () => {
       0, // expiration
       0, // bond
       1337, // template id
-      mock.address
+      mock.address,
+      60
     );
 
     const addCall = buildContractCall(

@@ -84,8 +84,7 @@ describe("linearVotingStrategies:", () => {
     const proposalModule = await proposalContract.deploy(
       safe.address,
       safe.address,
-      safe.address,
-      60
+      safe.address
     );
 
     const linearContract = await ethers.getContractFactory("OZLinearVoting");
@@ -94,6 +93,7 @@ describe("linearVotingStrategies:", () => {
       govToken.address,
       proposalModule.address,
       ethers.BigNumber.from("2000000000000000000"), // number of votes wieghted to pass
+      60,
       safe.address,
       "Test"
     );
@@ -171,6 +171,69 @@ describe("linearVotingStrategies:", () => {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
+
+  describe("timelock", async () => {
+    it("can update timelock period from safe", async () => {
+      const { linearVoting, safe } = await baseSetup();
+      expect(
+        await executeContractCallWithSigners(
+          safe,
+          linearVoting,
+          "updateTimeLockPeriod",
+          [1337],
+          [wallet_0]
+        )
+      )
+        .to.emit(linearVoting, "TimeLockUpdated")
+        .withArgs(1337);
+      expect(await linearVoting.timeLockPeriod()).to.equal(1337);
+    });
+
+    it("should revert update timelock period if not from avatar", async () => {
+      const { linearVoting, safe } = await baseSetup();
+      await expect(
+        linearVoting.updateTimeLockPeriod(1337)
+      ).to.be.revertedWith("only avatar may enter");
+    });
+
+    it("can update timelock period from proposal", async () => {
+      const { proposalModule, safe, linearVoting, govToken } = await baseSetup();
+      await govToken.delegate(wallet_0.address);
+      const Call = buildContractCall(
+        linearVoting,
+        "updateTimeLockPeriod",
+        [1337],
+        0
+      );
+      const txHash = await proposalModule.getTransactionHash(
+        Call.to,
+        Call.value,
+        Call.data,
+        Call.operation,
+        0
+      );
+      await proposalModule.submitProposal(
+        [txHash],
+        linearVoting.address,
+        "0x"
+      );
+      await linearVoting.vote(0, 1);
+      await network.provider.send("evm_increaseTime", [60]);
+      await linearVoting.finalizeVote(0);
+      await network.provider.send("evm_increaseTime", [60]);
+      await network.provider.send("evm_mine");
+      await proposalModule.executeProposalByIndex(
+        0, // proposalId
+        linearVoting.address, // target
+        0, // value
+        Call.data, // data
+        0, // call operation
+        0 // txHash index
+      );
+      expect(await linearVoting.timeLockPeriod()).to.equal(1337);
+    });
+  });
+
 
   describe("openzepplin linear voting module", async () => {
     it("can delegate votes to self", async () => {

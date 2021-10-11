@@ -43,10 +43,13 @@ contract CompoundBravoVoting is Strategy, EIP712 {
     ERC20VotesComp public immutable governanceToken;
     uint256 public votingPeriod; // the length of time voting is valid for a proposal
     uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
+    uint256 public timeLockPeriod;
     string private _name;
 
     mapping(address => uint256) public nonces;
     mapping(uint256 => ProposalVoting) public proposals;
+
+    event TimeLockUpdated(uint256 newTimeLockPeriod);
 
     constructor(
         uint256 _votingPeriod,
@@ -54,7 +57,8 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         address _seeleModule,
         uint256 _quorumThreshold,
         address _avatar,
-        string memory name_
+        string memory name_,
+        uint256 _timeLockPeriod
     ) EIP712(name_, version()) {
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         governanceToken = _governanceToken;
@@ -62,6 +66,7 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         quorumThreshold = _quorumThreshold;
         avatar = _avatar;
         _name = name_;
+        timeLockPeriod = _timeLockPeriod * 1 seconds;
     }
 
     /// @dev ERC712 name.
@@ -74,10 +79,6 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         return "1";
     }
 
-    function getThreshold() external view returns (uint256) {
-        return quorumThreshold;
-    }
-
     /// @dev Updates the quorum needed to pass a proposal, only executor.
     /// @param _quorumThreshold the voting quorum threshold.
     function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
@@ -85,9 +86,19 @@ contract CompoundBravoVoting is Strategy, EIP712 {
     }
 
     /// @dev Updates the time that proposals are active for voting.
-    /// @return votingPeriod time window.
-    function getVotingPeriod() public view returns (uint256) {
-        return votingPeriod;
+    /// @param newPeriod the voting window.
+    function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
+        votingPeriod = newPeriod;
+    }
+
+    /// @dev Updates the grace period time after a proposal passed before it can execute.
+    /// @param newTimeLockPeriod the new delay before execution.
+    function updateTimeLockPeriod(uint256 newTimeLockPeriod)
+        external
+        onlyAvatar
+    {
+        timeLockPeriod = newTimeLockPeriod;
+        emit TimeLockUpdated(newTimeLockPeriod);
     }
 
     /**
@@ -99,12 +110,6 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         returns (Receipt memory)
     {
         return proposals[proposalId].receipts[voter];
-    }
-
-    /// @dev Updates the time that proposals are active for voting.
-    /// @param newPeriod the voting window.
-    function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
-        votingPeriod = newPeriod;
     }
 
     /// @dev Returns true if an account has voted on a specific proposal.
@@ -198,7 +203,7 @@ contract CompoundBravoVoting is Strategy, EIP712 {
     /// @param proposalId the proposal to vote for.
     function finalizeVote(uint256 proposalId) public override {
         if (isPassed(proposalId)) {
-            IProposal(seeleModule).receiveStrategy(proposalId);
+            IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
         }
     }
 

@@ -21,6 +21,7 @@ contract RealityERC20Voting is Strategy {
     uint32 public answerExpiration;
     address public questionArbitrator;
     uint256 public minimumBond;
+    uint256 public timeLockPeriod;
 
     mapping(uint256 => bytes32) public questionHashes;
     // Mapping of question hash to question id. Special case: INVALIDATED for question hashes that have been invalidated
@@ -31,6 +32,8 @@ contract RealityERC20Voting is Strategy {
 
     mapping(address => uint256) public nonces;
 
+    event TimeLockUpdated(uint256 newTimeLockPeriod);
+
     constructor(
         address _avatar,
         address _seeleModule,
@@ -40,7 +43,8 @@ contract RealityERC20Voting is Strategy {
         uint32 expiration,
         uint256 bond,
         uint256 templateId,
-        address arbitrator
+        address arbitrator,
+        uint256 _timeLockPeriod
     ) {
         require(timeout > 0, "Timeout has to be greater 0");
         require(
@@ -56,6 +60,17 @@ contract RealityERC20Voting is Strategy {
         template = templateId;
         seeleModule = _seeleModule;
         avatar = _avatar;
+        timeLockPeriod = _timeLockPeriod * 1 seconds;
+    }
+
+    /// @dev Updates the grace period time after a proposal passed before it can execute.
+    /// @param newTimeLockPeriod the new delay before execution.
+    function updateTimeLockPeriod(uint256 newTimeLockPeriod)
+        external
+        onlyAvatar
+    {
+        timeLockPeriod = newTimeLockPeriod;
+        emit TimeLockUpdated(newTimeLockPeriod);
     }
 
     /// @notice This can only be called by the avatar through governance
@@ -156,7 +171,7 @@ contract RealityERC20Voting is Strategy {
     /// @param proposalId the proposal to vote for.
     function finalizeVote(uint256 proposalId) public override {
         if (isPassed(proposalId)) {
-            IProposal(seeleModule).receiveStrategy(proposalId);
+            IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
         }
     }
 

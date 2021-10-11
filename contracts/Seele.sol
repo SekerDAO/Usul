@@ -41,8 +41,6 @@ contract Seele is Module {
     }
 
     uint256 public totalProposalCount; // total number of submitted proposals
-    //uint256 public expiry; // time after which execution of a proposals is not valid
-    uint256 public timeLockPeriod; // 3 days; // consider leaving this up to each strat
     address internal constant SENTINEL_STRATEGY = address(0x1);
 
     // mapping of proposal id to proposal
@@ -59,7 +57,6 @@ contract Seele is Module {
     event TransactionExecuted(bytes32 txHash);
     event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
     event StrategyFinalized(uint256 proposalId, uint256 endDate);
-    event TimeLockUpdated(uint256 newTimeLockPeriod);
     event ProposalExecuted(uint256 id);
     event SeeleSetup(
         address indexed initiator,
@@ -74,14 +71,12 @@ contract Seele is Module {
     constructor(
         address _owner,
         address _avatar,
-        address _target,
-        uint256 _timeLockPeriod // consider using delay modifier
+        address _target
     ) {
         bytes memory initParams = abi.encode(
             _owner,
             _avatar,
-            _target,
-            _timeLockPeriod
+            _target
         );
         setUp(initParams);
     }
@@ -90,15 +85,13 @@ contract Seele is Module {
         (
             address _owner,
             address _avatar,
-            address _target,
-            uint256 _timeLockPeriod
-        ) = abi.decode(initParams, (address, address, address, uint256));
+            address _target
+        ) = abi.decode(initParams, (address, address, address));
         __Ownable_init();
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
         avatar = _avatar;
         target = _target;
-        timeLockPeriod = _timeLockPeriod * 1 seconds;
         setupStrategies();
         transferOwnership(_owner);
         emit SeeleSetup(msg.sender, _owner, _avatar, _target);
@@ -132,8 +125,6 @@ contract Seele is Module {
         strategies[strategy] = address(0);
         emit DisabledStrategy(strategy);
     }
-
-    // consider different timelock for each strat
 
     /// @dev Enables a voting strategy that can vote on proposals
     /// @param strategy Address of the strategy to be enabled
@@ -214,16 +205,6 @@ contract Seele is Module {
         return proposals[proposalId].txHashes[index];
     }
 
-    /// @dev Updates the grace period time after a proposal passed before it can execute.
-    /// @param newTimeLockPeriod the new delay before execution.
-    function updateTimeLockPeriod(uint256 newTimeLockPeriod)
-        external
-        onlyAvatar
-    {
-        timeLockPeriod = newTimeLockPeriod;
-        emit TimeLockUpdated(newTimeLockPeriod);
-    }
-
     /// @dev Submits a new proposal.
     /// @param txHashes an array of hashed transaction data to execute
     /// @param votingStrategy the voting strategy to be used with this proposal
@@ -265,7 +246,7 @@ contract Seele is Module {
 
     /// @dev Begins the timelock phase of a successful proposal
     /// @param proposalId the identifier of the proposal
-    function receiveStrategy(uint256 proposalId) external {
+    function receiveStrategy(uint256 proposalId, uint256 timeLockPeriod) external {
         require(
             strategies[msg.sender] != address(0),
             "Strategy not authorized"

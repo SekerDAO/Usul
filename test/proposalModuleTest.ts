@@ -71,16 +71,16 @@ describe("proposalModule:", () => {
     const proposalModule = await proposalContract.deploy(
       safe.address,
       safe.address,
-      safe.address,
-      60
+      safe.address
     );
 
     const VotingContract = await ethers.getContractFactory(
       "TestVotingStrategy"
     );
-    const votingStrategy = await VotingContract.deploy(proposalModule.address);
+    const votingStrategy = await VotingContract.deploy(proposalModule.address, 60);
     const votingStrategy_2 = await VotingContract.deploy(
-      proposalModule.address
+      proposalModule.address,
+      60
     );
 
     const addCall = buildContractCall(
@@ -161,7 +161,6 @@ describe("proposalModule:", () => {
       expect(await proposalModule.avatar()).to.equal(safe.address);
       expect(await proposalModule.totalProposalCount()).to.equal(0);
       expect(await proposalModule.owner()).to.equal(safe.address);
-      expect(await proposalModule.timeLockPeriod()).to.equal(60);
     });
 
     it("can register Seele proposal engine module", async () => {
@@ -261,7 +260,7 @@ describe("proposalModule:", () => {
       const { proposalModule, safe, txHash, votingStrategy } = await baseSetup();
       await proposalModule.submitProposal([txHash], votingStrategy.address, "0x");
       await expect(
-        proposalModule.receiveStrategy(0)
+        proposalModule.receiveStrategy(0, 60)
       ).to.be.revertedWith("Strategy not authorized");
     });
 
@@ -289,63 +288,6 @@ describe("proposalModule:", () => {
   });
 
   describe("timelock", async () => {
-    it("can update timelock period from safe", async () => {
-      const { proposalModule, safe } = await baseSetup();
-      expect(
-        await executeContractCallWithSigners(
-          safe,
-          proposalModule,
-          "updateTimeLockPeriod",
-          [1337],
-          [wallet_0]
-        )
-      )
-        .to.emit(proposalModule, "TimeLockUpdated")
-        .withArgs(1337);
-      expect(await proposalModule.timeLockPeriod()).to.equal(1337);
-    });
-
-    it("should revert update timelock period if not from avatar", async () => {
-      const { proposalModule, safe } = await baseSetup();
-      await expect(
-        proposalModule.updateTimeLockPeriod(1337)
-      ).to.be.revertedWith("only the avatar may enter");
-    });
-
-    it("can update timelock period from proposal", async () => {
-      const { proposalModule, safe, votingStrategy } = await baseSetup();
-      const Call = buildContractCall(
-        proposalModule,
-        "updateTimeLockPeriod",
-        [1337],
-        0
-      );
-      const txHash = await proposalModule.getTransactionHash(
-        Call.to,
-        Call.value,
-        Call.data,
-        Call.operation,
-        0
-      );
-      await proposalModule.submitProposal(
-        [txHash],
-        votingStrategy.address,
-        "0x"
-      );
-      await votingStrategy.finalizeVote(0);
-      await network.provider.send("evm_increaseTime", [60]);
-      await network.provider.send("evm_mine");
-      await proposalModule.executeProposalByIndex(
-        0, // proposalId
-        proposalModule.address, // target
-        0, // value
-        Call.data, // data
-        0, // call operation
-        0 // txHash index
-      );
-      expect(await proposalModule.timeLockPeriod()).to.equal(1337);
-    });
-
     it("should revert if starting timelock with no proposal", async () => {
       const { proposalModule, votingStrategy, safe } = await baseSetup();
       await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
@@ -1050,7 +992,7 @@ describe("proposalModule:", () => {
         safe2,
         proposalModule,
         "receiveStrategy",
-        [0],
+        [0, 60],
         [wallet_0]
       );
       await network.provider.send("evm_increaseTime", [60]);

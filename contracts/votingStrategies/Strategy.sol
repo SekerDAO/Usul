@@ -9,7 +9,7 @@ abstract contract Strategy {
     address public avatar;
 
     modifier onlyAvatar() {
-        require(msg.sender == avatar, "only avatar module may enter");
+        require(msg.sender == avatar, "only avatar may enter");
         _;
     }
 

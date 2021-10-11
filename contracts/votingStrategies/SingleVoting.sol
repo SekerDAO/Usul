@@ -29,6 +29,7 @@ contract SingleVoting is Strategy, EIP712 {
 
     uint256 public votingPeriod; // the length of time voting is valid for a proposal
     uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
+    uint256 public timeLockPeriod;
     string private _name;
     uint256 public memberCount;
 
@@ -41,10 +42,13 @@ contract SingleVoting is Strategy, EIP712 {
         _;
     }
 
+    event TimeLockUpdated(uint256 newTimeLockPeriod);
+
     constructor(
         uint256 _votingPeriod,
         address _seeleModule,
         uint256 _quorumThreshold,
+        uint256 _timeLockPeriod,
         address _avatar,
         string memory name_
     ) EIP712(name_, version()) {
@@ -52,6 +56,7 @@ contract SingleVoting is Strategy, EIP712 {
         seeleModule = _seeleModule;
         quorumThreshold = _quorumThreshold;
         avatar = _avatar;
+        timeLockPeriod = _timeLockPeriod * 1 seconds;
     }
 
     /// @dev ERC712 name.
@@ -75,15 +80,19 @@ contract SingleVoting is Strategy, EIP712 {
     }
 
     /// @dev Updates the time that proposals are active for voting.
-    /// @return votingPeriod time window.
-    function getVotingPeriod() public view returns (uint256) {
-        return votingPeriod;
-    }
-
-    /// @dev Updates the time that proposals are active for voting.
     /// @param newPeriod the voting window.
     function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
         votingPeriod = newPeriod;
+    }
+
+    /// @dev Updates the grace period time after a proposal passed before it can execute.
+    /// @param newTimeLockPeriod the new delay before execution.
+    function updateTimeLockPeriod(uint256 newTimeLockPeriod)
+        external
+        onlyAvatar
+    {
+        timeLockPeriod = newTimeLockPeriod;
+        emit TimeLockUpdated(newTimeLockPeriod);
     }
 
     function addMember(address member) public onlyAvatar {
@@ -184,7 +193,7 @@ contract SingleVoting is Strategy, EIP712 {
     /// @param proposalId the proposal to vote for.
     function finalizeVote(uint256 proposalId) public override {
         if (isPassed(proposalId)) {
-            IProposal(seeleModule).receiveStrategy(proposalId);
+            IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
         }
     }
 
