@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./Strategy.sol";
 
-/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
-/// @author Nathan Ginnever - <team@tokenwalk.org>
+/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compound like voting.
+/// @author Nathan Ginnever - <team@hyphal.xyz>
 contract OZLinearVoting is Strategy, EIP712 {
     bytes32 public constant VOTE_TYPEHASH =
         keccak256("Vote(uint256 proposalId,uint8 vote)");
@@ -34,7 +34,6 @@ contract OZLinearVoting is Strategy, EIP712 {
     uint256 public timeLockPeriod;
     string private _name;
 
-    mapping(address => uint256) public nonces;
     mapping(uint256 => ProposalVoting) public proposals;
 
     event TimeLockUpdated(uint256 newTimeLockPeriod);
@@ -110,23 +109,17 @@ contract OZLinearVoting is Strategy, EIP712 {
     /// @dev Submits a vote for a proposal by ERC712 signature.
     /// @param proposalId the proposal to vote for.
     /// @param support against, for, or abstain.
-    /// @param v the Signature v value.
-    /// @param r the Signature r value.
-    /// @param s the Signature s value.
+    /// @param signature 712 signed vote
     function voteSignature(
         uint256 proposalId,
         uint8 support,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
+        bytes memory signature
     ) external virtual {
         address voter = ECDSA.recover(
             _hashTypedDataV4(
                 keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
             ),
-            v,
-            r,
-            s
+            signature
         );
         _vote(proposalId, voter, support);
     }
@@ -142,7 +135,7 @@ contract OZLinearVoting is Strategy, EIP712 {
         );
         require(!hasVoted(proposalId, voter), "voter has already voted");
         uint256 weight = calculateWeight(
-            msg.sender,
+            voter,
             proposals[proposalId].startBlock
         );
         proposals[proposalId].hasVoted[voter] = true;

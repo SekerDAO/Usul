@@ -6,7 +6,7 @@ import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "./interfaces/IStrategy.sol";
 
 /// @title Seele Module - A Zodiac module that enables a voting agnostic proposal mechanism.
-/// @author Nathan Ginnever - <team@tokenwalk.org>
+/// @author Nathan Ginnever - <team@hyphal.xyz>
 contract Seele is Module {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
@@ -67,7 +67,6 @@ contract Seele is Module {
     event EnabledStrategy(address strategy);
     event DisabledStrategy(address strategy);
 
-    // move threshold to voting contracts
     constructor(
         address _owner,
         address _avatar,
@@ -236,7 +235,6 @@ contract Seele is Module {
         Proposal storage _proposal = proposals[proposalId];
         require(_proposal.executionCounter > 0, "nothing to cancel");
         require(_proposal.canceled == false, "proposal is already canceled");
-        // proposal guardian can be put in the roles module
         require(
             _proposal.proposer == msg.sender || msg.sender == avatar,
             "cancel proposal from non-owner or governance"
@@ -259,7 +257,6 @@ contract Seele is Module {
             msg.sender == proposals[proposalId].votingStrategy,
             "cannot start timelock, incorrect strategy"
         );
-        // make switch for some strats to bypass this
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
         proposals[proposalId].successful = true;
         emit StrategyFinalized(proposalId, proposals[proposalId].timeLockPeriod);
