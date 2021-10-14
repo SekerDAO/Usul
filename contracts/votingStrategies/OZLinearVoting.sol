@@ -36,7 +36,15 @@ contract OZLinearVoting is Strategy, EIP712 {
 
     mapping(uint256 => ProposalVoting) public proposals;
 
-    event TimeLockUpdated(uint256 newTimeLockPeriod);
+    event ThresholdUpdated(uint256 previousThreshold, uint256 newThreshold);
+    event TimeLockUpdated(uint256 previousTimeLock, uint256 newTimeLockPeriod);
+    event VotingPeriodUpdated(
+        uint256 previousVotingPeriod,
+        uint256 newVotingPeriod
+    );
+    event ProposalReceived(uint256 proposalId, uint256 timestamp);
+    event VoteFinalized(uint256 proposalId, uint256 timestamp);
+    event Voted(address voter, uint256 proposalId, uint8 support);
 
     constructor(
         uint256 _votingPeriod,
@@ -47,6 +55,11 @@ contract OZLinearVoting is Strategy, EIP712 {
         address _avatar,
         string memory name_
     ) EIP712(name_, version()) {
+        require(_votingPeriod > 0, "votingPeriod must be non-zero");
+        require(_governanceToken != ERC20Votes(address(0)), "invalid governance token address");
+        require(_seeleModule != address(0), "invalid seele module");
+        require(_avatar != address(0), "invalid avatar address");
+        require(_quorumThreshold > 0, "threshold must ne non-zero");
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         governanceToken = _governanceToken;
         seeleModule = _seeleModule;
@@ -68,13 +81,17 @@ contract OZLinearVoting is Strategy, EIP712 {
     /// @dev Updates the quorum needed to pass a proposal, only executor.
     /// @param _quorumThreshold the voting quorum threshold.
     function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
+        uint256 previousThreshold = quorumThreshold;
         quorumThreshold = _quorumThreshold;
+        emit ThresholdUpdated(previousThreshold, _quorumThreshold);
     }
 
     /// @dev Updates the time that proposals are active for voting.
     /// @param newPeriod the voting window.
     function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
+        uint256 previousVotingPeriod = votingPeriod;
         votingPeriod = newPeriod;
+        emit VotingPeriodUpdated(previousVotingPeriod, newPeriod);
     }
 
     /// @dev Updates the grace period time after a proposal passed before it can execute.
@@ -83,8 +100,9 @@ contract OZLinearVoting is Strategy, EIP712 {
         external
         onlyAvatar
     {
+        uint256 previousTimeLock = timeLockPeriod;
         timeLockPeriod = newTimeLockPeriod;
-        emit TimeLockUpdated(newTimeLockPeriod);
+        emit TimeLockUpdated(previousTimeLock, newTimeLockPeriod);
     }
 
     /// @dev Returns true if an account has voted on a specific proposal.
@@ -154,18 +172,16 @@ contract OZLinearVoting is Strategy, EIP712 {
         } else {
             revert("invalid value for enum VoteType");
         }
+        emit Voted(voter, proposalId, support);
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(bytes memory data)
-        external
-        override
-        onlySeele
-    {
-        (uint256 proposalId) = abi.decode(data, (uint256));
+    function receiveProposal(bytes memory data) external override onlySeele {
+        uint256 proposalId = abi.decode(data, (uint256));
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
+        emit ProposalReceived(proposalId, block.timestamp);
     }
 
     /// @dev Calls the proposal module to notify that a quorum has been reached.
@@ -174,6 +190,7 @@ contract OZLinearVoting is Strategy, EIP712 {
         if (isPassed(proposalId)) {
             IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
         }
+        emit VoteFinalized(proposalId, block.timestamp);
     }
 
     /// @dev Determines if a proposal has succeeded.

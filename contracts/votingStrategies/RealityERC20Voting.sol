@@ -129,13 +129,11 @@ contract RealityERC20Voting is Strategy {
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(bytes calldata data)
-        external
-        override
-        onlySeele
-    {
-        (uint256 proposalId, bytes memory internalData) = abi
-            .decode(data, (uint256, bytes));
+    function receiveProposal(bytes calldata data) external override onlySeele {
+        (uint256 proposalId, bytes memory internalData) = abi.decode(
+            data,
+            (uint256, bytes)
+        );
         (bytes32[] memory txHashes, string memory id, uint256 nonce) = abi
             .decode(internalData, (bytes32[], string, uint256));
         // We generate the question string used for the oracle

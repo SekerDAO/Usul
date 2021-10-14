@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./Strategy.sol";
@@ -28,14 +28,13 @@ contract MemberLinearVoting is Strategy, EIP712 {
         mapping(address => bool) hasVoted;
     }
 
-    IERC20 public immutable governanceToken;
+    ERC20Votes public immutable governanceToken;
     uint256 public votingPeriod; // the length of time voting is valid for a proposal
     uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
     uint256 public timeLockPeriod;
     string private _name;
     uint256 public memberCount;
 
-    mapping(address => uint256) public nonces;
     mapping(uint256 => ProposalVoting) public proposals;
     mapping(address => bool) public members;
 
@@ -44,17 +43,33 @@ contract MemberLinearVoting is Strategy, EIP712 {
         _;
     }
 
-    event TimeLockUpdated(uint256 newTimeLockPeriod);
+    event ThresholdUpdated(uint256 previousThreshold, uint256 newThreshold);
+    event TimeLockUpdated(uint256 previousTimeLock, uint256 newTimeLockPeriod);
+    event VotingPeriodUpdated(
+        uint256 previousVotingPeriod,
+        uint256 newVotingPeriod
+    );
+    event ProposalReceived(uint256 proposalId, uint256 timestamp);
+    event VoteFinalized(uint256 proposalId, uint256 timestamp);
+    event Voted(address voter, uint256 proposalId, uint8 support);
+
+    event MemberAdded(address member);
+    event MemverRemoved(address member);
 
     constructor(
         uint256 _votingPeriod,
-        IERC20 _governanceToken,
+        ERC20Votes _governanceToken,
         address _seeleModule,
         uint256 _quorumThreshold,
         address _avatar,
         string memory name_,
         uint256 _timeLockPeriod
     ) EIP712(name_, version()) {
+        require(_votingPeriod > 0, "votingPeriod must be non-zero");
+        require(_governanceToken != ERC20Votes(address(0)), "invalid governance token address");
+        require(_seeleModule != address(0), "invalid seele module");
+        require(_avatar != address(0), "invalid avatar address");
+        require(_quorumThreshold > 0, "threshold must ne non-zero");
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         governanceToken = _governanceToken;
         seeleModule = _seeleModule;
@@ -80,13 +95,17 @@ contract MemberLinearVoting is Strategy, EIP712 {
     /// @dev Updates the quorum needed to pass a proposal, only executor.
     /// @param _quorumThreshold the voting quorum threshold.
     function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
+        uint256 previousThreshold = quorumThreshold;
         quorumThreshold = _quorumThreshold;
+        emit ThresholdUpdated(previousThreshold, _quorumThreshold);
     }
 
     /// @dev Updates the time that proposals are active for voting.
     /// @param newPeriod the voting window.
     function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
+        uint256 previousVotingPeriod = votingPeriod;
         votingPeriod = newPeriod;
+        emit VotingPeriodUpdated(previousVotingPeriod, newPeriod);
     }
 
     /// @dev Updates the grace period time after a proposal passed before it can execute.
@@ -95,18 +114,21 @@ contract MemberLinearVoting is Strategy, EIP712 {
         external
         onlyAvatar
     {
+        uint256 previousTimeLock = timeLockPeriod;
         timeLockPeriod = newTimeLockPeriod;
-        emit TimeLockUpdated(newTimeLockPeriod);
+        emit TimeLockUpdated(previousTimeLock, newTimeLockPeriod);
     }
 
     function addMember(address member) public onlyAvatar {
         members[member] = true;
         memberCount++;
+        emit MemberAdded(member);
     }
 
     function removeMember(address member) public onlyAvatar {
         members[member] = false;
         memberCount--;
+        emit MemverRemoved(member);
     }
 
     /// @dev Returns true if an account has voted on a specific proposal.
@@ -162,7 +184,10 @@ contract MemberLinearVoting is Strategy, EIP712 {
             "voting period has passed"
         );
         require(!hasVoted(proposalId, voter), "voter has already voted");
-        uint256 weight = calculateWeight(msg.sender);
+        uint256 weight = calculateWeight(
+            voter,
+            proposals[proposalId].startBlock
+        );
         proposals[proposalId].hasVoted[voter] = true;
         if (support == uint8(VoteType.Against)) {
             proposals[proposalId].noVotes =
@@ -179,18 +204,16 @@ contract MemberLinearVoting is Strategy, EIP712 {
         } else {
             revert("invalid value for enum VoteType");
         }
+        emit Voted(voter, proposalId, support);
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(bytes memory data)
-        external
-        override
-        onlySeele
-    {
+    function receiveProposal(bytes memory data) external override onlySeele {
         uint256 proposalId = abi.decode(data, (uint256));
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
+        emit ProposalReceived(proposalId, block.timestamp);
     }
 
     /// @dev Calls the proposal module to notify that a quorum has been reached.
@@ -199,6 +222,7 @@ contract MemberLinearVoting is Strategy, EIP712 {
         if (isPassed(proposalId)) {
             IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
         }
+        emit VoteFinalized(proposalId, block.timestamp);
     }
 
     /// @dev Determines if a proposal has succeeded.
@@ -222,9 +246,12 @@ contract MemberLinearVoting is Strategy, EIP712 {
         return true;
     }
 
-    function calculateWeight(address voter) public view returns (uint256) {
-        require(members[voter], "voter is not a member");
-        return governanceToken.balanceOf(voter);
+    function calculateWeight(address delegatee, uint256 blockNumber)
+        public
+        view
+        returns (uint256)
+    {
+        return governanceToken.getPastVotes(delegatee, blockNumber);
     }
 
     /// @dev Returns the chain id used by this contract.

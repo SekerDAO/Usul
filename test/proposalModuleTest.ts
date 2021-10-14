@@ -77,7 +77,10 @@ describe("proposalModule:", () => {
     const VotingContract = await ethers.getContractFactory(
       "TestVotingStrategy"
     );
-    const votingStrategy = await VotingContract.deploy(proposalModule.address, 60);
+    const votingStrategy = await VotingContract.deploy(
+      proposalModule.address,
+      60
+    );
     const votingStrategy_2 = await VotingContract.deploy(
       proposalModule.address,
       60
@@ -257,11 +260,16 @@ describe("proposalModule:", () => {
     });
 
     it("should revert if receiveStrategy is called from non-registered strat", async () => {
-      const { proposalModule, safe, txHash, votingStrategy } = await baseSetup();
-      await proposalModule.submitProposal([txHash], votingStrategy.address, "0x");
-      await expect(
-        proposalModule.receiveStrategy(0, 60)
-      ).to.be.revertedWith("Strategy not authorized");
+      const { proposalModule, safe, txHash, votingStrategy } =
+        await baseSetup();
+      await proposalModule.submitProposal(
+        [txHash],
+        votingStrategy.address,
+        "0x"
+      );
+      await expect(proposalModule.receiveStrategy(0, 60)).to.be.revertedWith(
+        "Strategy not authorized"
+      );
     });
 
     it("should revert if voting from the wrong strategy", async () => {
@@ -321,11 +329,15 @@ describe("proposalModule:", () => {
     it("proposal state should be Active", async () => {
       const { proposalModule, safe, txHash, votingStrategy } =
         await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        votingStrategy.address,
-        "0x"
-      );
+      expect(
+        await proposalModule.submitProposal(
+          [txHash],
+          votingStrategy.address,
+          "0x"
+        )
+      )
+        .to.emit(proposalModule, "ProposalCreated")
+        .withArgs(votingStrategy.address, 0);
       expect(await proposalModule.state(0)).to.equal(0);
     });
 
@@ -337,7 +349,9 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await proposalModule.cancelProposal(0);
+      expect(await proposalModule.cancelProposal(0))
+        .to.emit(proposalModule, "ProposalCanceled")
+        .withArgs(0);
       expect(await proposalModule.state(0)).to.equal(1);
     });
 
@@ -975,7 +989,8 @@ describe("proposalModule:", () => {
     });
 
     it("can use another safe as voting strat", async () => {
-      const { proposalModule, votingStrategy, safe, safe2, txHash, addCall } = await baseSetup();
+      const { proposalModule, votingStrategy, safe, safe2, txHash, addCall } =
+        await baseSetup();
       await executeContractCallWithSigners(
         safe,
         proposalModule,
@@ -983,11 +998,7 @@ describe("proposalModule:", () => {
         [safe2.address],
         [wallet_0]
       );
-      await proposalModule.submitProposal(
-        [txHash],
-        safe2.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], safe2.address, "0x");
       await executeContractCallWithSigners(
         safe2,
         proposalModule,

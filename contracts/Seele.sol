@@ -54,6 +54,7 @@ contract Seele is Module {
     }
 
     event ProposalCreated(address strategy, uint256 proposalNumber);
+    event ProposalCanceled(uint256 proposalId);
     event TransactionExecuted(bytes32 txHash);
     event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
     event StrategyFinalized(uint256 proposalId, uint256 endDate);
@@ -72,20 +73,15 @@ contract Seele is Module {
         address _avatar,
         address _target
     ) {
-        bytes memory initParams = abi.encode(
-            _owner,
-            _avatar,
-            _target
-        );
+        bytes memory initParams = abi.encode(_owner, _avatar, _target);
         setUp(initParams);
     }
 
     function setUp(bytes memory initParams) public override {
-        (
-            address _owner,
-            address _avatar,
-            address _target
-        ) = abi.decode(initParams, (address, address, address));
+        (address _owner, address _avatar, address _target) = abi.decode(
+            initParams,
+            (address, address, address)
+        );
         __Ownable_init();
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
@@ -225,7 +221,9 @@ contract Seele is Module {
         proposals[totalProposalCount].proposer = msg.sender;
         proposals[totalProposalCount].votingStrategy = votingStrategy;
         totalProposalCount++;
-        IStrategy(votingStrategy).receiveProposal(abi.encode(totalProposalCount - 1, data));
+        IStrategy(votingStrategy).receiveProposal(
+            abi.encode(totalProposalCount - 1, data)
+        );
         emit ProposalCreated(votingStrategy, totalProposalCount - 1);
     }
 
@@ -240,11 +238,14 @@ contract Seele is Module {
             "cancel proposal from non-owner or governance"
         );
         _proposal.canceled = true;
+        emit ProposalCanceled(proposalId);
     }
 
     /// @dev Begins the timelock phase of a successful proposal
     /// @param proposalId the identifier of the proposal
-    function receiveStrategy(uint256 proposalId, uint256 timeLockPeriod) external {
+    function receiveStrategy(uint256 proposalId, uint256 timeLockPeriod)
+        external
+    {
         require(
             strategies[msg.sender] != address(0),
             "Strategy not authorized"
@@ -259,7 +260,10 @@ contract Seele is Module {
         );
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
         proposals[proposalId].successful = true;
-        emit StrategyFinalized(proposalId, proposals[proposalId].timeLockPeriod);
+        emit StrategyFinalized(
+            proposalId,
+            proposals[proposalId].timeLockPeriod
+        );
     }
 
     /// @dev Executes a transaction inside of a proposal.
@@ -303,7 +307,10 @@ contract Seele is Module {
         );
         proposals[proposalId].executed[txIndex] = true;
         proposals[proposalId].executionCounter--;
-        require(exec(target, value, data, operation), "Module transaction failed");
+        require(
+            exec(target, value, data, operation),
+            "Module transaction failed"
+        );
         emit TransactionExecuted(txHash);
     }
 

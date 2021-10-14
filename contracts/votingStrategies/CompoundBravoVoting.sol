@@ -49,7 +49,15 @@ contract CompoundBravoVoting is Strategy, EIP712 {
     mapping(address => uint256) public nonces;
     mapping(uint256 => ProposalVoting) public proposals;
 
-    event TimeLockUpdated(uint256 newTimeLockPeriod);
+    event ThresholdUpdated(uint256 previousThreshold, uint256 newThreshold);
+    event TimeLockUpdated(uint256 previousTimeLock, uint256 newTimeLockPeriod);
+    event VotingPeriodUpdated(
+        uint256 previousVotingPeriod,
+        uint256 newVotingPeriod
+    );
+    event ProposalReceived(uint256 proposalId, uint256 timestamp);
+    event VoteFinalized(uint256 proposalId, uint256 timestamp);
+    event Voted(address voter, uint256 proposalId, uint8 support);
 
     constructor(
         uint256 _votingPeriod,
@@ -60,6 +68,11 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         string memory name_,
         uint256 _timeLockPeriod
     ) EIP712(name_, version()) {
+        require(_votingPeriod > 0, "votingPeriod must be non-zero");
+        require(_governanceToken != ERC20VotesComp(address(0)), "invalid governance token address");
+        require(_seeleModule != address(0), "invalid seele module");
+        require(_avatar != address(0), "invalid avatar address");
+        require(_quorumThreshold > 0, "threshold must ne non-zero");
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         governanceToken = _governanceToken;
         seeleModule = _seeleModule;
@@ -82,13 +95,17 @@ contract CompoundBravoVoting is Strategy, EIP712 {
     /// @dev Updates the quorum needed to pass a proposal, only executor.
     /// @param _quorumThreshold the voting quorum threshold.
     function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
+        uint256 previousThreshold = quorumThreshold;
         quorumThreshold = _quorumThreshold;
+        emit ThresholdUpdated(previousThreshold, _quorumThreshold);
     }
 
     /// @dev Updates the time that proposals are active for voting.
     /// @param newPeriod the voting window.
     function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
+        uint256 previousVotingPeriod = votingPeriod;
         votingPeriod = newPeriod;
+        emit VotingPeriodUpdated(previousVotingPeriod, newPeriod);
     }
 
     /// @dev Updates the grace period time after a proposal passed before it can execute.
@@ -97,8 +114,9 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         external
         onlyAvatar
     {
+        uint256 previousTimeLock = timeLockPeriod;
         timeLockPeriod = newTimeLockPeriod;
-        emit TimeLockUpdated(newTimeLockPeriod);
+        emit TimeLockUpdated(previousTimeLock, newTimeLockPeriod);
     }
 
     /**
@@ -134,23 +152,17 @@ contract CompoundBravoVoting is Strategy, EIP712 {
     /// @dev Submits a vote for a proposal by ERC712 signature.
     /// @param proposalId the proposal to vote for.
     /// @param support against, for, or abstain.
-    /// @param v the Signature v value.
-    /// @param r the Signature r value.
-    /// @param s the Signature s value.
+    /// @param signature 712 signed vote
     function voteSignature(
         uint256 proposalId,
         uint8 support,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external {
+        bytes memory signature
+    ) external virtual {
         address voter = ECDSA.recover(
             _hashTypedDataV4(
                 keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
             ),
-            v,
-            r,
-            s
+            signature
         );
         _vote(proposalId, voter, support);
     }
@@ -166,7 +178,7 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         );
         require(!hasVoted(proposalId, voter), "voter has already voted");
         uint256 weight = SafeCast.toUint96(
-            calculateWeight(msg.sender, proposals[proposalId].startBlock)
+            calculateWeight(voter, proposals[proposalId].startBlock)
         );
         proposals[proposalId].hasVoted[voter] = true;
         if (support == uint8(VoteType.Against)) {
@@ -184,19 +196,20 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         } else {
             revert("invalid value for enum VoteType");
         }
+        emit Voted(voter, proposalId, support);
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data the proposal to vote for.
-    function receiveProposal(bytes memory data)
-        public
-        override
-        onlySeele
-    {
-        (uint256 proposalId, bytes32 _descriptionHash) = abi.decode(data, (uint256, bytes32));
+    function receiveProposal(bytes memory data) public override onlySeele {
+        (uint256 proposalId, bytes32 _descriptionHash) = abi.decode(
+            data,
+            (uint256, bytes32)
+        );
         proposals[proposalId].descriptionHash = _descriptionHash;
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
+        emit ProposalReceived(proposalId, block.timestamp);
     }
 
     /// @dev Calls the proposal module to notify that a quorum has been reached.
@@ -205,6 +218,7 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         if (isPassed(proposalId)) {
             IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
         }
+        emit VoteFinalized(proposalId, block.timestamp);
     }
 
     /// @dev Determines if a proposal has succeeded.

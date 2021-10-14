@@ -9,18 +9,13 @@ import {
 import { AddressZero } from "@ethersproject/constants";
 import { signTypedMessage, TypedDataUtils } from "eth-sig-util";
 import { ecsign } from "ethereumjs-util";
-import Wallet from 'ethereumjs-wallet';
+import Wallet from "ethereumjs-wallet";
 
 const deadline =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
 describe("linearOZVotingStrategy:", () => {
-  const [
-    wallet_0,
-    wallet_1,
-    wallet_2,
-    wallet_3,
-  ] = waffle.provider.getWallets();
+  const [wallet_0, wallet_1, wallet_2, wallet_3] = waffle.provider.getWallets();
   const chainId = ethers.BigNumber.from(network.config.chainId).toNumber();
   const tx = {
     to: wallet_1.address,
@@ -43,18 +38,9 @@ describe("linearOZVotingStrategy:", () => {
       "GT",
       totalSupply
     );
-    await govToken.transfer(
-      wallet_1.address,
-      defaultBalance
-    );
-    await govToken.transfer(
-      wallet_2.address,
-      defaultBalance
-    );
-    await govToken.transfer(
-      wallet_3.address,
-      defaultBalance
-    );
+    await govToken.transfer(wallet_1.address, defaultBalance);
+    await govToken.transfer(wallet_2.address, defaultBalance);
+    await govToken.transfer(wallet_3.address, defaultBalance);
 
     const GnosisSafeL2 = await hre.ethers.getContractFactory(
       "@gnosis.pm/safe-contracts/contracts/GnosisSafeL2.sol:GnosisSafeL2"
@@ -101,10 +87,7 @@ describe("linearOZVotingStrategy:", () => {
       "Test"
     );
 
-    await govToken.transfer(
-      safe.address,
-      safeSupply
-    );
+    await govToken.transfer(safe.address, safeSupply);
     const addCall = buildContractCall(
       safe,
       "addOwnerWithThreshold",
@@ -157,7 +140,7 @@ describe("linearOZVotingStrategy:", () => {
       addCall_1,
       safe,
       defaultBalance,
-      thresholdBalance
+      thresholdBalance,
     };
   });
 
@@ -180,7 +163,9 @@ describe("linearOZVotingStrategy:", () => {
       const { linearVoting, safe, govToken } = await baseSetup();
       expect(await linearVoting.governanceToken()).to.equal(govToken.address);
       expect(await linearVoting.votingPeriod()).to.equal(60);
-      expect(await linearVoting.quorumThreshold()).to.equal("2000000000000000000");
+      expect(await linearVoting.quorumThreshold()).to.equal(
+        "2000000000000000000"
+      );
       expect(await linearVoting.timeLockPeriod()).to.equal(60);
     });
   });
@@ -198,19 +183,20 @@ describe("linearOZVotingStrategy:", () => {
         )
       )
         .to.emit(linearVoting, "TimeLockUpdated")
-        .withArgs(1337);
+        .withArgs(60, 1337);
       expect(await linearVoting.timeLockPeriod()).to.equal(1337);
     });
 
     it("should revert update timelock period if not from avatar", async () => {
       const { linearVoting, safe } = await baseSetup();
-      await expect(
-        linearVoting.updateTimeLockPeriod(1337)
-      ).to.be.revertedWith("only avatar may enter");
+      await expect(linearVoting.updateTimeLockPeriod(1337)).to.be.revertedWith(
+        "only avatar may enter"
+      );
     });
 
     it("can update timelock period from proposal", async () => {
-      const { proposalModule, safe, linearVoting, govToken } = await baseSetup();
+      const { proposalModule, safe, linearVoting, govToken } =
+        await baseSetup();
       await govToken.delegate(wallet_0.address);
       const Call = buildContractCall(
         linearVoting,
@@ -225,11 +211,7 @@ describe("linearOZVotingStrategy:", () => {
         Call.operation,
         0
       );
-      await proposalModule.submitProposal(
-        [txHash],
-        linearVoting.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
       await network.provider.send("evm_increaseTime", [60]);
       await linearVoting.finalizeVote(0);
@@ -247,7 +229,6 @@ describe("linearOZVotingStrategy:", () => {
     });
   });
 
-
   describe("openzepplin linear voting module", async () => {
     it("can delegate votes to self", async () => {
       const { proposalModule, linearVoting, govToken } = await baseSetup();
@@ -258,7 +239,13 @@ describe("linearOZVotingStrategy:", () => {
     });
 
     it("can delegate votes to others", async () => {
-      const { proposalModule, linearVoting, govToken, defaultBalance, thresholdBalance } = await baseSetup();
+      const {
+        proposalModule,
+        linearVoting,
+        govToken,
+        defaultBalance,
+        thresholdBalance,
+      } = await baseSetup();
       await govToken.connect(wallet_1).approve(linearVoting.address, 1000);
       await govToken.connect(wallet_1).delegate(wallet_0.address);
       let delegatation = await govToken.getVotes(wallet_0.address);
@@ -298,15 +285,19 @@ describe("linearOZVotingStrategy:", () => {
     });
 
     it("cannot finalize if not past threshold", async () => {
-      const { proposalModule, linearVoting, govToken, addCall, txHash, defaultBalance } =
-        await baseSetup();
+      const {
+        proposalModule,
+        linearVoting,
+        govToken,
+        addCall,
+        txHash,
+        defaultBalance,
+      } = await baseSetup();
       await govToken.connect(wallet_2).delegate(wallet_0.address);
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
       let proposal = await linearVoting.proposals(0);
-      expect(proposal.yesVotes).to.equal(
-        defaultBalance
-      );
+      expect(proposal.yesVotes).to.equal(defaultBalance);
       await network.provider.send("evm_increaseTime", [60]);
       await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
         "a quorum has not been reached for the proposal"
@@ -333,24 +324,32 @@ describe("linearOZVotingStrategy:", () => {
     it("can not vote if delegation after voting starts", async () => {
       const { proposalModule, linearVoting, govToken, txHash } =
         await baseSetup();
-      let block = ethers.BigNumber.from(await network.provider.send("eth_blockNumber"));
+      let block = ethers.BigNumber.from(
+        await network.provider.send("eth_blockNumber")
+      );
       await network.provider.send("evm_mine");
-      expect(await linearVoting.calculateWeight(wallet_2.address, block)).to.equal(0);
+      expect(
+        await linearVoting.calculateWeight(wallet_2.address, block)
+      ).to.equal(0);
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await network.provider.send("evm_mine");
       await linearVoting.connect(wallet_1).vote(0, 1);
       let proposal = await linearVoting.proposals(0);
       expect(proposal.yesVotes).to.equal(0);
-    })
+    });
 
     it("can not vote if re-delegating votes", async () => {
       const { proposalModule, linearVoting, govToken, txHash, defaultBalance } =
         await baseSetup();
       await govToken.connect(wallet_1).delegate(wallet_1.address);
-      let block = ethers.BigNumber.from(await network.provider.send("eth_blockNumber"));
+      let block = ethers.BigNumber.from(
+        await network.provider.send("eth_blockNumber")
+      );
       await network.provider.send("evm_mine");
-      expect(await linearVoting.calculateWeight(wallet_1.address, block)).to.equal(defaultBalance);
+      expect(
+        await linearVoting.calculateWeight(wallet_1.address, block)
+      ).to.equal(defaultBalance);
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.connect(wallet_1).vote(0, 1);
       await govToken.connect(wallet_1).delegate(wallet_3.address);
@@ -358,11 +357,18 @@ describe("linearOZVotingStrategy:", () => {
       await linearVoting.connect(wallet_3).vote(0, 1);
       let proposal = await linearVoting.proposals(0);
       expect(proposal.yesVotes).to.equal(defaultBalance);
-    })
+    });
 
     it("can't pass proposal without more yes votes", async () => {
-      const { proposalModule, safe, linearVoting, govToken, addCall, txHash, defaultBalance } =
-        await baseSetup();
+      const {
+        proposalModule,
+        safe,
+        linearVoting,
+        govToken,
+        addCall,
+        txHash,
+        defaultBalance,
+      } = await baseSetup();
       await govToken.connect(wallet_2).delegate(wallet_2.address);
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await network.provider.send("evm_mine");
@@ -370,12 +376,8 @@ describe("linearOZVotingStrategy:", () => {
       await linearVoting.connect(wallet_2).vote(0, 1);
       await linearVoting.connect(wallet_1).vote(0, 0);
       let proposal = await linearVoting.proposals(0);
-      expect(proposal.yesVotes).to.equal(
-        defaultBalance
-      );
-      expect(proposal.noVotes).to.equal(
-        defaultBalance
-      );
+      expect(proposal.yesVotes).to.equal(defaultBalance);
+      expect(proposal.noVotes).to.equal(defaultBalance);
       await network.provider.send("evm_increaseTime", [60]);
       await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
         "the yesVotes must be strictly over the noVotes"
@@ -383,8 +385,15 @@ describe("linearOZVotingStrategy:", () => {
     });
 
     it("abstain votes add to quorum", async () => {
-      const { proposalModule, safe, linearVoting, govToken, addCall, txHash, defaultBalance } =
-        await baseSetup();
+      const {
+        proposalModule,
+        safe,
+        linearVoting,
+        govToken,
+        addCall,
+        txHash,
+        defaultBalance,
+      } = await baseSetup();
       await govToken.connect(wallet_2).delegate(wallet_2.address);
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await network.provider.send("evm_mine");
@@ -392,25 +401,31 @@ describe("linearOZVotingStrategy:", () => {
       await linearVoting.connect(wallet_2).vote(0, 1);
       await linearVoting.connect(wallet_1).vote(0, 2);
       let proposal = await linearVoting.proposals(0);
-      expect(proposal.yesVotes).to.equal(
-        defaultBalance
-      );
-      expect(proposal.abstainVotes).to.equal(
-        defaultBalance
-      );
+      expect(proposal.yesVotes).to.equal(defaultBalance);
+      expect(proposal.abstainVotes).to.equal(defaultBalance);
       await network.provider.send("evm_increaseTime", [60]);
       await expect(linearVoting.finalizeVote(0));
     });
 
     it("can vote past the threshold with self delegatation", async () => {
-      const { proposalModule, safe, linearVoting, govToken, addCall, txHash, defaultBalance, thresholdBalance } =
-        await baseSetup();
+      const {
+        proposalModule,
+        safe,
+        linearVoting,
+        govToken,
+        addCall,
+        txHash,
+        defaultBalance,
+        thresholdBalance,
+      } = await baseSetup();
       await govToken.connect(wallet_2).delegate(wallet_2.address);
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await network.provider.send("evm_mine");
       let block = await network.provider.send("eth_blockNumber");
       await network.provider.send("evm_mine");
-      expect(await linearVoting.calculateWeight(wallet_2.address, block)).to.equal(defaultBalance);
+      expect(
+        await linearVoting.calculateWeight(wallet_2.address, block)
+      ).to.equal(defaultBalance);
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.connect(wallet_2).vote(0, 1);
       await govToken.connect(wallet_2).delegate(wallet_3.address);
@@ -418,9 +433,7 @@ describe("linearOZVotingStrategy:", () => {
       let proposal = await linearVoting.proposals(0);
       await linearVoting.connect(wallet_1).vote(0, 1);
       proposal = await linearVoting.proposals(0);
-      expect(proposal.yesVotes).to.equal(
-        thresholdBalance
-      );
+      expect(proposal.yesVotes).to.equal(thresholdBalance);
       await network.provider.send("evm_increaseTime", [60]);
       await linearVoting.finalizeVote(0);
       expect(await proposalModule.state(0)).to.equal(2);
@@ -526,31 +539,44 @@ describe("linearOZVotingStrategy:", () => {
     });
 
     it("can vote with ERC712 offchain signature", async () => {
-      const { proposalModule, linearVoting, safe, govToken, txHash, addCall, defaultBalance } =
-        await baseSetup();
+      const {
+        proposalModule,
+        linearVoting,
+        safe,
+        govToken,
+        txHash,
+        addCall,
+        defaultBalance,
+      } = await baseSetup();
       const wallet = Wallet.generate();
       await govToken.connect(wallet_2).delegate(wallet.getAddressString());
-      let block = ethers.BigNumber.from(await network.provider.send("eth_blockNumber"));
+      let block = ethers.BigNumber.from(
+        await network.provider.send("eth_blockNumber")
+      );
       await network.provider.send("evm_mine");
-      expect(await linearVoting.calculateWeight(wallet.getAddressString(), block)).to.equal(defaultBalance);
+      expect(
+        await linearVoting.calculateWeight(wallet.getAddressString(), block)
+      ).to.equal(defaultBalance);
       const delegatation = await govToken.getVotes(wallet.getAddressString());
       expect(delegatation).to.equal(defaultBalance);
       //await govToken.connect(wallet_1).delegate(wallet_1.address);
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
-      const name = 'Test';
-      const version = '1';
+      const name = "Test";
+      const version = "1";
       const verifyingContract = linearVoting.address;
       const EIP712Domain = [
-        { name: 'name', type: 'string' },
-        { name: 'version', type: 'string' },
-        { name: 'chainId', type: 'uint256' },
-        { name: 'verifyingContract', type: 'address' },
+        { name: "name", type: "string" },
+        { name: "version", type: "string" },
+        { name: "chainId", type: "uint256" },
+        { name: "verifyingContract", type: "address" },
       ];
-      const domainSeparator = '0x' + TypedDataUtils.hashStruct(
-        'EIP712Domain',
-        { name, version, chainId, verifyingContract },
-        { EIP712Domain },
-      ).toString('hex');
+      const domainSeparator =
+        "0x" +
+        TypedDataUtils.hashStruct(
+          "EIP712Domain",
+          { name, version, chainId, verifyingContract },
+          { EIP712Domain }
+        ).toString("hex");
 
       const message = {
         proposalId: 0,
@@ -560,22 +586,22 @@ describe("linearOZVotingStrategy:", () => {
         types: {
           EIP712Domain,
           Vote: [
-            { name: 'proposalId', type: 'uint256' },
-            { name: 'vote', type: 'uint8' },
+            { name: "proposalId", type: "uint256" },
+            { name: "vote", type: "uint8" },
           ],
         },
         domain: { name, version, chainId, verifyingContract },
-        primaryType: 'Vote',
+        primaryType: "Vote",
         message,
       };
       // @ts-ignore: Unreachable code error
       const signature = signTypedMessage(wallet.getPrivateKey(), { data });
       await linearVoting.voteSignature(0, 1, signature);
-      expect(await linearVoting.hasVoted(0, wallet.getAddressString())).to.equal(true);
+      expect(
+        await linearVoting.hasVoted(0, wallet.getAddressString())
+      ).to.equal(true);
       let proposal = await linearVoting.proposals(0);
-      expect(proposal.yesVotes).to.equal(
-        defaultBalance
-      );
+      expect(proposal.yesVotes).to.equal(defaultBalance);
     });
   });
 });
