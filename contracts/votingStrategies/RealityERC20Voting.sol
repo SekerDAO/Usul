@@ -2,10 +2,10 @@
 
 pragma solidity >=0.8.0;
 
-import "./Strategy.sol";
+import "./BaseStrategy.sol";
 import "../interfaces/RealitioV3.sol";
 
-contract RealityERC20Voting is Strategy {
+contract RealityERC20Voting is BaseStrategy {
     bytes32 public constant INVALIDATED =
         0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
 

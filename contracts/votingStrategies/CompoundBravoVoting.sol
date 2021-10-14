@@ -4,21 +4,13 @@ pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20VotesComp.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
-import "./Strategy.sol";
+import "./BaseTokenVoting.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
-contract CompoundBravoVoting is Strategy, EIP712 {
-    bytes32 public constant VOTE_TYPEHASH =
-        keccak256("Vote(uint256 proposalId,uint8 vote)");
+contract CompoundBravoVoting is BaseTokenVoting {
 
-    enum VoteType {
-        Against,
-        For,
-        Abstain
-    }
+    ERC20VotesComp public immutable governanceToken;
 
     /**
      * @dev Receipt structure from Compound Governor Bravo
@@ -29,94 +21,31 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         uint96 votes;
     }
 
-    struct ProposalVoting {
-        uint256 yesVotes; // the total number of YES votes for this proposal
-        uint256 noVotes; // the total number of NO votes for this proposal
-        uint256 abstainVotes; // introduce abstain votes
-        uint256 deadline; // voting deadline TODO: consider using block number
-        uint256 startBlock; // the starting block of the proposal
-        mapping(address => bool) hasVoted;
+    struct ProposalComp {
         mapping(address => Receipt) receipts;
         bytes32 descriptionHash;
     }
 
-    ERC20VotesComp public immutable governanceToken;
-    uint256 public votingPeriod; // the length of time voting is valid for a proposal
-    uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
-    uint256 public timeLockPeriod;
-    string private _name;
-
-    mapping(address => uint256) public nonces;
-    mapping(uint256 => ProposalVoting) public proposals;
-
-    event ThresholdUpdated(uint256 previousThreshold, uint256 newThreshold);
-    event TimeLockUpdated(uint256 previousTimeLock, uint256 newTimeLockPeriod);
-    event VotingPeriodUpdated(
-        uint256 previousVotingPeriod,
-        uint256 newVotingPeriod
-    );
-    event ProposalReceived(uint256 proposalId, uint256 timestamp);
-    event VoteFinalized(uint256 proposalId, uint256 timestamp);
-    event Voted(address voter, uint256 proposalId, uint8 support);
+    mapping(uint256 => ProposalComp) proposalsComp;
 
     constructor(
         uint256 _votingPeriod,
         ERC20VotesComp _governanceToken,
         address _seeleModule,
         uint256 _quorumThreshold,
+        uint256 _timeLockPeriod,
         address _avatar,
-        string memory name_,
-        uint256 _timeLockPeriod
-    ) EIP712(name_, version()) {
-        require(_votingPeriod > 0, "votingPeriod must be non-zero");
+        string memory name_
+    ) BaseTokenVoting(
+        _votingPeriod,
+        _seeleModule,
+        _quorumThreshold,
+        _timeLockPeriod,
+        _avatar,
+        name_
+    ) {
         require(_governanceToken != ERC20VotesComp(address(0)), "invalid governance token address");
-        require(_seeleModule != address(0), "invalid seele module");
-        require(_avatar != address(0), "invalid avatar address");
-        require(_quorumThreshold > 0, "threshold must ne non-zero");
-        votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         governanceToken = _governanceToken;
-        seeleModule = _seeleModule;
-        quorumThreshold = _quorumThreshold;
-        avatar = _avatar;
-        _name = name_;
-        timeLockPeriod = _timeLockPeriod * 1 seconds;
-    }
-
-    /// @dev ERC712 name.
-    function name() public view virtual returns (string memory) {
-        return _name;
-    }
-
-    ///@dev ERC712 version.
-    function version() public view virtual returns (string memory) {
-        return "1";
-    }
-
-    /// @dev Updates the quorum needed to pass a proposal, only executor.
-    /// @param _quorumThreshold the voting quorum threshold.
-    function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
-        uint256 previousThreshold = quorumThreshold;
-        quorumThreshold = _quorumThreshold;
-        emit ThresholdUpdated(previousThreshold, _quorumThreshold);
-    }
-
-    /// @dev Updates the time that proposals are active for voting.
-    /// @param newPeriod the voting window.
-    function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
-        uint256 previousVotingPeriod = votingPeriod;
-        votingPeriod = newPeriod;
-        emit VotingPeriodUpdated(previousVotingPeriod, newPeriod);
-    }
-
-    /// @dev Updates the grace period time after a proposal passed before it can execute.
-    /// @param newTimeLockPeriod the new delay before execution.
-    function updateTimeLockPeriod(uint256 newTimeLockPeriod)
-        external
-        onlyAvatar
-    {
-        uint256 previousTimeLock = timeLockPeriod;
-        timeLockPeriod = newTimeLockPeriod;
-        emit TimeLockUpdated(previousTimeLock, newTimeLockPeriod);
     }
 
     /**
@@ -127,25 +56,16 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         view
         returns (Receipt memory)
     {
-        return proposals[proposalId].receipts[voter];
-    }
-
-    /// @dev Returns true if an account has voted on a specific proposal.
-    /// @param proposalId the proposal to inspect.
-    /// @param account the account to inspect.
-    /// @return boolean.
-    function hasVoted(uint256 proposalId, address account)
-        public
-        view
-        returns (bool)
-    {
-        return proposals[proposalId].hasVoted[account];
+        return proposalsComp[proposalId].receipts[voter];
     }
 
     /// @dev Submits a vote for a proposal.
     /// @param proposalId the proposal to vote for.
     /// @param support against, for, or abstain.
-    function vote(uint256 proposalId, uint8 support) external virtual {
+    function vote(uint256 proposalId, uint8 support) external override {
+        proposalsComp[proposalId].receipts[msg.sender].hasVoted = true;
+        proposalsComp[proposalId].receipts[msg.sender].support = support;
+        proposalsComp[proposalId].receipts[msg.sender].votes = SafeCast.toUint96(calculateWeight(msg.sender, proposalId));
         _vote(proposalId, msg.sender, support);
     }
 
@@ -157,106 +77,38 @@ contract CompoundBravoVoting is Strategy, EIP712 {
         uint256 proposalId,
         uint8 support,
         bytes memory signature
-    ) external virtual {
+    ) external override {
         address voter = ECDSA.recover(
             _hashTypedDataV4(
                 keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
             ),
             signature
         );
+        proposalsComp[proposalId].receipts[voter].hasVoted = true;
+        proposalsComp[proposalId].receipts[voter].support = support;
+        proposalsComp[proposalId].receipts[voter].votes = SafeCast.toUint96(calculateWeight(voter, proposalId));
         _vote(proposalId, voter, support);
     }
 
-    function _vote(
-        uint256 proposalId,
-        address voter,
-        uint8 support
-    ) internal {
-        require(
-            block.timestamp <= proposals[proposalId].deadline,
-            "voting period has passed"
-        );
-        require(!hasVoted(proposalId, voter), "voter has already voted");
-        uint256 weight = SafeCast.toUint96(
-            calculateWeight(voter, proposals[proposalId].startBlock)
-        );
-        proposals[proposalId].hasVoted[voter] = true;
-        if (support == uint8(VoteType.Against)) {
-            proposals[proposalId].noVotes =
-                proposals[proposalId].noVotes +
-                weight;
-        } else if (support == uint8(VoteType.For)) {
-            proposals[proposalId].yesVotes =
-                proposals[proposalId].yesVotes +
-                weight;
-        } else if (support == uint8(VoteType.Abstain)) {
-            proposals[proposalId].abstainVotes =
-                proposals[proposalId].abstainVotes +
-                weight;
-        } else {
-            revert("invalid value for enum VoteType");
-        }
-        emit Voted(voter, proposalId, support);
-    }
-
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
-    /// @param data the proposal to vote for.
-    function receiveProposal(bytes memory data) public override onlySeele {
+    /// @param data any extra data to pass to the voting strategy
+    function receiveProposal(bytes memory data) external override onlySeele {
         (uint256 proposalId, bytes32 _descriptionHash) = abi.decode(
             data,
             (uint256, bytes32)
         );
-        proposals[proposalId].descriptionHash = _descriptionHash;
+        proposalsComp[proposalId].descriptionHash = _descriptionHash;
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
         emit ProposalReceived(proposalId, block.timestamp);
     }
 
-    /// @dev Calls the proposal module to notify that a quorum has been reached.
-    /// @param proposalId the proposal to vote for.
-    function finalizeVote(uint256 proposalId) public override {
-        if (isPassed(proposalId)) {
-            IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
-        }
-        emit VoteFinalized(proposalId, block.timestamp);
-    }
-
-    /// @dev Determines if a proposal has succeeded.
-    /// @param proposalId the proposal to vote for.
-    /// @return boolean.
-    function isPassed(uint256 proposalId) public view override returns (bool) {
-        require(
-            proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
-            "the yesVotes must be strictly over the noVotes"
-        );
-        require(
-            proposals[proposalId].yesVotes +
-                proposals[proposalId].abstainVotes >=
-                quorumThreshold,
-            "a quorum has not been reached for the proposal"
-        );
-        require(
-            proposals[proposalId].deadline < block.timestamp,
-            "voting period has not passed yet"
-        );
-        return true;
-    }
-
-    function calculateWeight(address delegatee, uint256 blockNumber)
+    function calculateWeight(address delegatee, uint256 proposalId)
         public
+        override
         view
         returns (uint256)
     {
-        return governanceToken.getPastVotes(delegatee, blockNumber);
-    }
-
-    /// @dev Returns the chain id used by this contract.
-    function getChainId() public view returns (uint256) {
-        uint256 id;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            id := chainid()
-        }
-        return id;
+        return governanceToken.getPastVotes(delegatee, proposals[proposalId].startBlock);
     }
 }

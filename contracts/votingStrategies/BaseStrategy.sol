@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 
 import "../interfaces/IProposal.sol";
 
-abstract contract Strategy {
+abstract contract BaseStrategy {
     address public seeleModule;
     address public avatar;
 
