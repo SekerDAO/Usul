@@ -209,12 +209,11 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
         return true;
     }
 
-    function calculateWeight(address delegatee, uint256 proposalId)
+    function calculateWeight(address voter, uint256 proposalId)
         public
         virtual
         view
-        returns (uint256)
-    {}
+        returns (uint256);
 
     /// @dev Returns the chain id used by this contract.
     function getChainId() public view returns (uint256) {

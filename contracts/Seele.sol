@@ -282,6 +282,7 @@ contract Seele is Module {
         Enum.Operation operation,
         uint256 txIndex
     ) public {
+        // force calls from strat so we can scope
         require(
             state(proposalId) == ProposalState.Executing,
             "proposal is not in execution state"
@@ -332,6 +333,7 @@ contract Seele is Module {
         uint256 startIndex,
         uint256 txCount
     ) external {
+        // force calls from strat so we can scope
         require(
             targets.length == values.length && targets.length == data.length,
             "execution parameters missmatch"

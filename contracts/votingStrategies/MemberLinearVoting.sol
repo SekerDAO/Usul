@@ -54,30 +54,13 @@ contract MemberLinearVoting is BaseTokenVoting {
         emit MemverRemoved(member);
     }
 
-    /// @dev Submits a vote for a proposal.
-    /// @param proposalId the proposal to vote for.
-    /// @param support against, for, or abstain.
-    function vote(uint256 proposalId, uint8 support) external override {
-        require(members[msg.sender] != false, "voter is not a member");
-        _vote(proposalId, msg.sender, support);
-    }
-
-    /// @dev Submits a vote for a proposal by ERC712 signature.
-    /// @param proposalId the proposal to vote for.
-    /// @param support against, for, or abstain.
-    /// @param signature 712 signed vote
-    function voteSignature(
-        uint256 proposalId,
-        uint8 support,
-        bytes memory signature
-    ) external override {
-        address voter = ECDSA.recover(
-            _hashTypedDataV4(
-                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
-            ),
-            signature
-        );
-        require(members[voter] != false, "voter is not a member");
-        _vote(proposalId, voter, support);
+    function calculateWeight(address voter, uint256 proposalId)
+        public
+        override
+        view
+        returns (uint256)
+    {
+        require(members[voter], "voter is not a member");
+        return governanceToken.getPastVotes(voter, proposals[proposalId].startBlock);
     }
 }

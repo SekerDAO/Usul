@@ -329,7 +329,7 @@ describe("linearOZVotingStrategy:", () => {
       );
       await network.provider.send("evm_mine");
       expect(
-        await linearVoting.calculateWeight(wallet_2.address, block)
+        await linearVoting.calculateWeight(wallet_2.address, 0)
       ).to.equal(0);
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await govToken.connect(wallet_1).delegate(wallet_1.address);
