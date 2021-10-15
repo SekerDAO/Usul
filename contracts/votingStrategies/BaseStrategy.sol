@@ -5,11 +5,17 @@ pragma solidity >=0.8.0;
 import "../interfaces/IProposal.sol";
 
 abstract contract BaseStrategy {
-    address public seeleModule;
-    address public avatar;
+    /// @dev Emitted each time the avatar is set.
+    event OwnerSet(address indexed previousOwner, address indexed newOwner);
 
-    modifier onlyAvatar() {
-        require(msg.sender == avatar, "only avatar may enter");
+    /// @dev Emitted each time the avatar is set.
+    event SeeleSet(address indexed previousSeele, address indexed newSeele);
+
+    address public seeleModule;
+    address public owner;
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "only owner may enter");
         _;
     }
 
@@ -20,14 +26,18 @@ abstract contract BaseStrategy {
 
     /// @dev Sets the executor to a new account (`newExecutor`).
     /// @notice Can only be called by the current owner.
-    function setAvatar(address _avatar) public onlyAvatar {
-        avatar = _avatar;
+    function setOwner(address _owner) public onlyOwner {
+        address previousOwner = owner;
+        owner = _owner;
+        emit OwnerSet(previousOwner, _owner);
     }
 
     /// @dev Sets the executor to a new account (`newExecutor`).
     /// @notice Can only be called by the current owner.
-    function setSeele(address _seele) public onlyAvatar {
+    function setSeele(address _seele) public onlyOwner {
+        address previousSeele = seeleModule;
         seeleModule = _seele;
+        emit SeeleSet(previousSeele, _seele);
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.

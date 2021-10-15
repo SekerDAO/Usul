@@ -17,14 +17,14 @@ contract NFTLinearVoting is BaseTokenVoting {
         address _seeleModule,
         uint256 _quorumThreshold,
         uint256 _timeLockPeriod,
-        address _avatar,
+        address _owner,
         string memory name_
     ) BaseTokenVoting(
         _votingPeriod,
         _seeleModule,
         _quorumThreshold,
         _timeLockPeriod,
-        _avatar,
+        _owner,
         name_
     ) {
         require(_governanceToken != IERC721(address(0)), "invalid governance token address");

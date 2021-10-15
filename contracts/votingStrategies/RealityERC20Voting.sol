@@ -35,7 +35,7 @@ contract RealityERC20Voting is BaseStrategy {
     event TimeLockUpdated(uint256 newTimeLockPeriod);
 
     constructor(
-        address _avatar,
+        address _owner,
         address _seeleModule,
         RealitioV3 _oracle,
         uint32 timeout,
@@ -59,7 +59,7 @@ contract RealityERC20Voting is BaseStrategy {
         minimumBond = bond;
         template = templateId;
         seeleModule = _seeleModule;
-        avatar = _avatar;
+        owner = _owner;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
     }
 
@@ -67,14 +67,14 @@ contract RealityERC20Voting is BaseStrategy {
     /// @param newTimeLockPeriod the new delay before execution.
     function updateTimeLockPeriod(uint256 newTimeLockPeriod)
         external
-        onlyAvatar
+        onlyOwner
     {
         timeLockPeriod = newTimeLockPeriod;
         emit TimeLockUpdated(newTimeLockPeriod);
     }
 
     /// @notice This can only be called by the avatar through governance
-    function setQuestionTimeout(uint32 timeout) public onlyAvatar {
+    function setQuestionTimeout(uint32 timeout) public onlyOwner {
         require(timeout > 0, "Timeout has to be greater 0");
         questionTimeout = timeout;
     }
@@ -83,7 +83,7 @@ contract RealityERC20Voting is BaseStrategy {
     /// @param cooldown Cooldown in seconds that should be required after a oracle provided answer
     /// @notice This can only be called by the owner
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
-    function setQuestionCooldown(uint32 cooldown) public onlyAvatar {
+    function setQuestionCooldown(uint32 cooldown) public onlyOwner {
         uint32 expiration = answerExpiration;
         require(
             expiration == 0 || expiration - cooldown >= 60,
@@ -97,7 +97,7 @@ contract RealityERC20Voting is BaseStrategy {
     /// @notice A proposal with an expired answer is the same as a proposal that has been marked invalid
     /// @notice There need to be at least 60 seconds between end of cooldown and expiration
     /// @notice This can only be called by the owner
-    function setAnswerExpiration(uint32 expiration) public onlyAvatar {
+    function setAnswerExpiration(uint32 expiration) public onlyOwner {
         require(
             expiration == 0 || expiration - questionCooldown >= 60,
             "There need to be at least 60s between end of cooldown and expiration"
@@ -108,7 +108,7 @@ contract RealityERC20Voting is BaseStrategy {
     /// @dev Sets the minimum bond that is required for an answer to be accepted.
     /// @param bond Minimum bond that is required for an answer to be accepted
     /// @notice This can only be called by the owner
-    function setMinimumBond(uint256 bond) public onlyAvatar {
+    function setMinimumBond(uint256 bond) public onlyOwner {
         minimumBond = bond;
     }
 
@@ -116,14 +116,14 @@ contract RealityERC20Voting is BaseStrategy {
     /// @param templateId ID of the template that should be used for proposal questions
     /// @notice Check https://github.com/realitio/realitio-dapp#structuring-and-fetching-information for more information
     /// @notice This can only be called by the owner
-    function setTemplate(uint256 templateId) public onlyAvatar {
+    function setTemplate(uint256 templateId) public onlyOwner {
         template = templateId;
     }
 
     /// @dev Sets the question arbitrator that will be used for future questions.
     /// @param arbitrator Address of the arbitrator
     /// @notice This can only be called by the owner
-    function setArbitrator(address arbitrator) public onlyAvatar {
+    function setArbitrator(address arbitrator) public onlyOwner {
         questionArbitrator = arbitrator;
     }
 
@@ -282,7 +282,7 @@ contract RealityERC20Voting is BaseStrategy {
     /// @notice This can only be called by the owner
     function markProposalAsInvalidByHash(bytes32 questionHash)
         public
-        onlyAvatar
+        onlyOwner
     {
         questionIds[questionHash] = INVALIDATED;
     }

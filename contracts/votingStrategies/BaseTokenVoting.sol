@@ -49,17 +49,17 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
         address _seeleModule,
         uint256 _quorumThreshold,
         uint256 _timeLockPeriod,
-        address _avatar,
+        address _owner,
         string memory name_
     ) EIP712(name_, version()) {
         require(_votingPeriod > 0, "votingPeriod must be non-zero");
         require(_seeleModule != address(0), "invalid seele module");
-        require(_avatar != address(0), "invalid avatar address");
+        require(_owner != address(0), "invalid avatar address");
         require(_quorumThreshold > 0, "threshold must ne non-zero");
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         seeleModule = _seeleModule;
         quorumThreshold = _quorumThreshold;
-        avatar = _avatar;
+        owner = _owner;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
     }
 
@@ -75,7 +75,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
 
     /// @dev Updates the quorum needed to pass a proposal, only executor.
     /// @param _quorumThreshold the voting quorum threshold.
-    function updateThreshold(uint256 _quorumThreshold) external onlyAvatar {
+    function updateThreshold(uint256 _quorumThreshold) external onlyOwner {
         uint256 previousThreshold = quorumThreshold;
         quorumThreshold = _quorumThreshold;
         emit ThresholdUpdated(previousThreshold, _quorumThreshold);
@@ -83,7 +83,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
 
     /// @dev Updates the time that proposals are active for voting.
     /// @param newPeriod the voting window.
-    function updateVotingPeriod(uint256 newPeriod) external onlyAvatar {
+    function updateVotingPeriod(uint256 newPeriod) external onlyOwner {
         uint256 previousVotingPeriod = votingPeriod;
         votingPeriod = newPeriod;
         emit VotingPeriodUpdated(previousVotingPeriod, newPeriod);
@@ -93,7 +93,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
     /// @param newTimeLockPeriod the new delay before execution.
     function updateTimeLockPeriod(uint256 newTimeLockPeriod)
         external
-        onlyAvatar
+        onlyOwner
     {
         uint256 previousTimeLock = timeLockPeriod;
         timeLockPeriod = newTimeLockPeriod;

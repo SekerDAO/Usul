@@ -190,7 +190,7 @@ describe("linearOZVotingStrategy:", () => {
     it("should revert update timelock period if not from avatar", async () => {
       const { linearVoting, safe } = await baseSetup();
       await expect(linearVoting.updateTimeLockPeriod(1337)).to.be.revertedWith(
-        "only avatar may enter"
+        "only owner may enter"
       );
     });
 

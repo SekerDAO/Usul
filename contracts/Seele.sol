@@ -48,11 +48,6 @@ contract Seele is Module {
     // Mapping of modules
     mapping(address => address) internal strategies;
 
-    modifier onlyAvatar() {
-        require(msg.sender == avatar, "only the avatar may enter");
-        _;
-    }
-
     event ProposalCreated(address strategy, uint256 proposalNumber);
     event ProposalCanceled(uint256 proposalId);
     event TransactionExecuted(bytes32 txHash);
@@ -234,7 +229,7 @@ contract Seele is Module {
         require(_proposal.executionCounter > 0, "nothing to cancel");
         require(_proposal.canceled == false, "proposal is already canceled");
         require(
-            _proposal.proposer == msg.sender || msg.sender == avatar,
+            _proposal.proposer == msg.sender || msg.sender == owner(),
             "cancel proposal from non-owner or governance"
         );
         _proposal.canceled = true;

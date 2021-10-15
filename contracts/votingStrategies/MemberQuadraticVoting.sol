@@ -28,27 +28,27 @@ contract MemberLinearVoting is BaseTokenVoting {
         address _seeleModule,
         uint256 _quorumThreshold,
         uint256 _timeLockPeriod,
-        address _avatar,
+        address _owner,
         string memory name_
     ) BaseTokenVoting(
         _votingPeriod,
         _seeleModule,
         _quorumThreshold,
         _timeLockPeriod,
-        _avatar,
+        _owner,
         name_
     ) {
         require(_governanceToken != ERC20Votes(address(0)), "invalid governance token address");
         governanceToken = _governanceToken;
     }
 
-    function addMember(address member) public onlyAvatar {
+    function addMember(address member) public onlyOwner {
         members[member] = true;
         memberCount++;
         emit MemberAdded(member);
     }
 
-    function removeMember(address member) public onlyAvatar {
+    function removeMember(address member) public onlyOwner {
         members[member] = false;
         memberCount--;
         emit MemverRemoved(member);
