@@ -71,6 +71,7 @@ contract ProposalGuard is BaseStrategy {
     }
 
     function finalizeVote(uint256 proposalId) public override {
+    	require(allowedGuards[msg.sender] == true, "cannot finalize guard proposal");
         if (isPassed(proposalId)) {
             IProposal(seeleModule).receiveStrategy(proposalId, 0);
         }
