@@ -69,12 +69,40 @@ describe("linearOZVotingStrategy:", () => {
       AddressZero
     );
 
+    const moduleFactoryContract = await ethers.getContractFactory("ModuleProxyFactory")
+    const moduleFactory = await moduleFactoryContract.deploy()
     const proposalContract = await ethers.getContractFactory("Seele");
-    const proposalModule = await proposalContract.deploy(
-      safe.address,
-      safe.address,
-      safe.address
+    const masterProposalModule = await proposalContract.deploy(
+      "0x0000000000000000000000000000000000000001",
+      "0x0000000000000000000000000000000000000001",
+      "0x0000000000000000000000000000000000000001",
+      []
     );
+    const encodedInitParams = ethers.utils.defaultAbiCoder.encode(
+        ["address", "address", "address", "address[]"],
+        [safe.address, safe.address, safe.address, []]
+      );
+    const initData = masterProposalModule.interface.encodeFunctionData("setUp", [
+      encodedInitParams,
+    ]);
+    const masterCopyAddress = masterProposalModule.address.toLowerCase().replace(/^0x/, "");
+    const byteCode =
+      "0x602d8060093d393df3363d3d373d3d3d363d73" +
+      masterCopyAddress +
+      "5af43d82803e903d91602b57fd5bf3";
+    const salt = ethers.utils.solidityKeccak256(
+      ["bytes32", "uint256"],
+      [ethers.utils.solidityKeccak256(["bytes"], [initData]), "0x01"]
+    );
+    const expectedAddress = ethers.utils.getCreate2Address(
+      moduleFactory.address,
+      salt,
+      ethers.utils.keccak256(byteCode)
+    );
+    expect(await moduleFactory.deployModule(masterProposalModule.address, initData, "0x01"))
+      .to.emit(moduleFactory, "ModuleProxyCreation")
+      .withArgs(expectedAddress, masterProposalModule.address);
+    const proposalModule = proposalContract.attach(expectedAddress)
 
     const linearContract = await ethers.getContractFactory("OZLinearVoting");
     const linearVoting = await linearContract.deploy(

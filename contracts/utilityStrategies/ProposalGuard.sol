@@ -58,7 +58,7 @@ contract ProposalGuard is BaseStrategy {
             bytes32[] memory txHashes,
             bytes memory txData
         ) = abi.decode(data, (uint256, bytes32[], bytes));
-        //require(target == owner());
+        //require(target == seeleModule);
         require(
             txHashes[0] == keccak256(txData),
             "supplied calldata does not match proposal hash"

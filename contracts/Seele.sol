@@ -66,33 +66,37 @@ contract Seele is Module {
     constructor(
         address _owner,
         address _avatar,
-        address _target
+        address _target,
+        address[] memory _strategies
     ) {
-        bytes memory initParams = abi.encode(_owner, _avatar, _target);
+        bytes memory initParams = abi.encode(_owner, _avatar, _target, _strategies);
         setUp(initParams);
     }
 
     function setUp(bytes memory initParams) public override {
-        (address _owner, address _avatar, address _target) = abi.decode(
+        (address _owner, address _avatar, address _target, address[] memory _strategies) = abi.decode(
             initParams,
-            (address, address, address)
+            (address, address, address, address[])
         );
         __Ownable_init();
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
         avatar = _avatar;
         target = _target;
-        setupStrategies();
+        setupStrategies(_strategies);
         transferOwnership(_owner);
         emit SeeleSetup(msg.sender, _owner, _avatar, _target);
     }
 
-    function setupStrategies() internal {
+    function setupStrategies(address[] memory _strategies) internal {
         require(
             strategies[SENTINEL_STRATEGY] == address(0),
             "setUpModules has already been called"
         );
         strategies[SENTINEL_STRATEGY] = SENTINEL_STRATEGY;
+        for(uint256 i=0; i<_strategies.length; i++) {
+            enableStrategy(_strategies[i]);
+        }
     }
 
     /// @dev Disables a voting strategy on the module
