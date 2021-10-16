@@ -170,8 +170,8 @@ describe("realityVotingStrategies:", () => {
         questionId
       );
       const abi = ethers.utils.defaultAbiCoder.encode(
-        ["bytes32[]", "string", "uint256"],
-        [[txHash], id, 0]
+        ["string", "uint256"],
+        [id, 0]
       );
       await expect(
         proposalModule.submitProposal([txHash], realityVoting.address, abi)

@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "./BaseStrategy.sol";
+import "../BaseStrategy.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compound like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
@@ -147,10 +147,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
             "voting period has passed"
         );
         require(!hasVoted(proposalId, voter), "voter has already voted");
-        uint256 weight = calculateWeight(
-            voter,
-            proposalId
-        );
+        uint256 weight = calculateWeight(voter, proposalId);
         proposals[proposalId].hasVoted[voter] = true;
         if (support == uint8(VoteType.Against)) {
             proposals[proposalId].noVotes =
@@ -172,7 +169,12 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(bytes memory data) external virtual override onlySeele {
+    function receiveProposal(bytes memory data)
+        external
+        virtual
+        override
+        onlySeele
+    {
         uint256 proposalId = abi.decode(data, (uint256));
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
@@ -191,7 +193,13 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
     /// @dev Determines if a proposal has succeeded.
     /// @param proposalId the proposal to vote for.
     /// @return boolean.
-    function isPassed(uint256 proposalId) public virtual override view  returns (bool) {
+    function isPassed(uint256 proposalId)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
         require(
             proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
             "the yesVotes must be strictly over the noVotes"
@@ -211,8 +219,8 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
 
     function calculateWeight(address voter, uint256 proposalId)
         public
-        virtual
         view
+        virtual
         returns (uint256);
 
     /// @dev Returns the chain id used by this contract.

@@ -33,7 +33,10 @@ contract CompoundBravoVoting is BaseTokenVoting {
 
     mapping(uint256 => ProposalComp) proposalsComp;
 
-    event ProposalThresholdUpdated(uint256 previousThreshold, uint256 newThreshold);
+    event ProposalThresholdUpdated(
+        uint256 previousThreshold,
+        uint256 newThreshold
+    );
 
     constructor(
         uint256 _proposalThreshold,
@@ -44,22 +47,30 @@ contract CompoundBravoVoting is BaseTokenVoting {
         uint256 _timeLockPeriod,
         address _owner,
         string memory name_
-    ) BaseTokenVoting(
-        _votingPeriod,
-        _seeleModule,
-        _quorumThreshold,
-        _timeLockPeriod,
-        _owner,
-        name_
-    ) {
-        require(_governanceToken != ERC20VotesComp(address(0)), "invalid governance token address");
+    )
+        BaseTokenVoting(
+            _votingPeriod,
+            _seeleModule,
+            _quorumThreshold,
+            _timeLockPeriod,
+            _owner,
+            name_
+        )
+    {
+        require(
+            _governanceToken != ERC20VotesComp(address(0)),
+            "invalid governance token address"
+        );
         governanceToken = _governanceToken;
         proposalThreshold = _proposalThreshold;
     }
 
     /// @dev Updates the votes needed to create a proposal, only executor.
     /// @param _proposalThreshold the voting quorum threshold.
-    function updateProposalThreshold(uint256 _proposalThreshold) external onlyOwner {
+    function updateProposalThreshold(uint256 _proposalThreshold)
+        external
+        onlyOwner
+    {
         uint256 previousThreshold = proposalThreshold;
         proposalThreshold = _proposalThreshold;
         emit ProposalThresholdUpdated(previousThreshold, _proposalThreshold);
@@ -82,7 +93,8 @@ contract CompoundBravoVoting is BaseTokenVoting {
     function vote(uint256 proposalId, uint8 support) external override {
         proposalsComp[proposalId].receipts[msg.sender].hasVoted = true;
         proposalsComp[proposalId].receipts[msg.sender].support = support;
-        proposalsComp[proposalId].receipts[msg.sender].votes = SafeCast.toUint96(calculateWeight(msg.sender, proposalId));
+        proposalsComp[proposalId].receipts[msg.sender].votes = SafeCast
+            .toUint96(calculateWeight(msg.sender, proposalId));
         _vote(proposalId, msg.sender, support);
     }
 
@@ -103,36 +115,43 @@ contract CompoundBravoVoting is BaseTokenVoting {
         );
         proposalsComp[proposalId].receipts[voter].hasVoted = true;
         proposalsComp[proposalId].receipts[voter].support = support;
-        proposalsComp[proposalId].receipts[voter].votes = SafeCast.toUint96(calculateWeight(voter, proposalId));
+        proposalsComp[proposalId].receipts[voter].votes = SafeCast.toUint96(
+            calculateWeight(voter, proposalId)
+        );
         _vote(proposalId, voter, support);
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data any extra data to pass to the voting strategy
     function receiveProposal(bytes memory data) external override onlySeele {
-        (uint256 proposalId, address proposer, bytes32 _descriptionHash) = abi.decode(
-            data,
-            (uint256, address, bytes32)
+        (uint256 proposalId, address proposer, bytes32 _descriptionHash) = abi
+            .decode(data, (uint256, address, bytes32));
+        require(
+            governanceToken.getPriorVotes(proposer, sub256(block.number, 1)) >
+                proposalThreshold,
+            "proposer votes below proposal threshold"
         );
-        require(governanceToken.getPriorVotes(proposer, sub256(block.number, 1)) > proposalThreshold, "proposer votes below proposal threshold");
         proposalsComp[proposalId].descriptionHash = _descriptionHash;
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
         emit ProposalReceived(proposalId, block.timestamp);
     }
 
-
     // TODO: Check storing cast uint96 as uint256
     function calculateWeight(address delegatee, uint256 proposalId)
         public
-        override
         view
+        override
         returns (uint256)
     {
-        return governanceToken.getPriorVotes(delegatee, proposals[proposalId].startBlock);
+        return
+            governanceToken.getPriorVotes(
+                delegatee,
+                proposals[proposalId].startBlock
+            );
     }
 
-    function sub256(uint256 a, uint256 b) internal pure returns (uint) {
+    function sub256(uint256 a, uint256 b) internal pure returns (uint256) {
         require(b <= a, "subtraction underflow");
         return a - b;
     }

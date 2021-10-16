@@ -328,9 +328,9 @@ describe("linearOZVotingStrategy:", () => {
         await network.provider.send("eth_blockNumber")
       );
       await network.provider.send("evm_mine");
-      expect(
-        await linearVoting.calculateWeight(wallet_2.address, 0)
-      ).to.equal(0);
+      expect(await linearVoting.calculateWeight(wallet_2.address, 0)).to.equal(
+        0
+      );
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await network.provider.send("evm_mine");
@@ -348,9 +348,9 @@ describe("linearOZVotingStrategy:", () => {
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await network.provider.send("evm_mine");
-      expect(
-        await linearVoting.calculateWeight(wallet_1.address, 0)
-      ).to.equal(defaultBalance);
+      expect(await linearVoting.calculateWeight(wallet_1.address, 0)).to.equal(
+        defaultBalance
+      );
       await linearVoting.connect(wallet_1).vote(0, 1);
       await govToken.connect(wallet_1).delegate(wallet_3.address);
       await network.provider.send("evm_mine");
@@ -437,9 +437,9 @@ describe("linearOZVotingStrategy:", () => {
       let block = await network.provider.send("eth_blockNumber");
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await network.provider.send("evm_mine");
-      expect(
-        await linearVoting.calculateWeight(wallet_2.address, 0)
-      ).to.equal(defaultBalance);
+      expect(await linearVoting.calculateWeight(wallet_2.address, 0)).to.equal(
+        defaultBalance
+      );
       await linearVoting.connect(wallet_2).vote(0, 1);
       await govToken.connect(wallet_2).delegate(wallet_3.address);
       await linearVoting.connect(wallet_3).vote(0, 1);

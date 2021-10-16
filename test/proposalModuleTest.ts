@@ -349,8 +349,9 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await expect (proposalModule.cancelProposal(0))
-        .to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(proposalModule.cancelProposal(0)).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
     });
 
     it("proposal state should be TimeLocked", async () => {

@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.0;
 
-import "../interfaces/IProposal.sol";
+import "./interfaces/IProposal.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 abstract contract BaseStrategy is OwnableUpgradeable {

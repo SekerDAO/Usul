@@ -8,7 +8,6 @@ import "./BaseTokenVoting.sol";
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
 contract MemberLinearVoting is BaseTokenVoting {
-
     ERC20Votes public immutable governanceToken;
     uint256 public memberCount;
 
@@ -30,15 +29,20 @@ contract MemberLinearVoting is BaseTokenVoting {
         uint256 _timeLockPeriod,
         address _owner,
         string memory name_
-    ) BaseTokenVoting(
-        _votingPeriod,
-        _seeleModule,
-        _quorumThreshold,
-        _timeLockPeriod,
-        _owner,
-        name_
-    ) {
-        require(_governanceToken != ERC20Votes(address(0)), "invalid governance token address");
+    )
+        BaseTokenVoting(
+            _votingPeriod,
+            _seeleModule,
+            _quorumThreshold,
+            _timeLockPeriod,
+            _owner,
+            name_
+        )
+    {
+        require(
+            _governanceToken != ERC20Votes(address(0)),
+            "invalid governance token address"
+        );
         governanceToken = _governanceToken;
     }
 
@@ -56,12 +60,18 @@ contract MemberLinearVoting is BaseTokenVoting {
 
     function calculateWeight(address voter, uint256 proposalId)
         public
-        override
         view
+        override
         returns (uint256)
     {
         require(members[voter], "voter is not a member");
-        return sqrt(governanceToken.getPastVotes(voter, proposals[proposalId].startBlock));
+        return
+            sqrt(
+                governanceToken.getPastVotes(
+                    voter,
+                    proposals[proposalId].startBlock
+                )
+            );
     }
 
     function sqrt(uint256 x) internal pure returns (uint256 y) {

@@ -2,7 +2,7 @@
 
 pragma solidity >=0.8.0;
 
-import "./BaseStrategy.sol";
+import "../BaseStrategy.sol";
 import "../interfaces/RealitioV3.sol";
 
 contract RealityERC20Voting is BaseStrategy {
@@ -129,12 +129,15 @@ contract RealityERC20Voting is BaseStrategy {
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data any extra data to pass to the voting strategy
     function receiveProposal(bytes calldata data) external override onlySeele {
-        (uint256 proposalId, bytes memory internalData) = abi.decode(
-            data,
-            (uint256, bytes)
+        (
+            uint256 proposalId,
+            bytes32[] memory txHashes,
+            bytes memory internalData
+        ) = abi.decode(data, (uint256, bytes32[], bytes));
+        (string memory id, uint256 nonce) = abi.decode(
+            internalData,
+            (string, uint256)
         );
-        (bytes32[] memory txHashes, string memory id, uint256 nonce) = abi
-            .decode(internalData, (bytes32[], string, uint256));
         // We generate the question string used for the oracle
         string memory question = buildQuestion(id, txHashes);
         bytes32 questionHash = keccak256(bytes(question));
