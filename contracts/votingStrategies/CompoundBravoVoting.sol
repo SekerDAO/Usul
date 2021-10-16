@@ -6,12 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20VotesComp.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "./BaseTokenVoting.sol";
 
-/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
+/// @title Compound like Linear Voting Strategy - A Seele strategy that enables compound like voting.
+/// @notice This strategy differs in a few ways from compound bravo
+/// @notice There are no min/max threshold checks
+/// @notice There are no limits to the number of transactions that can be executed, hashes stored on proposal core
+/// @notice More than one active proposal per proposer is allowed
+/// @notice Only owner is allowed to cancel proposals (safety strat or governance)
 /// @author Nathan Ginnever - <team@tokenwalk.org>
 contract CompoundBravoVoting is BaseTokenVoting {
-
-    ERC20VotesComp public immutable governanceToken;
-
     /**
      * @dev Receipt structure from Compound Governor Bravo
      */
@@ -26,9 +28,15 @@ contract CompoundBravoVoting is BaseTokenVoting {
         bytes32 descriptionHash;
     }
 
+    ERC20VotesComp public immutable governanceToken;
+    uint256 public proposalThreshold;
+
     mapping(uint256 => ProposalComp) proposalsComp;
 
+    event ProposalThresholdUpdated(uint256 previousThreshold, uint256 newThreshold);
+
     constructor(
+        uint256 _proposalThreshold,
         uint256 _votingPeriod,
         ERC20VotesComp _governanceToken,
         address _seeleModule,
@@ -46,6 +54,15 @@ contract CompoundBravoVoting is BaseTokenVoting {
     ) {
         require(_governanceToken != ERC20VotesComp(address(0)), "invalid governance token address");
         governanceToken = _governanceToken;
+        proposalThreshold = _proposalThreshold;
+    }
+
+    /// @dev Updates the votes needed to create a proposal, only executor.
+    /// @param _proposalThreshold the voting quorum threshold.
+    function updateProposalThreshold(uint256 _proposalThreshold) external onlyOwner {
+        uint256 previousThreshold = proposalThreshold;
+        proposalThreshold = _proposalThreshold;
+        emit ProposalThresholdUpdated(previousThreshold, _proposalThreshold);
     }
 
     /**
@@ -93,22 +110,30 @@ contract CompoundBravoVoting is BaseTokenVoting {
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data any extra data to pass to the voting strategy
     function receiveProposal(bytes memory data) external override onlySeele {
-        (uint256 proposalId, bytes32 _descriptionHash) = abi.decode(
+        (uint256 proposalId, address proposer, bytes32 _descriptionHash) = abi.decode(
             data,
-            (uint256, bytes32)
+            (uint256, address, bytes32)
         );
+        require(governanceToken.getPriorVotes(proposer, sub256(block.number, 1)) > proposalThreshold, "proposer votes below proposal threshold");
         proposalsComp[proposalId].descriptionHash = _descriptionHash;
         proposals[proposalId].deadline = votingPeriod + block.timestamp;
         proposals[proposalId].startBlock = block.number;
         emit ProposalReceived(proposalId, block.timestamp);
     }
 
+
+    // TODO: Check storing cast uint96 as uint256
     function calculateWeight(address delegatee, uint256 proposalId)
         public
         override
         view
         returns (uint256)
     {
-        return governanceToken.getPastVotes(delegatee, proposals[proposalId].startBlock);
+        return governanceToken.getPriorVotes(delegatee, proposals[proposalId].startBlock);
+    }
+
+    function sub256(uint256 a, uint256 b) internal pure returns (uint) {
+        require(b <= a, "subtraction underflow");
+        return a - b;
     }
 }

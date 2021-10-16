@@ -52,7 +52,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
         address _owner,
         string memory name_
     ) EIP712(name_, version()) {
-        require(_votingPeriod > 0, "votingPeriod must be non-zero");
+        require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(_seeleModule != address(0), "invalid seele module");
         require(_quorumThreshold > 0, "threshold must ne non-zero");
         __Ownable_init();
