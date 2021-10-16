@@ -30,8 +30,6 @@ contract RealityERC20Voting is BaseStrategy {
     mapping(bytes32 => mapping(bytes32 => bool))
         public executedProposalTransactions;
 
-    mapping(address => uint256) public nonces;
-
     event TimeLockUpdated(uint256 newTimeLockPeriod);
 
     constructor(
@@ -59,8 +57,9 @@ contract RealityERC20Voting is BaseStrategy {
         minimumBond = bond;
         template = templateId;
         seeleModule = _seeleModule;
-        owner = _owner;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
+        __Ownable_init();
+        transferOwnership(_owner);
     }
 
     /// @dev Updates the grace period time after a proposal passed before it can execute.

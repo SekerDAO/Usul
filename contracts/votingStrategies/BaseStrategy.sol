@@ -3,33 +3,17 @@
 pragma solidity >=0.8.0;
 
 import "../interfaces/IProposal.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-abstract contract BaseStrategy {
-    /// @dev Emitted each time the avatar is set.
-    event OwnerSet(address indexed previousOwner, address indexed newOwner);
-
+abstract contract BaseStrategy is OwnableUpgradeable {
     /// @dev Emitted each time the avatar is set.
     event SeeleSet(address indexed previousSeele, address indexed newSeele);
 
     address public seeleModule;
-    address public owner;
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "only owner may enter");
-        _;
-    }
 
     modifier onlySeele() {
         require(msg.sender == seeleModule, "only seele module may enter");
         _;
-    }
-
-    /// @dev Sets the executor to a new account (`newExecutor`).
-    /// @notice Can only be called by the current owner.
-    function setOwner(address _owner) public onlyOwner {
-        address previousOwner = owner;
-        owner = _owner;
-        emit OwnerSet(previousOwner, _owner);
     }
 
     /// @dev Sets the executor to a new account (`newExecutor`).
