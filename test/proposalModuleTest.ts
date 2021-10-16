@@ -341,7 +341,7 @@ describe("proposalModule:", () => {
       expect(await proposalModule.state(0)).to.equal(0);
     });
 
-    it("proposal state should be Canceled", async () => {
+    it("proposal cancel should revert with only owner", async () => {
       const { proposalModule, safe, txHash, votingStrategy } =
         await baseSetup();
       await proposalModule.submitProposal(
@@ -349,10 +349,8 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      expect(await proposalModule.cancelProposal(0))
-        .to.emit(proposalModule, "ProposalCanceled")
-        .withArgs(0);
-      expect(await proposalModule.state(0)).to.equal(1);
+      await expect (proposalModule.cancelProposal(0))
+        .to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("proposal state should be TimeLocked", async () => {
@@ -414,7 +412,7 @@ describe("proposalModule:", () => {
       expect(await proposalModule.isTxExecuted(0, 0)).to.equal(false);
     });
 
-    it("can cancel a proposal by creator after success", async () => {
+    it("can cancel a proposal after success", async () => {
       const { proposalModule, votingStrategy, safe, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
@@ -423,27 +421,19 @@ describe("proposalModule:", () => {
         "0x"
       );
       await votingStrategy.finalizeVote(0);
-      await proposalModule.cancelProposal(0);
-      let proposal = await proposalModule.proposals(0);
-      expect(proposal.canceled).to.equal(true);
-      expect(await proposalModule.state(0)).to.equal(1);
-    });
-
-    it("can cancel a proposal by creator before success", async () => {
-      const { proposalModule, votingStrategy, safe, txHash } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        votingStrategy.address,
-        "0x"
+      await executeContractCallWithSigners(
+        safe,
+        proposalModule,
+        "cancelProposal",
+        [0],
+        [wallet_0]
       );
-      await proposalModule.cancelProposal(0);
       let proposal = await proposalModule.proposals(0);
       expect(proposal.canceled).to.equal(true);
       expect(await proposalModule.state(0)).to.equal(1);
     });
 
-    it("can cancel a proposal by Safe", async () => {
+    it("can cancel a proposal before success", async () => {
       const { proposalModule, votingStrategy, safe, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
