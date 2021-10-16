@@ -24,7 +24,7 @@ contract ProposalGuard is BaseStrategy {
         __Ownable_init();
         transferOwnership(_owner);
         for (uint256 i = 0; i < _guards.length; i++) {
-            allowedGuards[_guards[i]] = true;
+            enableGuard(_guards[i]);
         }
     }
 
