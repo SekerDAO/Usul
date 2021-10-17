@@ -62,6 +62,8 @@ contract RealityERC20Voting is BaseStrategy {
         transferOwnership(_owner);
     }
 
+    function setUp(bytes memory initParams) public override {}
+
     /// @dev Updates the grace period time after a proposal passed before it can execute.
     /// @param newTimeLockPeriod the new delay before execution.
     function updateTimeLockPeriod(uint256 newTimeLockPeriod)

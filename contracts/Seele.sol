@@ -69,15 +69,22 @@ contract Seele is Module {
         address _target,
         address[] memory _strategies
     ) {
-        bytes memory initParams = abi.encode(_owner, _avatar, _target, _strategies);
+        bytes memory initParams = abi.encode(
+            _owner,
+            _avatar,
+            _target,
+            _strategies
+        );
         setUp(initParams);
     }
 
     function setUp(bytes memory initParams) public override {
-        (address _owner, address _avatar, address _target, address[] memory _strategies) = abi.decode(
-            initParams,
-            (address, address, address, address[])
-        );
+        (
+            address _owner,
+            address _avatar,
+            address _target,
+            address[] memory _strategies
+        ) = abi.decode(initParams, (address, address, address, address[]));
         __Ownable_init();
         require(_avatar != address(0), "Avatar can not be zero address");
         require(_target != address(0), "Target can not be zero address");
@@ -94,7 +101,7 @@ contract Seele is Module {
             "setUpModules has already been called"
         );
         strategies[SENTINEL_STRATEGY] = SENTINEL_STRATEGY;
-        for(uint256 i=0; i<_strategies.length; i++) {
+        for (uint256 i = 0; i < _strategies.length; i++) {
             enableStrategy(_strategies[i]);
         }
     }

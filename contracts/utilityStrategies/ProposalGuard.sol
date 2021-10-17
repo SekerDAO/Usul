@@ -28,6 +28,8 @@ contract ProposalGuard is BaseStrategy {
         }
     }
 
+    function setUp(bytes memory initParams) public override {}
+
     /// @dev Disables a guard
     /// @param _guard Guard to be removed
     /// @notice This can only be called by the owner
@@ -71,7 +73,10 @@ contract ProposalGuard is BaseStrategy {
     }
 
     function finalizeVote(uint256 proposalId) public override {
-    	require(allowedGuards[msg.sender] == true, "cannot finalize guard proposal");
+        require(
+            allowedGuards[msg.sender] == true,
+            "cannot finalize guard proposal"
+        );
         if (isPassed(proposalId)) {
             IProposal(seeleModule).receiveStrategy(proposalId, 0);
         }

@@ -28,11 +28,11 @@ contract SingleVoting is BaseTokenVoting {
         string memory name_
     )
         BaseTokenVoting(
-            _votingPeriod,
+            _owner,
             _seeleModule,
+            _votingPeriod,
             _quorumThreshold,
             _timeLockPeriod,
-            _owner,
             name_
         )
     {}

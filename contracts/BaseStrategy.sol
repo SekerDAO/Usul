@@ -3,9 +3,9 @@
 pragma solidity >=0.8.0;
 
 import "./interfaces/IProposal.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "./common/FactoryFriendly.sol";
 
-abstract contract BaseStrategy is OwnableUpgradeable {
+abstract contract BaseStrategy is FactoryFriendly {
     /// @dev Emitted each time the avatar is set.
     event SeeleSet(address indexed previousSeele, address indexed newSeele);
 

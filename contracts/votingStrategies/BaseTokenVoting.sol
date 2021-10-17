@@ -43,15 +43,39 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
     event VoteFinalized(uint256 proposalId, uint256 timestamp);
     event Voted(address voter, uint256 proposalId, uint8 support);
+    event StrategySetup(address indexed seeleModule, address indexed owner);
 
     constructor(
-        uint256 _votingPeriod,
+        address _owner,
         address _seeleModule,
+        uint256 _votingPeriod,
         uint256 _quorumThreshold,
         uint256 _timeLockPeriod,
-        address _owner,
         string memory name_
     ) EIP712(name_, version()) {
+        bytes memory initParams = abi.encode(
+            _owner,
+            _seeleModule,
+            _votingPeriod,
+            _quorumThreshold,
+            _timeLockPeriod,
+            name_
+        );
+        setUp(initParams);
+    }
+
+    function setUp(bytes memory initParams) public override {
+        (
+            address _owner,
+            address _seeleModule,
+            uint256 _votingPeriod,
+            uint256 _quorumThreshold,
+            uint256 _timeLockPeriod,
+            string memory _name
+        ) = abi.decode(
+                initParams,
+                (address, address, uint256, uint256, uint256, string)
+            );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(_seeleModule != address(0), "invalid seele module");
         require(_quorumThreshold > 0, "threshold must ne non-zero");
@@ -61,6 +85,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
         seeleModule = _seeleModule;
         quorumThreshold = _quorumThreshold;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
+        emit StrategySetup(_seeleModule, _owner);
     }
 
     /// @dev ERC712 name.
