@@ -21,14 +21,11 @@ contract ProposalGuard is BaseStrategy {
         address _seele
     ) {
         seeleModule = _seele;
-        __Ownable_init();
         transferOwnership(_owner);
         for (uint256 i = 0; i < _guards.length; i++) {
             enableGuard(_guards[i]);
         }
     }
-
-    function setUp(bytes memory initParams) public override {}
 
     /// @dev Disables a guard
     /// @param _guard Guard to be removed

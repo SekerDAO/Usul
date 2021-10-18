@@ -58,11 +58,8 @@ contract RealityERC20Voting is BaseStrategy {
         template = templateId;
         seeleModule = _seeleModule;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
-        __Ownable_init();
         transferOwnership(_owner);
     }
-
-    function setUp(bytes memory initParams) public override {}
 
     /// @dev Updates the grace period time after a proposal passed before it can execute.
     /// @param newTimeLockPeriod the new delay before execution.
