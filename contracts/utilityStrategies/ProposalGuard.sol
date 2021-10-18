@@ -3,10 +3,23 @@
 pragma solidity >=0.8.0;
 
 import "../BaseStrategy.sol";
+import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 
 /// @title Proposal guardStrategy - A by role allowed to only cancel proposals.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
 contract ProposalGuard is BaseStrategy {
+    bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
+        0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+    // keccak256(
+    //     "EIP712Domain(uint256 chainId,address verifyingContract)"
+    // );
+
+    bytes32 public constant TRANSACTION_TYPEHASH =
+        0x72e9670a7ee00f5fbf1049b8c38e3f22fab7e9b85029e85cf9412f17fdd5c2ad;
+    // keccak256(
+    //     "Transaction(address to,uint256 value,bytes data,uint8 operation,uint256 nonce)"
+    // );
+
     mapping(address => bool) public allowedGuards;
     mapping(uint256 => bool) public checkedProposals;
     bytes4 public immutable cancelSignature =
@@ -21,10 +34,10 @@ contract ProposalGuard is BaseStrategy {
         address _seele
     ) {
         seeleModule = _seele;
-        transferOwnership(_owner);
         for (uint256 i = 0; i < _guards.length; i++) {
             enableGuard(_guards[i]);
         }
+        transferOwnership(_owner);
     }
 
     /// @dev Disables a guard
@@ -51,15 +64,21 @@ contract ProposalGuard is BaseStrategy {
     /// @param data extra data for proposal guard
     /// @notice This data contains the call to cancel a proposal. It must match the hash
     /// of the transaction and the function selector must only be a cancelProposal call.
-    function receiveProposal(bytes memory data) external override {
+    function receiveProposal(bytes memory data) external override onlySeele {
         (
             uint256 proposalId,
-            bytes32[] memory txHashes,
-            bytes memory txData
+            bytes32[] memory txHash,
+            bytes memory extraData
         ) = abi.decode(data, (uint256, bytes32[], bytes));
-        //require(target == seeleModule);
+        (
+            address target,
+            uint256 value,
+            bytes memory txData,
+            Enum.Operation operation
+        ) = abi.decode(extraData, (address, uint256, bytes, Enum.Operation));
+        require(target == seeleModule, "only calls to seele core");
         require(
-            txHashes[0] == keccak256(txData),
+            txHash[0] == keccak256(generateTransactionHashData(target, value, txData, operation, 0)),
             "supplied calldata does not match proposal hash"
         );
         require(
@@ -69,7 +88,7 @@ contract ProposalGuard is BaseStrategy {
         checkedProposals[proposalId] = true;
     }
 
-    function finalizeVote(uint256 proposalId) public override {
+    function finalizeStrategy(uint256 proposalId) public override {
         require(
             allowedGuards[msg.sender] == true,
             "cannot finalize guard proposal"
@@ -81,5 +100,46 @@ contract ProposalGuard is BaseStrategy {
 
     function isPassed(uint256 proposalId) public view override returns (bool) {
         return checkedProposals[proposalId];
+    }
+
+    /// @dev Generates the data for the module transaction hash (required for signing)
+    function generateTransactionHashData(
+        address to,
+        uint256 value,
+        bytes memory data,
+        Enum.Operation operation,
+        uint256 nonce
+    ) internal view returns (bytes memory) {
+        uint256 chainId = getChainId();
+        bytes32 domainSeparator = keccak256(
+            abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, seeleModule) // use seele as the verifying contract
+        );
+        bytes32 transactionHash = keccak256(
+            abi.encode(
+                TRANSACTION_TYPEHASH,
+                to,
+                value,
+                keccak256(data),
+                operation,
+                nonce
+            )
+        );
+        return
+            abi.encodePacked(
+                bytes1(0x19),
+                bytes1(0x01),
+                domainSeparator,
+                transactionHash
+            );
+    }
+
+    /// @dev Returns the chain id used by this contract.
+    function getChainId() public view returns (uint256) {
+        uint256 id;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            id := chainid()
+        }
+        return id;
     }
 }

@@ -69,8 +69,10 @@ describe("linearOZVotingStrategy:", () => {
       AddressZero
     );
 
-    const moduleFactoryContract = await ethers.getContractFactory("ModuleProxyFactory")
-    const moduleFactory = await moduleFactoryContract.deploy()
+    const moduleFactoryContract = await ethers.getContractFactory(
+      "ModuleProxyFactory"
+    );
+    const moduleFactory = await moduleFactoryContract.deploy();
     const proposalContract = await ethers.getContractFactory("Seele");
     const masterProposalModule = await proposalContract.deploy(
       "0x0000000000000000000000000000000000000001",
@@ -79,13 +81,16 @@ describe("linearOZVotingStrategy:", () => {
       []
     );
     const encodedInitParams = ethers.utils.defaultAbiCoder.encode(
-        ["address", "address", "address", "address[]"],
-        [safe.address, safe.address, safe.address, []]
-      );
-    const initData = masterProposalModule.interface.encodeFunctionData("setUp", [
-      encodedInitParams,
-    ]);
-    const masterCopyAddress = masterProposalModule.address.toLowerCase().replace(/^0x/, "");
+      ["address", "address", "address", "address[]"],
+      [safe.address, safe.address, safe.address, []]
+    );
+    const initData = masterProposalModule.interface.encodeFunctionData(
+      "setUp",
+      [encodedInitParams]
+    );
+    const masterCopyAddress = masterProposalModule.address
+      .toLowerCase()
+      .replace(/^0x/, "");
     const byteCode =
       "0x602d8060093d393df3363d3d373d3d3d363d73" +
       masterCopyAddress +
@@ -99,10 +104,16 @@ describe("linearOZVotingStrategy:", () => {
       salt,
       ethers.utils.keccak256(byteCode)
     );
-    expect(await moduleFactory.deployModule(masterProposalModule.address, initData, "0x01"))
+    expect(
+      await moduleFactory.deployModule(
+        masterProposalModule.address,
+        initData,
+        "0x01"
+      )
+    )
       .to.emit(moduleFactory, "ModuleProxyCreation")
       .withArgs(expectedAddress, masterProposalModule.address);
-    const proposalModule = proposalContract.attach(expectedAddress)
+    const proposalModule = proposalContract.attach(expectedAddress);
 
     const linearContract = await ethers.getContractFactory("OZLinearVoting");
     const linearVoting = await linearContract.deploy(
@@ -115,7 +126,9 @@ describe("linearOZVotingStrategy:", () => {
       "Test"
     );
 
-    const memberLinearContract = await ethers.getContractFactory("MemberLinearVoting");
+    const memberLinearContract = await ethers.getContractFactory(
+      "MemberLinearVoting"
+    );
     const memberLinearVoting = await memberLinearContract.deploy(
       safe.address,
       govToken.address,
@@ -261,7 +274,7 @@ describe("linearOZVotingStrategy:", () => {
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
       await network.provider.send("evm_increaseTime", [60]);
-      await linearVoting.finalizeVote(0);
+      await linearVoting.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await proposalModule.executeProposalByIndex(
@@ -346,7 +359,7 @@ describe("linearOZVotingStrategy:", () => {
       let proposal = await linearVoting.proposals(0);
       expect(proposal.yesVotes).to.equal(defaultBalance);
       await network.provider.send("evm_increaseTime", [60]);
-      await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
+      await expect(linearVoting.finalizeStrategy(0)).to.be.revertedWith(
         "a quorum has not been reached for the proposal"
       );
     });
@@ -358,7 +371,7 @@ describe("linearOZVotingStrategy:", () => {
       await govToken.connect(wallet_1).delegate(wallet_0.address);
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
-      await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
+      await expect(linearVoting.finalizeStrategy(0)).to.be.revertedWith(
         "voting period has not passed yet"
       );
     });
@@ -439,7 +452,7 @@ describe("linearOZVotingStrategy:", () => {
       expect(proposal.yesVotes).to.equal(defaultBalance);
       expect(proposal.noVotes).to.equal(defaultBalance);
       await network.provider.send("evm_increaseTime", [60]);
-      await expect(linearVoting.finalizeVote(0)).to.be.revertedWith(
+      await expect(linearVoting.finalizeStrategy(0)).to.be.revertedWith(
         "the yesVotes must be strictly over the noVotes"
       );
     });
@@ -464,7 +477,7 @@ describe("linearOZVotingStrategy:", () => {
       expect(proposal.yesVotes).to.equal(defaultBalance);
       expect(proposal.abstainVotes).to.equal(defaultBalance);
       await network.provider.send("evm_increaseTime", [60]);
-      await expect(linearVoting.finalizeVote(0));
+      await expect(linearVoting.finalizeStrategy(0));
     });
 
     it("can vote past the threshold with self delegatation", async () => {
@@ -495,7 +508,7 @@ describe("linearOZVotingStrategy:", () => {
       proposal = await linearVoting.proposals(0);
       expect(proposal.yesVotes).to.equal(thresholdBalance);
       await network.provider.send("evm_increaseTime", [60]);
-      await linearVoting.finalizeVote(0);
+      await linearVoting.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
@@ -537,8 +550,8 @@ describe("linearOZVotingStrategy:", () => {
       await linearVoting.connect(wallet_2).vote(0, 1);
       await linearVoting.connect(wallet_2).vote(1, 1);
       await network.provider.send("evm_increaseTime", [60]);
-      await linearVoting.finalizeVote(0);
-      await linearVoting.finalizeVote(1);
+      await linearVoting.finalizeStrategy(0);
+      await linearVoting.finalizeStrategy(1);
       await network.provider.send("evm_increaseTime", [60]);
       await proposalModule.executeProposalByIndex(
         0, // proposalId
@@ -583,7 +596,7 @@ describe("linearOZVotingStrategy:", () => {
       await linearVoting.vote(0, 1);
       let proposal = await proposalModule.proposals(0);
       await network.provider.send("evm_increaseTime", [60]);
-      await linearVoting.finalizeVote(0);
+      await linearVoting.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await proposalModule.executeProposalByIndex(
         0, // proposalId
@@ -666,22 +679,21 @@ describe("linearOZVotingStrategy:", () => {
 
   describe("Membership OZ linearVoting", async () => {
     it("can not add member non-owner", async () => {
-      const { memberLinearVoting } =
-        await baseSetup();
-        await expect(memberLinearVoting.addMember(wallet_2.address)).to.be.revertedWith("Ownable: caller is not the owner")
+      const { memberLinearVoting } = await baseSetup();
+      await expect(
+        memberLinearVoting.addMember(wallet_2.address)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("can not remove member non-owner", async () => {
-      const { memberLinearVoting } =
-        await baseSetup();
-        await expect(memberLinearVoting.removeMember(wallet_2.address)).to.be.revertedWith("Ownable: caller is not the owner")
+      const { memberLinearVoting } = await baseSetup();
+      await expect(
+        memberLinearVoting.removeMember(wallet_2.address)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
     });
 
     it("can add member through admin", async () => {
-      const {
-        safe,
-        memberLinearVoting,
-      } = await baseSetup();
+      const { safe, memberLinearVoting } = await baseSetup();
       await executeContractCallWithSigners(
         safe,
         memberLinearVoting,
@@ -724,13 +736,17 @@ describe("linearOZVotingStrategy:", () => {
       );
       await govToken.delegate(wallet_0.address);
       await network.provider.send("evm_mine");
-      await proposalModule.submitProposal([txHash], memberLinearVoting.address, "0x");
+      await proposalModule.submitProposal(
+        [txHash],
+        memberLinearVoting.address,
+        "0x"
+      );
       await network.provider.send("evm_mine");
       await memberLinearVoting.vote(0, 1);
       let proposal = await memberLinearVoting.proposals(0);
-      expect(proposal.yesVotes).to.equal('49997000000000000000000');
+      expect(proposal.yesVotes).to.equal("49997000000000000000000");
       await network.provider.send("evm_increaseTime", [60]);
-      await memberLinearVoting.finalizeVote(0);
+      await memberLinearVoting.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
@@ -745,14 +761,11 @@ describe("linearOZVotingStrategy:", () => {
       );
       const member = await memberLinearVoting.members(wallet_1.address);
       expect(member).to.equal(true);
-      expect(await memberLinearVoting.memberCount()).to.equal(2)
+      expect(await memberLinearVoting.memberCount()).to.equal(2);
     });
 
     it("can remove member through admin", async () => {
-      const {
-        safe,
-        memberLinearVoting,
-      } = await baseSetup();
+      const { safe, memberLinearVoting } = await baseSetup();
       await executeContractCallWithSigners(
         safe,
         memberLinearVoting,
@@ -762,7 +775,7 @@ describe("linearOZVotingStrategy:", () => {
       );
       let member = await memberLinearVoting.members(wallet_0.address);
       expect(member).to.equal(true);
-      expect(await memberLinearVoting.memberCount()).to.equal(1)
+      expect(await memberLinearVoting.memberCount()).to.equal(1);
       await executeContractCallWithSigners(
         safe,
         memberLinearVoting,
@@ -772,7 +785,7 @@ describe("linearOZVotingStrategy:", () => {
       );
       member = await memberLinearVoting.members(wallet_0.address);
       expect(member).to.equal(false);
-      expect(await memberLinearVoting.memberCount()).to.equal(0)
+      expect(await memberLinearVoting.memberCount()).to.equal(0);
     });
 
     it("can remove member through proposal", async () => {
@@ -806,11 +819,15 @@ describe("linearOZVotingStrategy:", () => {
       );
       await govToken.delegate(wallet_0.address);
       await network.provider.send("evm_mine");
-      await proposalModule.submitProposal([txHash], memberLinearVoting.address, "0x");
+      await proposalModule.submitProposal(
+        [txHash],
+        memberLinearVoting.address,
+        "0x"
+      );
       await network.provider.send("evm_mine");
       await memberLinearVoting.vote(0, 1);
       await network.provider.send("evm_increaseTime", [60]);
-      await memberLinearVoting.finalizeVote(0);
+      await memberLinearVoting.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await proposalModule.executeProposalByIndex(
@@ -823,7 +840,7 @@ describe("linearOZVotingStrategy:", () => {
       );
       const member = await memberLinearVoting.members(wallet_0.address);
       expect(member).to.equal(false);
-      expect(await memberLinearVoting.memberCount()).to.equal(0)
+      expect(await memberLinearVoting.memberCount()).to.equal(0);
     });
-  })
+  });
 });

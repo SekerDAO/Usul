@@ -184,7 +184,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
 
     /// @dev Calls the proposal module to notify that a quorum has been reached.
     /// @param proposalId the proposal to vote for.
-    function finalizeVote(uint256 proposalId) public virtual override {
+    function finalizeStrategy(uint256 proposalId) public virtual override {
         if (isPassed(proposalId)) {
             IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
         }

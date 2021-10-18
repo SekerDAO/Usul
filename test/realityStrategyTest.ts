@@ -62,8 +62,10 @@ describe("realityVotingStrategies:", () => {
       AddressZero
     );
 
-    const moduleFactoryContract = await ethers.getContractFactory("ModuleProxyFactory")
-    const moduleFactory = await moduleFactoryContract.deploy()
+    const moduleFactoryContract = await ethers.getContractFactory(
+      "ModuleProxyFactory"
+    );
+    const moduleFactory = await moduleFactoryContract.deploy();
     const proposalContract = await ethers.getContractFactory("Seele");
     const masterProposalModule = await proposalContract.deploy(
       "0x0000000000000000000000000000000000000001",
@@ -72,13 +74,16 @@ describe("realityVotingStrategies:", () => {
       []
     );
     const encodedInitParams = ethers.utils.defaultAbiCoder.encode(
-        ["address", "address", "address", "address[]"],
-        [safe.address, safe.address, safe.address, []]
-      );
-    const initData = masterProposalModule.interface.encodeFunctionData("setUp", [
-      encodedInitParams,
-    ]);
-    const masterCopyAddress = masterProposalModule.address.toLowerCase().replace(/^0x/, "");
+      ["address", "address", "address", "address[]"],
+      [safe.address, safe.address, safe.address, []]
+    );
+    const initData = masterProposalModule.interface.encodeFunctionData(
+      "setUp",
+      [encodedInitParams]
+    );
+    const masterCopyAddress = masterProposalModule.address
+      .toLowerCase()
+      .replace(/^0x/, "");
     const byteCode =
       "0x602d8060093d393df3363d3d373d3d3d363d73" +
       masterCopyAddress +
@@ -92,10 +97,16 @@ describe("realityVotingStrategies:", () => {
       salt,
       ethers.utils.keccak256(byteCode)
     );
-    expect(await moduleFactory.deployModule(masterProposalModule.address, initData, "0x01"))
+    expect(
+      await moduleFactory.deployModule(
+        masterProposalModule.address,
+        initData,
+        "0x01"
+      )
+    )
       .to.emit(moduleFactory, "ModuleProxyCreation")
       .withArgs(expectedAddress, masterProposalModule.address);
-    const proposalModule = proposalContract.attach(expectedAddress)
+    const proposalModule = proposalContract.attach(expectedAddress);
 
     const Mock = await hre.ethers.getContractFactory("MockContract");
     const mock = await Mock.deploy();
@@ -219,7 +230,7 @@ describe("realityVotingStrategies:", () => {
       );
 
       //await nextBlockTime(hre, block.timestamp + 24)
-      await realityVoting.finalizeVote(0);
+      await realityVoting.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await proposalModule.executeProposalByIndex(

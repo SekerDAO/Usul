@@ -67,8 +67,10 @@ describe("proposalModule:", () => {
       AddressZero
     );
 
-    const moduleFactoryContract = await ethers.getContractFactory("ModuleProxyFactory")
-    const moduleFactory = await moduleFactoryContract.deploy()
+    const moduleFactoryContract = await ethers.getContractFactory(
+      "ModuleProxyFactory"
+    );
+    const moduleFactory = await moduleFactoryContract.deploy();
     const proposalContract = await ethers.getContractFactory("Seele");
     const masterProposalModule = await proposalContract.deploy(
       "0x0000000000000000000000000000000000000001",
@@ -77,13 +79,16 @@ describe("proposalModule:", () => {
       []
     );
     const encodedInitParams = ethers.utils.defaultAbiCoder.encode(
-        ["address", "address", "address", "address[]"],
-        [safe.address, safe.address, safe.address, []]
-      );
-    const initData = masterProposalModule.interface.encodeFunctionData("setUp", [
-      encodedInitParams,
-    ]);
-    const masterCopyAddress = masterProposalModule.address.toLowerCase().replace(/^0x/, "");
+      ["address", "address", "address", "address[]"],
+      [safe.address, safe.address, safe.address, []]
+    );
+    const initData = masterProposalModule.interface.encodeFunctionData(
+      "setUp",
+      [encodedInitParams]
+    );
+    const masterCopyAddress = masterProposalModule.address
+      .toLowerCase()
+      .replace(/^0x/, "");
     const byteCode =
       "0x602d8060093d393df3363d3d373d3d3d363d73" +
       masterCopyAddress +
@@ -97,10 +102,16 @@ describe("proposalModule:", () => {
       salt,
       ethers.utils.keccak256(byteCode)
     );
-    expect(await moduleFactory.deployModule(masterProposalModule.address, initData, "0x01"))
+    expect(
+      await moduleFactory.deployModule(
+        masterProposalModule.address,
+        initData,
+        "0x01"
+      )
+    )
       .to.emit(moduleFactory, "ModuleProxyCreation")
       .withArgs(expectedAddress, masterProposalModule.address);
-    const proposalModule = proposalContract.attach(expectedAddress)
+    const proposalModule = proposalContract.attach(expectedAddress);
 
     const VotingContract = await ethers.getContractFactory(
       "TestVotingStrategy"
@@ -317,7 +328,7 @@ describe("proposalModule:", () => {
       );
       let proposal = await proposalModule.proposals(0);
       expect(proposal.votingStrategy).to.equal(votingStrategy_2.address);
-      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
+      await expect(votingStrategy.finalizeStrategy(0)).to.be.revertedWith(
         "cannot start timelock, incorrect strategy"
       );
     });
@@ -326,7 +337,7 @@ describe("proposalModule:", () => {
   describe("timelock", async () => {
     it("should revert if starting timelock with no proposal", async () => {
       const { proposalModule, votingStrategy, safe } = await baseSetup();
-      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
+      await expect(votingStrategy.finalizeStrategy(0)).to.be.revertedWith(
         "cannot start timelock, proposal is not active"
       );
     });
@@ -339,7 +350,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await expect(
         proposalModule.executeProposalByIndex(
           0, // proposalId
@@ -390,7 +401,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);
     });
 
@@ -402,7 +413,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       expect(await proposalModule.state(0)).to.equal(4);
@@ -416,7 +427,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await proposalModule.executeProposalByIndex(
@@ -449,7 +460,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await executeContractCallWithSigners(
         safe,
         proposalModule,
@@ -503,7 +514,7 @@ describe("proposalModule:", () => {
       expect(proposal.votingStrategy).to.equal(votingStrategy.address);
       expect(await proposalModule.state(0)).to.equal(0);
 
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
@@ -543,7 +554,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
@@ -596,7 +607,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -627,7 +638,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await proposalModule.executeProposalBatch(
@@ -667,7 +678,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -698,7 +709,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -729,7 +740,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -754,7 +765,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -786,7 +797,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
@@ -843,7 +854,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
@@ -872,7 +883,7 @@ describe("proposalModule:", () => {
       expect(proposal.executionCounter).to.equal(0);
     });
 
-    it("cannot start finalizeVote after cancel proposal", async () => {
+    it("cannot start finalizeStrategy after cancel proposal", async () => {
       const { proposalModule, votingStrategy, safe, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
@@ -888,7 +899,7 @@ describe("proposalModule:", () => {
         [wallet_0]
       );
       let proposal = await proposalModule.proposals(0);
-      await expect(votingStrategy.finalizeVote(0)).to.be.revertedWith(
+      await expect(votingStrategy.finalizeStrategy(0)).to.be.revertedWith(
         "cannot start timelock, proposal is not active"
       );
     });
@@ -901,7 +912,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await executeContractCallWithSigners(
         safe,
         safe,
@@ -990,7 +1001,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await votingStrategy.finalizeVote(0);
+      await votingStrategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await proposalModule.executeProposalBatch(

@@ -13,7 +13,7 @@ contract TestVotingStrategy {
         timeLockPeriod = _timeLockedPeriod;
     }
 
-    function finalizeVote(uint256 proposalId) public {
+    function finalizeStrategy(uint256 proposalId) public {
         IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
     }
 
