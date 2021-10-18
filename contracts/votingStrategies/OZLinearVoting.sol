@@ -11,12 +11,12 @@ contract OZLinearVoting is BaseTokenVoting {
     ERC20Votes public immutable governanceToken;
 
     constructor(
-        uint256 _votingPeriod,
+        address _owner,
         ERC20Votes _governanceToken,
         address _seeleModule,
         uint256 _quorumThreshold,
         uint256 _timeLockPeriod,
-        address _owner,
+        uint256 _votingPeriod,
         string memory name_
     )
         BaseTokenVoting(

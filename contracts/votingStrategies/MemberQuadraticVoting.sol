@@ -7,7 +7,7 @@ import "./BaseTokenVoting.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
-contract MemberLinearVoting is BaseTokenVoting {
+contract MemberQuadraticVoting is BaseTokenVoting {
     ERC20Votes public immutable governanceToken;
     uint256 public memberCount;
 
@@ -22,12 +22,12 @@ contract MemberLinearVoting is BaseTokenVoting {
     event MemverRemoved(address member);
 
     constructor(
-        uint256 _votingPeriod,
+        address _owner,
         ERC20Votes _governanceToken,
         address _seeleModule,
         uint256 _quorumThreshold,
         uint256 _timeLockPeriod,
-        address _owner,
+        uint256 _votingPeriod,
         string memory name_
     )
         BaseTokenVoting(

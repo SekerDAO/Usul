@@ -106,12 +106,23 @@ describe("linearOZVotingStrategy:", () => {
 
     const linearContract = await ethers.getContractFactory("OZLinearVoting");
     const linearVoting = await linearContract.deploy(
-      ethers.BigNumber.from(60), // number of days proposals are active
+      safe.address,
       govToken.address,
       proposalModule.address,
       thresholdBalance, // number of votes wieghted to pass
       60,
+      ethers.BigNumber.from(60), // number of days proposals are active
+      "Test"
+    );
+
+    const memberLinearContract = await ethers.getContractFactory("MemberLinearVoting");
+    const memberLinearVoting = await memberLinearContract.deploy(
       safe.address,
+      govToken.address,
+      proposalModule.address,
+      thresholdBalance, // number of votes wieghted to pass
+      60,
+      ethers.BigNumber.from(60), // number of days proposals are active
       "Test"
     );
 
@@ -156,10 +167,18 @@ describe("linearOZVotingStrategy:", () => {
       [linearVoting.address],
       [wallet_0]
     );
+    await executeContractCallWithSigners(
+      safe,
+      proposalModule,
+      "enableStrategy",
+      [memberLinearVoting.address],
+      [wallet_0]
+    );
 
     return {
       proposalModule,
       linearVoting,
+      memberLinearVoting,
       govToken,
       factory,
       txHash,
@@ -215,7 +234,7 @@ describe("linearOZVotingStrategy:", () => {
       expect(await linearVoting.timeLockPeriod()).to.equal(1337);
     });
 
-    it("should revert update timelock period if not from avatar", async () => {
+    it("should revert update timelock period if not from avatar/owner", async () => {
       const { linearVoting, safe } = await baseSetup();
       await expect(linearVoting.updateTimeLockPeriod(1337)).to.be.revertedWith(
         "Ownable: caller is not the owner"
@@ -644,4 +663,167 @@ describe("linearOZVotingStrategy:", () => {
       expect(proposal.yesVotes).to.equal(defaultBalance);
     });
   });
+
+  describe("Membership OZ linearVoting", async () => {
+    it("can not add member non-owner", async () => {
+      const { memberLinearVoting } =
+        await baseSetup();
+        await expect(memberLinearVoting.addMember(wallet_2.address)).to.be.revertedWith("Ownable: caller is not the owner")
+    });
+
+    it("can not remove member non-owner", async () => {
+      const { memberLinearVoting } =
+        await baseSetup();
+        await expect(memberLinearVoting.removeMember(wallet_2.address)).to.be.revertedWith("Ownable: caller is not the owner")
+    });
+
+    it("can add member through admin", async () => {
+      const {
+        safe,
+        memberLinearVoting,
+      } = await baseSetup();
+      await executeContractCallWithSigners(
+        safe,
+        memberLinearVoting,
+        "addMember",
+        [wallet_0.address],
+        [wallet_0]
+      );
+      const member = await memberLinearVoting.members(wallet_0.address);
+      expect(member).to.equal(true);
+    });
+
+    it("can add member through proposal", async () => {
+      const {
+        proposalModule,
+        safe,
+        memberLinearVoting,
+        govToken,
+        defaultBalance,
+        thresholdBalance,
+      } = await baseSetup();
+      await executeContractCallWithSigners(
+        safe,
+        memberLinearVoting,
+        "addMember",
+        [wallet_0.address],
+        [wallet_0]
+      );
+      const addMemberCall = buildContractCall(
+        memberLinearVoting,
+        "addMember",
+        [wallet_1.address],
+        0
+      );
+      const txHash = await proposalModule.getTransactionHash(
+        addMemberCall.to,
+        addMemberCall.value,
+        addMemberCall.data,
+        addMemberCall.operation,
+        0
+      );
+      await govToken.delegate(wallet_0.address);
+      await network.provider.send("evm_mine");
+      await proposalModule.submitProposal([txHash], memberLinearVoting.address, "0x");
+      await network.provider.send("evm_mine");
+      await memberLinearVoting.vote(0, 1);
+      let proposal = await memberLinearVoting.proposals(0);
+      expect(proposal.yesVotes).to.equal('49997000000000000000000');
+      await network.provider.send("evm_increaseTime", [60]);
+      await memberLinearVoting.finalizeVote(0);
+      expect(await proposalModule.state(0)).to.equal(2);
+      await network.provider.send("evm_increaseTime", [60]);
+      await network.provider.send("evm_mine");
+      expect(await proposalModule.state(0)).to.equal(4);
+      await proposalModule.executeProposalByIndex(
+        0, // proposalId
+        memberLinearVoting.address, // target
+        0, // value
+        addMemberCall.data, // data
+        0, // call operation
+        0 // txHash index
+      );
+      const member = await memberLinearVoting.members(wallet_1.address);
+      expect(member).to.equal(true);
+      expect(await memberLinearVoting.memberCount()).to.equal(2)
+    });
+
+    it("can remove member through admin", async () => {
+      const {
+        safe,
+        memberLinearVoting,
+      } = await baseSetup();
+      await executeContractCallWithSigners(
+        safe,
+        memberLinearVoting,
+        "addMember",
+        [wallet_0.address],
+        [wallet_0]
+      );
+      let member = await memberLinearVoting.members(wallet_0.address);
+      expect(member).to.equal(true);
+      expect(await memberLinearVoting.memberCount()).to.equal(1)
+      await executeContractCallWithSigners(
+        safe,
+        memberLinearVoting,
+        "removeMember",
+        [wallet_0.address],
+        [wallet_0]
+      );
+      member = await memberLinearVoting.members(wallet_0.address);
+      expect(member).to.equal(false);
+      expect(await memberLinearVoting.memberCount()).to.equal(0)
+    });
+
+    it("can remove member through proposal", async () => {
+      const {
+        proposalModule,
+        safe,
+        memberLinearVoting,
+        govToken,
+        defaultBalance,
+        thresholdBalance,
+      } = await baseSetup();
+      await executeContractCallWithSigners(
+        safe,
+        memberLinearVoting,
+        "addMember",
+        [wallet_0.address],
+        [wallet_0]
+      );
+      const removeMemberCall = buildContractCall(
+        memberLinearVoting,
+        "removeMember",
+        [wallet_0.address],
+        0
+      );
+      const txHash = await proposalModule.getTransactionHash(
+        removeMemberCall.to,
+        removeMemberCall.value,
+        removeMemberCall.data,
+        removeMemberCall.operation,
+        0
+      );
+      await govToken.delegate(wallet_0.address);
+      await network.provider.send("evm_mine");
+      await proposalModule.submitProposal([txHash], memberLinearVoting.address, "0x");
+      await network.provider.send("evm_mine");
+      await memberLinearVoting.vote(0, 1);
+      await network.provider.send("evm_increaseTime", [60]);
+      await memberLinearVoting.finalizeVote(0);
+      await network.provider.send("evm_increaseTime", [60]);
+      await network.provider.send("evm_mine");
+      await proposalModule.executeProposalByIndex(
+        0, // proposalId
+        memberLinearVoting.address, // target
+        0, // value
+        removeMemberCall.data, // data
+        0, // call operation
+        0 // txHash index
+      );
+      const member = await memberLinearVoting.members(wallet_0.address);
+      expect(member).to.equal(false);
+      expect(await memberLinearVoting.memberCount()).to.equal(0)
+    });
+  })
 });
