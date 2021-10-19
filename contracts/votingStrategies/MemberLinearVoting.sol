@@ -30,8 +30,15 @@ contract MemberLinearVoting is BaseTokenVoting {
         uint256 _timeLockPeriod,
         string memory name_
     ) {
-        bytes memory initParams =
-            abi.encode(_owner, _governanceToken, _seeleModule, _votingPeriod, _quorumThreshold, _timeLockPeriod, name_);
+        bytes memory initParams = abi.encode(
+            _owner,
+            _governanceToken,
+            _seeleModule,
+            _votingPeriod,
+            _quorumThreshold,
+            _timeLockPeriod,
+            name_
+        );
         setUp(initParams);
     }
 
@@ -44,10 +51,17 @@ contract MemberLinearVoting is BaseTokenVoting {
             uint256 _quorumThreshold,
             uint256 _timeLockPeriod,
             string memory name_
-        ) =
-            abi.decode(
+        ) = abi.decode(
                 initParams,
-                (address, ERC20Votes, address, uint256, uint256, uint256, string)
+                (
+                    address,
+                    ERC20Votes,
+                    address,
+                    uint256,
+                    uint256,
+                    uint256,
+                    string
+                )
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(_seeleModule != address(0), "invalid seele module");

@@ -8,42 +8,48 @@ import "./BaseTokenVoting.sol";
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
 contract NFTSingleVoting is BaseTokenVoting {
-    TestNFT public governanceToken;
+    VotingNFT public governanceToken;
     mapping(uint256 => uint256) nftVoted; // mapping proposal id to nft id to bool
 
     constructor(
         address _owner,
-        TestNFT _governanceToken,
+        VotingNFT _governanceToken,
         address _seeleModule,
         uint256 _votingPeriod,
         uint256 _quorumThreshold,
         uint256 _timeLockPeriod,
         string memory name_
     ) {
-        bytes memory initParams =
-            abi.encode(_owner, _governanceToken, _seeleModule, _votingPeriod, _quorumThreshold, _timeLockPeriod, name_);
+        bytes memory initParams = abi.encode(
+            _owner,
+            _governanceToken,
+            _seeleModule,
+            _votingPeriod,
+            _quorumThreshold,
+            _timeLockPeriod,
+            name_
+        );
         setUp(initParams);
     }
 
     function setUp(bytes memory initParams) public override initializer {
         (
             address _owner,
-            TestNFT _governanceToken,
+            VotingNFT _governanceToken,
             address _seeleModule,
             uint256 _votingPeriod,
             uint256 _quorumThreshold,
             uint256 _timeLockPeriod,
             string memory name_
-        ) =
-            abi.decode(
+        ) = abi.decode(
                 initParams,
-                (address, TestNFT, address, uint256, uint256, uint256, string)
+                (address, VotingNFT, address, uint256, uint256, uint256, string)
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(_seeleModule != address(0), "invalid seele module");
         require(_quorumThreshold > 0, "threshold must ne non-zero");
         require(
-            _governanceToken != TestNFT(address(0)),
+            _governanceToken != VotingNFT(address(0)),
             "invalid governance token address"
         );
         governanceToken = _governanceToken;
@@ -67,7 +73,8 @@ contract NFTSingleVoting is BaseTokenVoting {
             governanceToken.getPastVotes(
                 delegatee,
                 proposals[proposalId].startBlock
-            ) > 0);
+            ) > 0
+        );
         return 1;
     }
 }

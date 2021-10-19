@@ -48,8 +48,16 @@ contract CompoundBravoVoting is BaseTokenVoting {
         uint256 _proposalThreshold,
         string memory name_
     ) {
-        bytes memory initParams =
-            abi.encode(_owner, _governanceToken, _seeleModule, _votingPeriod, _quorumThreshold, _timeLockPeriod, _proposalThreshold, name_);
+        bytes memory initParams = abi.encode(
+            _owner,
+            _governanceToken,
+            _seeleModule,
+            _votingPeriod,
+            _quorumThreshold,
+            _timeLockPeriod,
+            _proposalThreshold,
+            name_
+        );
         setUp(initParams);
     }
 
@@ -63,10 +71,18 @@ contract CompoundBravoVoting is BaseTokenVoting {
             uint256 _timeLockPeriod,
             uint256 _proposalThreshold,
             string memory name_
-        ) =
-            abi.decode(
+        ) = abi.decode(
                 initParams,
-                (address, ERC20VotesComp, address, uint256, uint256, uint256, uint256, string)
+                (
+                    address,
+                    ERC20VotesComp,
+                    address,
+                    uint256,
+                    uint256,
+                    uint256,
+                    uint256,
+                    string
+                )
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(_seeleModule != address(0), "invalid seele module");
@@ -86,6 +102,7 @@ contract CompoundBravoVoting is BaseTokenVoting {
         timeLockPeriod = _timeLockPeriod * 1 seconds;
         emit StrategySetup(_seeleModule, _owner);
     }
+
     /// @dev Updates the votes needed to create a proposal, only executor.
     /// @param _proposalThreshold the voting quorum threshold.
     function updateProposalThreshold(uint256 _proposalThreshold)

@@ -85,15 +85,23 @@ describe("linearOZVotingStrategy:", () => {
       ""
     );
     const encodedLinearInitParams = ethers.utils.defaultAbiCoder.encode(
-      ["address", "address", "address", "uint256", "uint256", "uint256", "string"],
+      [
+        "address",
+        "address",
+        "address",
+        "uint256",
+        "uint256",
+        "uint256",
+        "string",
+      ],
       [
         wallet_0.address,
         govToken.address,
         "0x0000000000000000000000000000000000000001",
         60,
         thresholdBalance, // number of votes wieghted to pass
-        ethers.BigNumber.from(60), // number of days proposals are active
-        "Test"
+        60, // number of days proposals are active
+        "Test",
       ]
     );
     const initLinearData = linearVotingMaster.interface.encodeFunctionData(
@@ -126,7 +134,6 @@ describe("linearOZVotingStrategy:", () => {
       .to.emit(moduleFactory, "ModuleProxyCreation")
       .withArgs(expectedLinearAddress, linearVotingMaster.address);
     const linearVoting = linearVotingMaster.attach(expectedLinearAddress);
-
 
     const proposalContract = await ethers.getContractFactory("Seele");
     const masterProposalModule = await proposalContract.deploy(

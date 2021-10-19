@@ -33,22 +33,17 @@ contract ProposalGuard is BaseStrategy {
         address _owner,
         address _seele
     ) {
-        bytes memory initParams =
-            abi.encode(_guards, _owner, _seele);
+        bytes memory initParams = abi.encode(_guards, _owner, _seele);
         setUp(initParams);
     }
 
     function setUp(bytes memory initParams) public override initializer {
-        (
-            address[] memory _guards,
-            address _owner,
-            address _seele
-        ) =
-            abi.decode(
-                initParams,
-                (address[], address, address)
-            );
+        (address[] memory _guards, address _owner, address _seele) = abi.decode(
+            initParams,
+            (address[], address, address)
+        );
         seeleModule = _seele;
+        __Ownable_init();
         for (uint256 i = 0; i < _guards.length; i++) {
             enableGuard(_guards[i]);
         }
@@ -94,7 +89,16 @@ contract ProposalGuard is BaseStrategy {
         ) = abi.decode(extraData, (address, uint256, bytes, Enum.Operation));
         require(target == seeleModule, "only calls to seele core");
         require(
-            txHash[0] == keccak256(generateTransactionHashData(target, value, txData, operation, 0)),
+            txHash[0] ==
+                keccak256(
+                    generateTransactionHashData(
+                        target,
+                        value,
+                        txData,
+                        operation,
+                        0
+                    )
+                ),
             "supplied calldata does not match proposal hash"
         );
         require(
