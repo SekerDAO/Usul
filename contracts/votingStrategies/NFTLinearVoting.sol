@@ -2,21 +2,21 @@
 
 pragma solidity >=0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "../test/TestNFT.sol";
 import "./BaseTokenVoting.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@tokenwalk.org>
 contract NFTLinearVoting is BaseTokenVoting {
-    IERC721 public immutable governanceToken;
+    TestNFT public immutable governanceToken;
 
     constructor(
-        uint256 _votingPeriod,
-        IERC721 _governanceToken,
+        address _owner,
+        TestNFT _governanceToken,
         address _seeleModule,
         uint256 _quorumThreshold,
         uint256 _timeLockPeriod,
-        address _owner,
+        uint256 _votingPeriod,
         string memory name_
     )
         BaseTokenVoting(
@@ -29,19 +29,22 @@ contract NFTLinearVoting is BaseTokenVoting {
         )
     {
         require(
-            _governanceToken != IERC721(address(0)),
+            _governanceToken != TestNFT(address(0)),
             "invalid governance token address"
         );
         governanceToken = _governanceToken;
     }
 
-    function calculateWeight(address voter, uint256 proposalId)
+    function calculateWeight(address delegatee, uint256 proposalId)
         public
         view
         override
         returns (uint256)
     {
-        require(governanceToken.balanceOf(voter) >= 1, "voter must own an NFT");
-        return governanceToken.balanceOf(voter);
+        return
+            governanceToken.getPastVotes(
+                delegatee,
+                proposals[proposalId].startBlock
+            );
     }
 }

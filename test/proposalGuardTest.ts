@@ -14,7 +14,7 @@ import Wallet from "ethereumjs-wallet";
 const deadline =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-describe("linearOZVotingStrategy:", () => {
+describe("ProposalGuardStrategy:", () => {
   const [wallet_0, wallet_1, wallet_2, wallet_3] = waffle.provider.getWallets();
   const chainId = ethers.BigNumber.from(network.config.chainId).toNumber();
   const tx = {

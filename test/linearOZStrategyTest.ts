@@ -69,6 +69,17 @@ describe("linearOZVotingStrategy:", () => {
       AddressZero
     );
 
+    const linearContract = await ethers.getContractFactory("OZLinearVoting");
+    const linearVoting = await linearContract.deploy(
+      wallet_0.address,
+      govToken.address,
+      "0x0000000000000000000000000000000000000001",
+      thresholdBalance, // number of votes wieghted to pass
+      60,
+      ethers.BigNumber.from(60), // number of days proposals are active
+      "Test"
+    );
+
     const moduleFactoryContract = await ethers.getContractFactory(
       "ModuleProxyFactory"
     );
@@ -82,7 +93,7 @@ describe("linearOZVotingStrategy:", () => {
     );
     const encodedInitParams = ethers.utils.defaultAbiCoder.encode(
       ["address", "address", "address", "address[]"],
-      [safe.address, safe.address, safe.address, []]
+      [safe.address, safe.address, safe.address, [linearVoting.address]]
     );
     const initData = masterProposalModule.interface.encodeFunctionData(
       "setUp",
@@ -115,16 +126,8 @@ describe("linearOZVotingStrategy:", () => {
       .withArgs(expectedAddress, masterProposalModule.address);
     const proposalModule = proposalContract.attach(expectedAddress);
 
-    const linearContract = await ethers.getContractFactory("OZLinearVoting");
-    const linearVoting = await linearContract.deploy(
-      safe.address,
-      govToken.address,
-      proposalModule.address,
-      thresholdBalance, // number of votes wieghted to pass
-      60,
-      ethers.BigNumber.from(60), // number of days proposals are active
-      "Test"
-    );
+    await linearVoting.setSeele(expectedAddress);
+    await linearVoting.transferOwnership(safe.address);
 
     const memberLinearContract = await ethers.getContractFactory(
       "MemberLinearVoting"
@@ -173,13 +176,13 @@ describe("linearOZVotingStrategy:", () => {
       [proposalModule.address],
       [wallet_0]
     );
-    await executeContractCallWithSigners(
-      safe,
-      proposalModule,
-      "enableStrategy",
-      [linearVoting.address],
-      [wallet_0]
-    );
+    // await executeContractCallWithSigners(
+    //   safe,
+    //   proposalModule,
+    //   "enableStrategy",
+    //   [linearVoting.address],
+    //   [wallet_0]
+    // );
     await executeContractCallWithSigners(
       safe,
       proposalModule,
