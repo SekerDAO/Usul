@@ -69,21 +69,65 @@ describe("linearOZVotingStrategy:", () => {
       AddressZero
     );
 
-    const linearContract = await ethers.getContractFactory("OZLinearVoting");
-    const linearVoting = await linearContract.deploy(
-      wallet_0.address,
-      govToken.address,
-      "0x0000000000000000000000000000000000000001",
-      thresholdBalance, // number of votes wieghted to pass
-      60,
-      ethers.BigNumber.from(60), // number of days proposals are active
-      "Test"
-    );
-
     const moduleFactoryContract = await ethers.getContractFactory(
       "ModuleProxyFactory"
     );
     const moduleFactory = await moduleFactoryContract.deploy();
+
+    const linearContract = await ethers.getContractFactory("OZLinearVoting");
+    const linearVotingMaster = await linearContract.deploy(
+      "0x0000000000000000000000000000000000000001",
+      "0x0000000000000000000000000000000000000001",
+      "0x0000000000000000000000000000000000000001",
+      2, // number of votes wieghted to pass
+      1,
+      1, // number of days proposals are active
+      ""
+    );
+    const encodedLinearInitParams = ethers.utils.defaultAbiCoder.encode(
+      ["address", "address", "address", "uint256", "uint256", "uint256", "string"],
+      [
+        wallet_0.address,
+        govToken.address,
+        "0x0000000000000000000000000000000000000001",
+        60,
+        thresholdBalance, // number of votes wieghted to pass
+        ethers.BigNumber.from(60), // number of days proposals are active
+        "Test"
+      ]
+    );
+    const initLinearData = linearVotingMaster.interface.encodeFunctionData(
+      "setUp",
+      [encodedLinearInitParams]
+    );
+    const masterLinearCopyAddress = linearVotingMaster.address
+      .toLowerCase()
+      .replace(/^0x/, "");
+    const byteCodeLinear =
+      "0x602d8060093d393df3363d3d373d3d3d363d73" +
+      masterLinearCopyAddress +
+      "5af43d82803e903d91602b57fd5bf3";
+    const saltLinear = ethers.utils.solidityKeccak256(
+      ["bytes32", "uint256"],
+      [ethers.utils.solidityKeccak256(["bytes"], [initLinearData]), "0x01"]
+    );
+    const expectedLinearAddress = ethers.utils.getCreate2Address(
+      moduleFactory.address,
+      saltLinear,
+      ethers.utils.keccak256(byteCodeLinear)
+    );
+    expect(
+      await moduleFactory.deployModule(
+        linearVotingMaster.address,
+        initLinearData,
+        "0x01"
+      )
+    )
+      .to.emit(moduleFactory, "ModuleProxyCreation")
+      .withArgs(expectedLinearAddress, linearVotingMaster.address);
+    const linearVoting = linearVotingMaster.attach(expectedLinearAddress);
+
+
     const proposalContract = await ethers.getContractFactory("Seele");
     const masterProposalModule = await proposalContract.deploy(
       "0x0000000000000000000000000000000000000001",
@@ -136,8 +180,8 @@ describe("linearOZVotingStrategy:", () => {
       safe.address,
       govToken.address,
       proposalModule.address,
-      thresholdBalance, // number of votes wieghted to pass
       60,
+      thresholdBalance, // number of votes wieghted to pass
       ethers.BigNumber.from(60), // number of days proposals are active
       "Test"
     );

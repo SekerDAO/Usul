@@ -44,6 +44,28 @@ contract RealityERC20Voting is BaseStrategy {
         address arbitrator,
         uint256 _timeLockPeriod
     ) {
+        bytes memory initParams =
+            abi.encode(_owner, _seeleModule, _oracle, timeout, cooldown, expiration, bond, templateId, arbitrator, _timeLockPeriod);
+        setUp(initParams);
+    }
+
+    function setUp(bytes memory initParams) public override initializer {
+        (
+        address _owner,
+        address _seeleModule,
+        RealitioV3 _oracle,
+        uint32 timeout,
+        uint32 cooldown,
+        uint32 expiration,
+        uint256 bond,
+        uint256 templateId,
+        address arbitrator,
+        uint256 _timeLockPeriod
+        ) =
+            abi.decode(
+                initParams,
+                (address, address, RealitioV3, uint32, uint32, uint32, uint256, uint256, address, uint256)
+            );
         require(timeout > 0, "Timeout has to be greater 0");
         require(
             expiration == 0 || expiration - cooldown >= 60,

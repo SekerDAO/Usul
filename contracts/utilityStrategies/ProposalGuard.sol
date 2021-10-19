@@ -33,11 +33,27 @@ contract ProposalGuard is BaseStrategy {
         address _owner,
         address _seele
     ) {
+        bytes memory initParams =
+            abi.encode(_guards, _owner, _seele);
+        setUp(initParams);
+    }
+
+    function setUp(bytes memory initParams) public override initializer {
+        (
+            address[] memory _guards,
+            address _owner,
+            address _seele
+        ) =
+            abi.decode(
+                initParams,
+                (address[], address, address)
+            );
         seeleModule = _seele;
         for (uint256 i = 0; i < _guards.length; i++) {
             enableGuard(_guards[i]);
         }
         transferOwnership(_owner);
+        emit StrategySetup(_seele, _owner);
     }
 
     /// @dev Disables a guard

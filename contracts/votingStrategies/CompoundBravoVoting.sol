@@ -28,7 +28,7 @@ contract CompoundBravoVoting is BaseTokenVoting {
         bytes32 descriptionHash;
     }
 
-    ERC20VotesComp public immutable governanceToken;
+    ERC20VotesComp public governanceToken;
     uint256 public proposalThreshold;
 
     mapping(uint256 => ProposalComp) proposalsComp;
@@ -39,32 +39,53 @@ contract CompoundBravoVoting is BaseTokenVoting {
     );
 
     constructor(
-        uint256 _proposalThreshold,
-        uint256 _votingPeriod,
+        address _owner,
         ERC20VotesComp _governanceToken,
         address _seeleModule,
+        uint256 _votingPeriod,
         uint256 _quorumThreshold,
         uint256 _timeLockPeriod,
-        address _owner,
+        uint256 _proposalThreshold,
         string memory name_
-    )
-        BaseTokenVoting(
-            _owner,
-            _seeleModule,
-            _votingPeriod,
-            _quorumThreshold,
-            _timeLockPeriod,
-            name_
-        )
-    {
+    ) {
+        bytes memory initParams =
+            abi.encode(_owner, _governanceToken, _seeleModule, _votingPeriod, _quorumThreshold, _timeLockPeriod, _proposalThreshold, name_);
+        setUp(initParams);
+    }
+
+    function setUp(bytes memory initParams) public override initializer {
+        (
+            address _owner,
+            ERC20VotesComp _governanceToken,
+            address _seeleModule,
+            uint256 _votingPeriod,
+            uint256 _quorumThreshold,
+            uint256 _timeLockPeriod,
+            uint256 _proposalThreshold,
+            string memory name_
+        ) =
+            abi.decode(
+                initParams,
+                (address, ERC20VotesComp, address, uint256, uint256, uint256, uint256, string)
+            );
+        require(_votingPeriod > 1, "votingPeriod must be greater than 1");
+        require(_seeleModule != address(0), "invalid seele module");
+        require(_quorumThreshold > 0, "threshold must ne non-zero");
         require(
             _governanceToken != ERC20VotesComp(address(0)),
             "invalid governance token address"
         );
         governanceToken = _governanceToken;
         proposalThreshold = _proposalThreshold;
+        __Ownable_init();
+        __EIP712_init_unchained(name_, version());
+        transferOwnership(_owner);
+        votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
+        seeleModule = _seeleModule;
+        quorumThreshold = _quorumThreshold;
+        timeLockPeriod = _timeLockPeriod * 1 seconds;
+        emit StrategySetup(_seeleModule, _owner);
     }
-
     /// @dev Updates the votes needed to create a proposal, only executor.
     /// @param _proposalThreshold the voting quorum threshold.
     function updateProposalThreshold(uint256 _proposalThreshold)

@@ -2,13 +2,13 @@
 
 pragma solidity >=0.8.0;
 
-import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
+import "@openzeppelin/contracts-upgradeable/utils/cryptography/draft-EIP712Upgradeable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../BaseStrategy.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compound like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
+abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     bytes32 public constant VOTE_TYPEHASH =
         keccak256("Vote(uint256 proposalId,uint8 vote)");
 
@@ -43,26 +43,6 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712 {
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
     event VoteFinalized(uint256 proposalId, uint256 timestamp);
     event Voted(address voter, uint256 proposalId, uint8 support);
-    event StrategySetup(address indexed seeleModule, address indexed owner);
-
-    constructor(
-        address _owner,
-        address _seeleModule,
-        uint256 _votingPeriod,
-        uint256 _quorumThreshold,
-        uint256 _timeLockPeriod,
-        string memory name_
-    ) EIP712(name_, version()) {
-        require(_votingPeriod > 1, "votingPeriod must be greater than 1");
-        require(_seeleModule != address(0), "invalid seele module");
-        require(_quorumThreshold > 0, "threshold must ne non-zero");
-        transferOwnership(_owner);
-        votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
-        seeleModule = _seeleModule;
-        quorumThreshold = _quorumThreshold;
-        timeLockPeriod = _timeLockPeriod * 1 seconds;
-        emit StrategySetup(_seeleModule, _owner);
-    }
 
     /// @dev ERC712 name.
     function name() public view virtual returns (string memory) {
