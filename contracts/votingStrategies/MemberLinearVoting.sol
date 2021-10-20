@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "./BaseTokenVoting.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
-/// @author Nathan Ginnever - <team@tokenwalk.org>
+/// @author Nathan Ginnever - <team@hyphal.xyz>
 contract MemberLinearVoting is BaseTokenVoting {
     ERC20Votes public governanceToken;
     uint256 public memberCount;

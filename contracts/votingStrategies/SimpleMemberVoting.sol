@@ -2,18 +2,25 @@
 
 pragma solidity >=0.8.0;
 
-import "../common/VotingNFT.sol";
 import "./BaseTokenVoting.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract NFTSingleVoting is BaseTokenVoting {
-    VotingNFT public governanceToken;
-    mapping(uint256 => uint256) nftVoted; // mapping proposal id to nft id to bool
+contract SimpleMemberVoting is BaseTokenVoting {
+    uint256 public memberCount;
+
+    mapping(address => bool) public members;
+
+    modifier onlyMember() {
+        require(members[msg.sender] == true);
+        _;
+    }
+
+    event MemberAdded(address member);
+    event MemverRemoved(address member);
 
     constructor(
         address _owner,
-        VotingNFT _governanceToken,
         address _seeleModule,
         uint256 _votingPeriod,
         uint256 _quorumThreshold,
@@ -22,7 +29,6 @@ contract NFTSingleVoting is BaseTokenVoting {
     ) {
         bytes memory initParams = abi.encode(
             _owner,
-            _governanceToken,
             _seeleModule,
             _votingPeriod,
             _quorumThreshold,
@@ -35,7 +41,6 @@ contract NFTSingleVoting is BaseTokenVoting {
     function setUp(bytes memory initParams) public override initializer {
         (
             address _owner,
-            VotingNFT _governanceToken,
             address _seeleModule,
             uint256 _votingPeriod,
             uint256 _quorumThreshold,
@@ -43,16 +48,18 @@ contract NFTSingleVoting is BaseTokenVoting {
             string memory name_
         ) = abi.decode(
                 initParams,
-                (address, VotingNFT, address, uint256, uint256, uint256, string)
+                (
+                    address,
+                    address,
+                    uint256,
+                    uint256,
+                    uint256,
+                    string
+                )
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(_seeleModule != address(0), "invalid seele module");
         require(_quorumThreshold > 0, "threshold must ne non-zero");
-        require(
-            _governanceToken != VotingNFT(address(0)),
-            "invalid governance token address"
-        );
-        governanceToken = _governanceToken;
         __Ownable_init();
         __EIP712_init_unchained(name_, version());
         transferOwnership(_owner);
@@ -63,18 +70,25 @@ contract NFTSingleVoting is BaseTokenVoting {
         emit StrategySetup(_seeleModule, _owner);
     }
 
-    function calculateWeight(address delegatee, uint256 proposalId)
+    function addMember(address member) public onlyOwner {
+        members[member] = true;
+        memberCount++;
+        emit MemberAdded(member);
+    }
+
+    function removeMember(address member) public onlyOwner {
+        members[member] = false;
+        memberCount--;
+        emit MemverRemoved(member);
+    }
+
+    function calculateWeight(address voter, uint256 proposalId)
         public
         view
         override
         returns (uint256)
     {
-        require(
-            governanceToken.getPastVotes(
-                delegatee,
-                proposals[proposalId].startBlock
-            ) > 0
-        );
+        require(members[voter], "voter is not a member");
         return 1;
     }
 }

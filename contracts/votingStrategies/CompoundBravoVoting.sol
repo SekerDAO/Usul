@@ -12,7 +12,7 @@ import "./BaseTokenVoting.sol";
 /// @notice There are no limits to the number of transactions that can be executed, hashes stored on proposal core
 /// @notice More than one active proposal per proposer is allowed
 /// @notice Only owner is allowed to cancel proposals (safety strat or governance)
-/// @author Nathan Ginnever - <team@tokenwalk.org>
+/// @author Nathan Ginnever - <team@hyphal.xyz>
 contract CompoundBravoVoting is BaseTokenVoting {
     /**
      * @dev Receipt structure from Compound Governor Bravo

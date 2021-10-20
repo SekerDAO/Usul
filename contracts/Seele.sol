@@ -25,8 +25,7 @@ contract Seele is Module {
         Canceled,
         TimeLocked,
         Executed,
-        Executing,
-        Expired
+        Executing
     }
 
     struct Proposal {

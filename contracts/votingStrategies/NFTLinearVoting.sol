@@ -6,7 +6,7 @@ import "../common/VotingNFT.sol";
 import "./BaseTokenVoting.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
-/// @author Nathan Ginnever - <team@tokenwalk.org>
+/// @author Nathan Ginnever - <team@hyphal.xyz>
 contract NFTLinearVoting is BaseTokenVoting {
     VotingNFT public governanceToken;
 

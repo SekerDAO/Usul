@@ -8,56 +8,113 @@
 
 Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Seele Module.
 
-This module — another tool in the Zodiac DAO technology stack — provides a proposal core that can register swappable voting contracts, allowing DAOs to choose from various on-chain voting methods that best suit their needs.
+This module — another tool in the Zodiac DAO technology stack — provides a proposal core that can register swappable voting contracts called `Strategies`, allowing DAOs to choose from various on-chain voting methods that best suit their needs.
 
 The available voting methods as of this time are...
-- OZ Linear Voting ERC20 + delegation
-- OZ Linear Voting ERC20 + Membership
-- Governor Bravo Linear Voting ERC20 + delegation
-- Quadratic Voting ERC20 + Membership
-- Single Voting
-- Conviction ERC20 Voting
+- OZ Linear Voting ERC20
+- OZ Linear Voting ERC20 + Membership Gate
+- Comp Governor Bravo Linear Voting ERC20
+- Single Weight ERC20
+- Simple Membership Voting (No Token)
+- Quadratic Voting ERC20 + Membership Gate
 
-## Proposal Core
+The following strategies are a WIP (PRs welcome for additional strategies!)
+- Conviction ERC20 Voting
+- NFT Voting (Weighted and Single)
+- BrightID Member Voting
+- PoH Member Voting
+- MACI ZkSNARK Voting
+- Optimistic Voting
+
+## Seele Module (Proposal Core)
 
 This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate modifiers that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) in that it can take a list of transaction hashes and execute them after a proposal passes. This module adds a batching feature to the execution phase. A delay period between proposal passing and execution is defaulted to x days and can be tuned through futher proposals.
 
 ### Proposal Structure
 ```
-uint256 yesVotes; // the total number of YES votes for this proposal
-uint256 noVotes; // the total number of NO votes for this proposal
-bool queued;
-uint256 deadline; // voting deadline TODO: consider using block number
 address proposer;
 bool canceled;
-uint256 gracePeriod; // queue period for safety
-mapping(address => bool) hasVoted; // mapping voter / delegator to boolean
-bool[] executed; // txindexes
+bool successful;
+uint256 timeLockPeriod; // queue period for safety
+bool[] executed; // maybe can be derived from counter
 bytes32[] txHashes;
 uint256 executionCounter;
+address votingStrategy; // the module that is allowed to vote on this
+```
+
+### Proposal States
+```
+Active
+Canceled
+TimeLocked
+Executed
+Executing
 ```
 
 ### Proposal API
 ```
-/// @dev The entry point for submitting transaction proposals
-proposalModule.submitProposal
-/// @param txHashes The array of transaction hashes to be executed
+/// @dev Enables a voting strategy that can vote on proposals
+/// @param strategy Address of the strategy to be enabled
+/// @notice This can only be called by the owner
+seeleModuleenableStrategy(address strategy)
 
-/// @dev Entry point to start the delay period of a proposal
-proposalModule.startQueue
-/// @param proposalID The ID of the passed proposal to queue
+/// @dev Disables a voting strategy on the module
+/// @param prevStrategy Strategy that pointed to the strategy to be removed in the linked list
+/// @param strategy Strategy to be removed
+/// @notice This can only be called by the owner
+seeleModule.disableStrategy(address prevStrategy, address strategy)
+
+/// @dev Returns if a strategy is enabled
+/// @return True if the strategy is enabled
+seeleModule.isStrategyEnabled(address _strategy)
+
+/// @dev Returns array of strategy.
+/// @param start Start of the page.
+/// @param pageSize Maximum number of strategy that should be returned.
+/// @return array Array of strategy.
+/// @return next Start of the next page.
+seeleModule.getStrategiesPaginated(address start, uint256 pageSize)
+
+/// @dev Returns true if a proposal transaction by index is exectuted.
+/// @param proposalId the proposal to inspect.
+/// @param index the transaction to inspect.
+/// @return boolean.
+seeleModule.isTxExecuted(uint256 proposalId, uint256 index)
+
+/// @dev Returns the hash of a transaction in a proposal.
+/// @param proposalId the proposal to inspect.
+/// @param index the transaction to inspect.
+/// @return transaction hash.
+seeleModule.getTxHash(uint256 proposalId, uint256 index)
+
+/// @dev Submits a new proposal.
+/// @param txHashes an array of hashed transaction data to execute
+/// @param votingStrategy the voting strategy to be used with this proposal
+/// @param data any extra data to pass to the voting strategy
+seeleModule.submitProposal(
+    bytes32[] memory txHashes,
+    address votingStrategy,
+    bytes memory data
+) 
+
+/// @dev Cancels a proposal. Only callable by governance owner
+/// @param proposalIds array of proposals to cancel.
+seeleModule.cancelProposals(uint256[] memory proposalIds)
+
+/// @dev Begins the timelock phase of a successful proposal, only callable by register strat
+/// @param proposalId the identifier of the proposal
+seeleModule.receiveStrategy(uint256 proposalId, uint256 timeLockPeriod)
 
 /// @dev The execution of a transaction contained within a passed proposal
-proposalModule.executeProposalByIndex
 /// @param proposalID The ID of the queued proposal to execute
 /// @param target The address that the Gnosis Safe targets execution to
 /// @param value The Ether value to pass to the execution
 /// @param data The data to be executed on the Gnosis Safe
 /// @param operation The enumarated call or delegatecall option
 /// @param txIndex the index of the transaction to be executed in proposal.txHashes array
+seeleModule.executeProposalByIndex
 
 /// @dev This performs a batch of transaction executions in one ethereum transaction
-proposalModule.executeProposalBatch
 /// @param proposalID The ID of the queued proposal to execute
 /// @param targets The array of address that the Gnosis Safe targets execution to
 /// @param values The array of Ether value to pass to the execution
@@ -65,44 +122,50 @@ proposalModule.executeProposalBatch
 /// @param operations The array of enumarated call or delegatecall option
 /// @param startIndex The starting index of the transaction to be executed in proposal.txHashes array
 /// @param txCount The number of transactions to be executed in this batch
+seeleModule.executeProposalBatch
 
-/// @dev The originator of the proposal or a special role granted to the Safe can cancel 
-proposalModule.cancelProposal
-/// @param proposalID The ID of the proposal to be canceled by proposer, role bypass, or Safe admin bypass
+/// @dev Get the state of a proposal
+/// @param proposalId the identifier of the proposal
+/// @return ProposalState the enum of the state of the proposal
+seeleModule.state(uint256 proposalId)
 
 /// @dev A view that returns if all transactions have been executed in a proposal
-proposalModule.isProposalFullyExecuted
+seeleModule.isProposalFullyExecuted
 /// @param proposalId the id of the proposal that you would like see is fully executed or not
 
 /// @dev A view to that returns the transaction for given transaction data
-proposalModule.generateTransactionHashData
+seeleModule.generateTransactionHashData
 /// @param target The address that the Gnosis Safe targets execution to
 /// @param value The Ether value to pass to the execution
 /// @param data The data to be executed on the Gnosis Safe
 /// @param operation The enumarated call or delegatecall option
 ```
 
-## Voting Cores
+## Strategies
 
-These are external zodiac modifiers registered with the proposal module that allow DAOs to choose and change the voting strategy they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
+These are logic contracts registered with the Seele proposal module that allow DAOs to choose, change, combine the voting strategies they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
 
-### (OpenZepplin) Linear Voting ERC20 delegation
+### (OpenZepplin) Linear Voting ERC20
 
 This strategy is similar to Compound or Gitcoin. It's inspired by the redesign of Governor Bravo by OpenZepplin uses token weighted voting only with one-to-one weights based on token ownership.
 
 Membership versions are supplied to gate voters similar to Moloch.
 
-### (Compound) Governor Bravo Linear Voting Delegation
+### (Compound) Governor Bravo Linear Voting
 
 This strategy is a 1-1 functionally complete Governor Bravo from Compound. There are a few design choices that we make that separate this strategy from Governor Bravo like storing transaction hashes rather than transaction data directly on the proposal when initialized.
 
 Membership versions are supplied to gate voters similar to Moloch.
 
-### Quadratic Voting + Membership
+### Quadratic Voting
 
-This strategy scales the power that large token holders have down. This needs to come with sybil protection in the form of PoH or BrightID.
+This strategy scales the power that large token holders have down. This needs to come with sybil protection in the form of PoH or BrightID membership gating.
 
-### Single (Member) Voting
+### Single Weight ERC20 Voting
+
+This strategy reduces all token holder balances to one vote.
+
+### Simple Member Voting
 
 This strategy is a non-token based one. This is simply one vote per human.
 
@@ -127,39 +190,3 @@ This strategy was created by Commons Stack and creates a non-time-boxed method o
 - safe.executeContractCallWithSigners(safe, proposalModule, "registerVoteModule", [voteModule.address])
 - safe.executeContractCallWithSigners(safe, safe, "registerModule", [Roles.address])
 ``` 
-
-## Error Codes
-```
-- TW001 "only gnosis safe may enter"
-- TW002 "proposal was canceled"
-- TW003 "proposal already executed"
-- TW004 "proposal does not meet vote threshold"
-- TW005 "no votes outweigh yes"
-- TW007 "already voted on proposal"
-- TW008 "voting on canceled proposal"
-- TW009 "cannot execute transaction again"
-- TW010 "voting on proposal past the deadline"
-- TW011 "submit proposal more than one proposal at a time"
-- TW013 "start queue proposal already entered grace period"
-- TW014 "start queue proposal deadline has not passed yet"
-- TW015 "execute proposal grace period has not elapsed"
-- TW016 "cancel proposal already canceled"
-- TW017 "cancel proposal already executed"
-- TW018 "proposal exceeds max execution limit"
-- TW019 "cancel proposal must be originator or Safe"
-- TW020 "linear voting: can't undelegate more votes than delegated"
-- TW021 "linear voting: cannot vote in the same block as delegation"
-- TW023 "only the proposal module may call startVoting and endVoting"
-- TW024 "cannot undelegate votes until after timeout"
-- TW025 "only the Gnosis Safe may enter Roles function"
-- TW026 "must be a member to execute role module"
-- TW027 "target address is not authorized for role"
-- TW028 "must be a member to vote"
-- TW029 "length of proposal execution data missmatch"
-- TW030 "proposal must contain at least one execution"
-- TW031 "unexpected transaction hash"
-- TW032 "unexpected transaction hash - batch"
-- TW033 "previous tx not executed single"
-- TW034 "previous tx not executed batch"
-- TW035 "delegate has no votes"
-```

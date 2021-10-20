@@ -2,25 +2,17 @@
 
 pragma solidity >=0.8.0;
 
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "./BaseTokenVoting.sol";
 
-/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
-/// @author Nathan Ginnever - <team@tokenwalk.org>
-contract SingleVoting is BaseTokenVoting {
-    uint256 public memberCount;
-
-    mapping(address => bool) public members;
-
-    modifier onlyMember() {
-        require(members[msg.sender] == true);
-        _;
-    }
-
-    event MemberAdded(address member);
-    event MemverRemoved(address member);
+/// @title OpenZeppelin Single Voting Strategy - A Seele strategy that enables compound like voting.
+/// @author Nathan Ginnever - <team@hyphal.xyz>
+contract OZSingleVoting is BaseTokenVoting {
+    ERC20Votes public governanceToken;
 
     constructor(
         address _owner,
+        ERC20Votes _governanceToken,
         address _seeleModule,
         uint256 _votingPeriod,
         uint256 _quorumThreshold,
@@ -29,6 +21,7 @@ contract SingleVoting is BaseTokenVoting {
     ) {
         bytes memory initParams = abi.encode(
             _owner,
+            _governanceToken,
             _seeleModule,
             _votingPeriod,
             _quorumThreshold,
@@ -41,6 +34,7 @@ contract SingleVoting is BaseTokenVoting {
     function setUp(bytes memory initParams) public override initializer {
         (
             address _owner,
+            ERC20Votes _governanceToken,
             address _seeleModule,
             uint256 _votingPeriod,
             uint256 _quorumThreshold,
@@ -50,6 +44,7 @@ contract SingleVoting is BaseTokenVoting {
                 initParams,
                 (
                     address,
+                    ERC20Votes,
                     address,
                     uint256,
                     uint256,
@@ -60,6 +55,11 @@ contract SingleVoting is BaseTokenVoting {
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(_seeleModule != address(0), "invalid seele module");
         require(_quorumThreshold > 0, "threshold must ne non-zero");
+        require(
+            _governanceToken != ERC20Votes(address(0)),
+            "invalid governance token address"
+        );
+        governanceToken = _governanceToken;
         __Ownable_init();
         __EIP712_init_unchained(name_, version());
         transferOwnership(_owner);
@@ -70,25 +70,18 @@ contract SingleVoting is BaseTokenVoting {
         emit StrategySetup(_seeleModule, _owner);
     }
 
-    function addMember(address member) public onlyOwner {
-        members[member] = true;
-        memberCount++;
-        emit MemberAdded(member);
-    }
-
-    function removeMember(address member) public onlyOwner {
-        members[member] = false;
-        memberCount--;
-        emit MemverRemoved(member);
-    }
-
-    function calculateWeight(address voter, uint256 proposalId)
+    function calculateWeight(address delegatee, uint256 proposalId)
         public
         view
         override
         returns (uint256)
     {
-        require(members[voter], "voter is not a member");
+        require (            
+            governanceToken.getPastVotes(
+                delegatee,
+                proposals[proposalId].startBlock
+            ) > 0, "voter does not hold any ERC20 tokens"
+        );
         return 1;
     }
 }
