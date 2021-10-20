@@ -14,7 +14,7 @@ contract MemberLinearVoting is BaseTokenVoting {
     mapping(address => bool) public members;
 
     modifier onlyMember() {
-        require(members[msg.sender] == true);
+        require(members[msg.sender]);
         _;
     }
 
@@ -97,9 +97,9 @@ contract MemberLinearVoting is BaseTokenVoting {
         public
         view
         override
+        onlyMember
         returns (uint256)
     {
-        require(members[voter], "voter is not a member");
         return
             governanceToken.getPastVotes(
                 voter,
