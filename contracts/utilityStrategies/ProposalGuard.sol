@@ -23,7 +23,7 @@ contract ProposalGuard is BaseStrategy {
     mapping(address => bool) public allowedGuards;
     mapping(uint256 => bool) public checkedProposals;
     bytes4 public immutable cancelSignature =
-        bytes4(keccak256("cancelProposal(uint256)")); // 0xe0a8f6f5
+        bytes4(keccak256("cancelProposals(uint256[])")); // 0xe0a8f6f5
 
     event EnabledGuard(address guard);
     event DisabledGuard(address guard);

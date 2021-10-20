@@ -383,7 +383,7 @@ describe("ProposalGuardStrategy:", () => {
         Call.operation,
         0
       );
-      const Call2 = buildContractCall(proposalModule, "cancelProposal", [0], 0);
+      const Call2 = buildContractCall(proposalModule, "cancelProposals", [[0]], 0);
       const extraData = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint256", "bytes", "uint8"],
         [Call2.to, Call2.value, Call2.data, Call2.operation]
@@ -463,12 +463,10 @@ describe("ProposalGuardStrategy:", () => {
         safe,
         linearVoting,
         proposalGuard,
-        govToken,
         txHash,
       } = await baseSetup();
-      await govToken.delegate(wallet_0.address);
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
-      const Call = buildContractCall(proposalModule, "cancelProposal", [0], 0);
+      const Call = buildContractCall(proposalModule, "cancelProposals", [[0]], 0);
       const cancelTxHash = await proposalModule.getTransactionHash(
         Call.to,
         Call.value,
@@ -498,6 +496,47 @@ describe("ProposalGuardStrategy:", () => {
       expect(await proposalModule.state(0)).to.equal(1);
     });
 
+    it("can cancel multiple proposals before success", async () => {
+      const {
+        proposalModule,
+        safe,
+        linearVoting,
+        proposalGuard,
+        txHash,
+      } = await baseSetup();
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
+      const Call = buildContractCall(proposalModule, "cancelProposals", [[0, 1]], 0);
+      const cancelTxHash = await proposalModule.getTransactionHash(
+        Call.to,
+        Call.value,
+        Call.data,
+        Call.operation,
+        0
+      );
+      const extraData = ethers.utils.defaultAbiCoder.encode(
+        ["address", "uint256", "bytes", "uint8"],
+        [Call.to, Call.value, Call.data, Call.operation]
+      );
+      await proposalModule.submitProposal(
+        [cancelTxHash],
+        proposalGuard.address,
+        extraData
+      );
+      expect(await proposalGuard.checkedProposals(2)).to.equal(true);
+      await proposalGuard.finalizeStrategy(2);
+      await proposalModule.executeProposalByIndex(
+        2, // proposalId
+        proposalModule.address, // target
+        0, // value
+        Call.data, // data
+        0, // call operation
+        0 // txHash index
+      );
+      expect(await proposalModule.state(0)).to.equal(1);
+      expect(await proposalModule.state(1)).to.equal(1);
+    });
+
     it("can cancel a proposal while timelocked", async () => {
       const {
         proposalModule,
@@ -513,7 +552,7 @@ describe("ProposalGuardStrategy:", () => {
       await network.provider.send("evm_increaseTime", [60]);
       await linearVoting.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);
-      const Call = buildContractCall(proposalModule, "cancelProposal", [0], 0);
+      const Call = buildContractCall(proposalModule, "cancelProposals", [[0]], 0);
       const cancelTxHash = await proposalModule.getTransactionHash(
         Call.to,
         Call.value,
@@ -560,7 +599,7 @@ describe("ProposalGuardStrategy:", () => {
       await linearVoting.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       expect(await proposalModule.state(0)).to.equal(2);
-      const Call = buildContractCall(proposalModule, "cancelProposal", [0], 0);
+      const Call = buildContractCall(proposalModule, "cancelProposals", [[0]], 0);
       const cancelTxHash = await proposalModule.getTransactionHash(
         Call.to,
         Call.value,

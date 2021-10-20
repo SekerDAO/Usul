@@ -234,13 +234,15 @@ contract Seele is Module {
     }
 
     /// @dev Cancels a proposal.
-    /// @param proposalId the proposal to cancel.
-    function cancelProposal(uint256 proposalId) external onlyOwner {
-        Proposal storage _proposal = proposals[proposalId];
-        require(_proposal.executionCounter > 0, "nothing to cancel");
-        require(_proposal.canceled == false, "proposal is already canceled");
-        _proposal.canceled = true;
-        emit ProposalCanceled(proposalId);
+    /// @param proposalIds array of proposals to cancel.
+    function cancelProposals(uint256[] memory proposalIds) external onlyOwner {
+        for(uint256 i=0; i<proposalIds.length; i++) {
+            Proposal storage _proposal = proposals[proposalIds[i]];
+            require(_proposal.executionCounter > 0, "nothing to cancel");
+            require(_proposal.canceled == false, "proposal is already canceled");
+            _proposal.canceled = true;
+            emit ProposalCanceled(proposalIds[i]);
+        }
     }
 
     /// @dev Begins the timelock phase of a successful proposal

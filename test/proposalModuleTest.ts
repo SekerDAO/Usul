@@ -388,7 +388,7 @@ describe("proposalModule:", () => {
         votingStrategy.address,
         "0x"
       );
-      await expect(proposalModule.cancelProposal(0)).to.be.revertedWith(
+      await expect(proposalModule.cancelProposals([0])).to.be.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
@@ -464,8 +464,8 @@ describe("proposalModule:", () => {
       await executeContractCallWithSigners(
         safe,
         proposalModule,
-        "cancelProposal",
-        [0],
+        "cancelProposals",
+        [[0]],
         [wallet_0]
       );
       let proposal = await proposalModule.proposals(0);
@@ -484,8 +484,34 @@ describe("proposalModule:", () => {
       await executeContractCallWithSigners(
         safe,
         proposalModule,
-        "cancelProposal",
-        [0],
+        "cancelProposals",
+        [[0]],
+        [wallet_0]
+      );
+      let proposal = await proposalModule.proposals(0);
+      expect(proposal.canceled).to.equal(true);
+      expect(await proposalModule.state(0)).to.equal(1);
+    });
+
+    it("can cancel multiple proposals after success", async () => {
+      const { proposalModule, votingStrategy, safe, txHash } =
+        await baseSetup();
+      await proposalModule.submitProposal(
+        [txHash],
+        votingStrategy.address,
+        "0x"
+      );
+      await proposalModule.submitProposal(
+        [txHash],
+        votingStrategy.address,
+        "0x"
+      );
+      await votingStrategy.finalizeStrategy(0);
+      await executeContractCallWithSigners(
+        safe,
+        proposalModule,
+        "cancelProposals",
+        [[0, 1]],
         [wallet_0]
       );
       let proposal = await proposalModule.proposals(0);
@@ -894,8 +920,8 @@ describe("proposalModule:", () => {
       await executeContractCallWithSigners(
         safe,
         proposalModule,
-        "cancelProposal",
-        [0],
+        "cancelProposals",
+        [[0]],
         [wallet_0]
       );
       let proposal = await proposalModule.proposals(0);
