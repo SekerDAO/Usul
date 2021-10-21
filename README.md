@@ -8,7 +8,7 @@
 
 Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Seele Module.
 
-This module — another tool in the Zodiac DAO technology stack — provides a proposal core that can register swappable voting contracts called `Strategies`, allowing DAOs to choose from various on-chain voting methods that best suit their needs.
+This module — another tool in the Zodiac DAO standard — provides a proposal core that can register swappable voting contracts called `Strategies`, allowing DAOs to choose from various on-chain voting methods that best suit their needs.
 
 The available voting methods as of this time are...
 - OZ Linear Voting ERC20
