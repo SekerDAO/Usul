@@ -23,10 +23,10 @@ The following strategies are a WIP (PRs welcome for additional strategies!)
 - NFT Voting (Weighted and Single)
 - BrightID Member Voting
 - PoH Member Voting
-- MACI ZkSNARK Voting
+- MACI ZKSNARK Voting
 - Optimistic Voting
-- Bridging utilities
-- Scoping utilities
+- StarkWare ZKSNARK voting
+- Bridge Voting
 
 ## Seele Module (Proposal Core)
 
