@@ -383,7 +383,12 @@ describe("ProposalGuardStrategy:", () => {
         Call.operation,
         0
       );
-      const Call2 = buildContractCall(proposalModule, "cancelProposals", [[0]], 0);
+      const Call2 = buildContractCall(
+        proposalModule,
+        "cancelProposals",
+        [[0]],
+        0
+      );
       const extraData = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint256", "bytes", "uint8"],
         [Call2.to, Call2.value, Call2.data, Call2.operation]
@@ -458,15 +463,15 @@ describe("ProposalGuardStrategy:", () => {
     });
 
     it("can cancel a proposal before success", async () => {
-      const {
-        proposalModule,
-        safe,
-        linearVoting,
-        proposalGuard,
-        txHash,
-      } = await baseSetup();
+      const { proposalModule, safe, linearVoting, proposalGuard, txHash } =
+        await baseSetup();
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
-      const Call = buildContractCall(proposalModule, "cancelProposals", [[0]], 0);
+      const Call = buildContractCall(
+        proposalModule,
+        "cancelProposals",
+        [[0]],
+        0
+      );
       const cancelTxHash = await proposalModule.getTransactionHash(
         Call.to,
         Call.value,
@@ -497,16 +502,16 @@ describe("ProposalGuardStrategy:", () => {
     });
 
     it("can cancel multiple proposals before success", async () => {
-      const {
+      const { proposalModule, safe, linearVoting, proposalGuard, txHash } =
+        await baseSetup();
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
+      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
+      const Call = buildContractCall(
         proposalModule,
-        safe,
-        linearVoting,
-        proposalGuard,
-        txHash,
-      } = await baseSetup();
-      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
-      await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
-      const Call = buildContractCall(proposalModule, "cancelProposals", [[0, 1]], 0);
+        "cancelProposals",
+        [[0, 1]],
+        0
+      );
       const cancelTxHash = await proposalModule.getTransactionHash(
         Call.to,
         Call.value,
@@ -552,7 +557,12 @@ describe("ProposalGuardStrategy:", () => {
       await network.provider.send("evm_increaseTime", [60]);
       await linearVoting.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);
-      const Call = buildContractCall(proposalModule, "cancelProposals", [[0]], 0);
+      const Call = buildContractCall(
+        proposalModule,
+        "cancelProposals",
+        [[0]],
+        0
+      );
       const cancelTxHash = await proposalModule.getTransactionHash(
         Call.to,
         Call.value,
@@ -599,7 +609,12 @@ describe("ProposalGuardStrategy:", () => {
       await linearVoting.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       expect(await proposalModule.state(0)).to.equal(2);
-      const Call = buildContractCall(proposalModule, "cancelProposals", [[0]], 0);
+      const Call = buildContractCall(
+        proposalModule,
+        "cancelProposals",
+        [[0]],
+        0
+      );
       const cancelTxHash = await proposalModule.getTransactionHash(
         Call.to,
         Call.value,

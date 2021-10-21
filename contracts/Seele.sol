@@ -235,10 +235,13 @@ contract Seele is Module {
     /// @dev Cancels a proposal.
     /// @param proposalIds array of proposals to cancel.
     function cancelProposals(uint256[] memory proposalIds) external onlyOwner {
-        for(uint256 i=0; i<proposalIds.length; i++) {
+        for (uint256 i = 0; i < proposalIds.length; i++) {
             Proposal storage _proposal = proposals[proposalIds[i]];
             require(_proposal.executionCounter > 0, "nothing to cancel");
-            require(_proposal.canceled == false, "proposal is already canceled");
+            require(
+                _proposal.canceled == false,
+                "proposal is already canceled"
+            );
             _proposal.canceled = true;
             emit ProposalCanceled(proposalIds[i]);
         }

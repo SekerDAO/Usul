@@ -29,7 +29,7 @@ describe("quadraticOZVotingStrategy:", () => {
     const [wallet_0, wallet_1, wallet_2, wallet_3] =
       waffle.provider.getWallets();
     const defaultBalance = ethers.BigNumber.from("1000000000000000000");
-    const thresholdBalance = ethers.BigNumber.from("2000000000000000000");
+    const thresholdBalance = ethers.BigNumber.from("1000000000");
     const totalSupply = ethers.BigNumber.from("100000000000000000000000");
     const safeSupply = ethers.BigNumber.from("50000000000000000000000");
     const govTokenContract = await ethers.getContractFactory("GovernanceToken");
@@ -74,7 +74,9 @@ describe("quadraticOZVotingStrategy:", () => {
     );
     const moduleFactory = await moduleFactoryContract.deploy();
 
-    const quadraticContract = await ethers.getContractFactory("MemberQuadraticVoting");
+    const quadraticContract = await ethers.getContractFactory(
+      "MemberQuadraticVoting"
+    );
     const quadraticVotingMaster = await quadraticContract.deploy(
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",
@@ -104,10 +106,10 @@ describe("quadraticOZVotingStrategy:", () => {
         "Test",
       ]
     );
-    const initQuadraticData = quadraticVotingMaster.interface.encodeFunctionData(
-      "setUp",
-      [encodedQuadraticInitParams]
-    );
+    const initQuadraticData =
+      quadraticVotingMaster.interface.encodeFunctionData("setUp", [
+        encodedQuadraticInitParams,
+      ]);
     const masterQuadtraticCopyAddress = quadraticVotingMaster.address
       .toLowerCase()
       .replace(/^0x/, "");
@@ -133,7 +135,9 @@ describe("quadraticOZVotingStrategy:", () => {
     )
       .to.emit(moduleFactory, "ModuleProxyCreation")
       .withArgs(expectedQuadtraticAddress, quadraticVotingMaster.address);
-    const quadtraticVoting = quadraticVotingMaster.attach(expectedQuadtraticAddress);
+    const quadtraticVoting = quadraticVotingMaster.attach(
+      expectedQuadtraticAddress
+    );
 
     const proposalContract = await ethers.getContractFactory("Seele");
     const masterProposalModule = await proposalContract.deploy(
@@ -214,10 +218,24 @@ describe("quadraticOZVotingStrategy:", () => {
       [proposalModule.address],
       [wallet_0]
     );
+    await executeContractCallWithSigners(
+      safe,
+      quadtraticVoting,
+      "addMember",
+      [wallet_0.address],
+      [wallet_0]
+    );
+    await executeContractCallWithSigners(
+      safe,
+      quadtraticVoting,
+      "addMember",
+      [wallet_1.address],
+      [wallet_0]
+    );
 
     return {
       proposalModule,
-	  quadtraticVoting,
+      quadtraticVoting,
       govToken,
       factory,
       txHash,
@@ -247,74 +265,67 @@ describe("quadraticOZVotingStrategy:", () => {
 
     it("state is initialized correctly", async () => {
       const { quadtraticVoting, safe, govToken } = await baseSetup();
-      expect(await quadtraticVoting.governanceToken()).to.equal(govToken.address);
-      expect(await quadtraticVoting.votingPeriod()).to.equal(60);
-      expect(await quadtraticVoting.quorumThreshold()).to.equal(
-        "2000000000000000000"
+      expect(await quadtraticVoting.governanceToken()).to.equal(
+        govToken.address
       );
+      expect(await quadtraticVoting.votingPeriod()).to.equal(60);
+      expect(await quadtraticVoting.quorumThreshold()).to.equal("1000000000");
       expect(await quadtraticVoting.timeLockPeriod()).to.equal(60);
     });
   });
 
-  // describe("Membership OZ quadraticVoting", async () => {
-  //   it("cannot finalize if not past threshold", async () => {
-  //     const {
-  //       proposalModule,
-  //       linearVoting,
-  //       govToken,
-  //       addCall,
-  //       txHash,
-  //       defaultBalance,
-  //     } = await baseSetup();
-  //     await govToken.connect(wallet_2).delegate(wallet_0.address);
-  //     await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
-  //     await linearVoting.vote(0, 1);
-  //     let proposal = await linearVoting.proposals(0);
-  //     expect(proposal.yesVotes).to.equal(defaultBalance);
-  //     await network.provider.send("evm_increaseTime", [60]);
-  //     await expect(linearVoting.finalizeStrategy(0)).to.be.revertedWith(
-  //       "a quorum has not been reached for the proposal"
-  //     );
-  //   });
+  describe("Membership OZ quadraticVoting", async () => {
+    it("vote weight scales quadratically", async () => {
+      const { proposalModule, govToken, quadtraticVoting, safe, txHash } =
+        await baseSetup();
+      await govToken.delegate(wallet_0.address);
+      await govToken.connect(wallet_1).delegate(wallet_1.address);
+      await proposalModule.submitProposal(
+        [txHash],
+        quadtraticVoting.address,
+        "0x"
+      );
+      await quadtraticVoting.vote(0, 1);
+      let proposal = await quadtraticVoting.proposals(0);
+      expect(proposal.yesVotes.toString()).to.equal("223600089445");
+      await proposalModule.submitProposal(
+        [txHash],
+        quadtraticVoting.address,
+        "0x"
+      );
+      await quadtraticVoting.connect(wallet_1).vote(1, 1);
+      proposal = await quadtraticVoting.proposals(1);
+      expect(proposal.yesVotes.toString()).to.equal("1000000000");
+    });
 
-  //   it("can complete a funding proposals", async () => {
-  //     const { proposalModule, govToken, linearVoting, safe } =
-  //       await baseSetup();
-  //     await govToken.delegate(wallet_0.address);
-  //     let transferCall = buildContractCall(
-  //       govToken,
-  //       "transfer",
-  //       [wallet_2.address, 1000],
-  //       await safe.nonce()
-  //     );
-  //     const txHash = await proposalModule.getTransactionHash(
-  //       transferCall.to,
-  //       transferCall.value,
-  //       transferCall.data,
-  //       transferCall.operation,
-  //       0
-  //     );
-  //     await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
-  //     await linearVoting.vote(0, 1);
-  //     let proposal = await proposalModule.proposals(0);
-  //     await network.provider.send("evm_increaseTime", [60]);
-  //     await linearVoting.finalizeStrategy(0);
-  //     await network.provider.send("evm_increaseTime", [60]);
-  //     await proposalModule.executeProposalByIndex(
-  //       0, // proposalId
-  //       govToken.address, // target
-  //       0, // value
-  //       transferCall.data, // data
-  //       0, // call operation
-  //       0 // txHash index
-  //     );
-  //     expect(await govToken.balanceOf(wallet_2.address)).to.equal(
-  //       ethers.BigNumber.from("1000000000000001000")
-  //     );
-  //   });
-
-  //   it("vote weight scales quadratically", async () => {
-
-  //   })
-  // });
+    it("can complete a proposal", async () => {
+      const {
+        proposalModule,
+        govToken,
+        quadtraticVoting,
+        safe,
+        txHash,
+        addCall,
+      } = await baseSetup();
+      await govToken.delegate(wallet_0.address);
+      await proposalModule.submitProposal(
+        [txHash],
+        quadtraticVoting.address,
+        "0x"
+      );
+      await quadtraticVoting.vote(0, 1);
+      let proposal = await proposalModule.proposals(0);
+      await network.provider.send("evm_increaseTime", [60]);
+      await quadtraticVoting.finalizeStrategy(0);
+      await network.provider.send("evm_increaseTime", [60]);
+      await proposalModule.executeProposalByIndex(
+        0, // proposalId
+        safe.address, // target
+        0, // value
+        addCall.data, // data
+        0, // call operation
+        0 // txHash index
+      );
+    });
+  });
 });

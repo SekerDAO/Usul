@@ -116,22 +116,8 @@ describe("SimpleMemberVotingStrategy:", () => {
       ""
     );
     const encodedSimpleMemberInitParams = ethers.utils.defaultAbiCoder.encode(
-      [
-        "address",
-        "address",
-        "uint256",
-        "uint256",
-        "uint256",
-        "string",
-      ],
-      [
-        safe.address,
-        proposalModule.address,
-        60,
-        thresholdBalance,
-        60,
-        "Test",
-      ]
+      ["address", "address", "uint256", "uint256", "uint256", "string"],
+      [safe.address, proposalModule.address, 60, thresholdBalance, 60, "Test"]
     );
     const initSimpleMemberData =
       masterSimpleMemberVoting.interface.encodeFunctionData("setUp", [
@@ -146,7 +132,10 @@ describe("SimpleMemberVotingStrategy:", () => {
       "5af43d82803e903d91602b57fd5bf3";
     const saltSimpleMember = ethers.utils.solidityKeccak256(
       ["bytes32", "uint256"],
-      [ethers.utils.solidityKeccak256(["bytes"], [initSimpleMemberData]), "0x01"]
+      [
+        ethers.utils.solidityKeccak256(["bytes"], [initSimpleMemberData]),
+        "0x01",
+      ]
     );
     const expectedAddressSimpleMember = ethers.utils.getCreate2Address(
       moduleFactory.address,
@@ -251,8 +240,12 @@ describe("SimpleMemberVotingStrategy:", () => {
         await baseSetup();
       await proposalModule.submitProposal([txHash], simpleMember.address, "0x");
       await network.provider.send("evm_mine");
-      await expect(simpleMember.calculateWeight(wallet_1.address, 0)).to.be.revertedWith("voter is not a member");
-      await expect(simpleMember.connect(wallet_1).vote(0, 1)).to.be.revertedWith("voter is not a member");
+      await expect(
+        simpleMember.calculateWeight(wallet_1.address, 0)
+      ).to.be.revertedWith("voter is not a member");
+      await expect(
+        simpleMember.connect(wallet_1).vote(0, 1)
+      ).to.be.revertedWith("voter is not a member");
     });
 
     it("can vote past the threshold simpleMember", async () => {
@@ -265,23 +258,15 @@ describe("SimpleMemberVotingStrategy:", () => {
         [wallet_1.address],
         [wallet_0]
       );
-      await proposalModule.submitProposal(
-        [txHash],
-        simpleMember.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], simpleMember.address, "0x");
       const proposal = await simpleMember.proposals(0);
       expect(proposal.yesVotes).to.equal(ethers.BigNumber.from(0));
       await simpleMember.vote(0, 1);
       await simpleMember.connect(wallet_1).vote(0, 1);
       const proposalAfterVoting = await simpleMember.proposals(0);
       expect(proposalAfterVoting.yesVotes).to.equal(ethers.BigNumber.from(2));
-      expect(await simpleMember.hasVoted(0, wallet_0.address)).to.equal(
-        true
-      );
-      expect(await simpleMember.hasVoted(0, wallet_1.address)).to.equal(
-        true
-      );
+      expect(await simpleMember.hasVoted(0, wallet_0.address)).to.equal(true);
+      expect(await simpleMember.hasVoted(0, wallet_1.address)).to.equal(true);
     });
 
     it("can vote on multiple proposals", async () => {
@@ -402,9 +387,9 @@ describe("SimpleMemberVotingStrategy:", () => {
 
     it("can not add member non-owner", async () => {
       const { simpleMember } = await baseSetup();
-      await expect(
-        simpleMember.addMember(wallet_2.address)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
+      await expect(simpleMember.addMember(wallet_2.address)).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
     });
 
     it("can not remove member non-owner", async () => {
@@ -455,11 +440,7 @@ describe("SimpleMemberVotingStrategy:", () => {
         addMemberCall.operation,
         0
       );
-      await proposalModule.submitProposal(
-        [txHash],
-        simpleMember.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], simpleMember.address, "0x");
       await network.provider.send("evm_mine");
       await simpleMember.vote(0, 1);
       await simpleMember.connect(wallet_1).vote(0, 1);
@@ -536,11 +517,7 @@ describe("SimpleMemberVotingStrategy:", () => {
         removeMemberCall.operation,
         0
       );
-      await proposalModule.submitProposal(
-        [txHash],
-        simpleMember.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], simpleMember.address, "0x");
       await simpleMember.vote(0, 1);
       await simpleMember.connect(wallet_1).vote(0, 1);
       await network.provider.send("evm_increaseTime", [60]);

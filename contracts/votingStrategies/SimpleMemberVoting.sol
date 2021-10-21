@@ -48,14 +48,7 @@ contract SimpleMemberVoting is BaseTokenVoting {
             string memory name_
         ) = abi.decode(
                 initParams,
-                (
-                    address,
-                    address,
-                    uint256,
-                    uint256,
-                    uint256,
-                    string
-                )
+                (address, address, uint256, uint256, uint256, string)
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(_seeleModule != address(0), "invalid seele module");

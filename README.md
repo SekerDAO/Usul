@@ -1,4 +1,4 @@
-# TokenWalk - Seele Module
+# Seele Zodiac Module
 
 <p align="center">
   <img width="600" src="https://pbs.twimg.com/media/Ezw7YFqWEAMgqUl.jpg">

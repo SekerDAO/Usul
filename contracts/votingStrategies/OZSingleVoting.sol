@@ -76,11 +76,12 @@ contract OZSingleVoting is BaseTokenVoting {
         override
         returns (uint256)
     {
-        require (            
+        require(
             governanceToken.getPastVotes(
                 delegatee,
                 proposals[proposalId].startBlock
-            ) > 0, "voter does not hold any ERC20 tokens"
+            ) > 0,
+            "voter does not hold any ERC20 tokens"
         );
         return 1;
     }
