@@ -28,7 +28,7 @@ The following strategies are a WIP (PRs welcome for additional strategies!)
 
 ## Seele Module (Proposal Core)
 
-This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting as voting is done with separate modifiers that can be registered with the proposal core. These proposals use the time-boxed standard method with thresholds to pass. It is similar to [Reality](https://github.com/gnosis/zodiac-module-reality) in that it can take a list of transaction hashes and execute them after a proposal passes. This module adds a batching feature to the execution phase. A delay period between proposal passing and execution is defaulted to x days and can be tuned through futher proposals.
+This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting, or strategies, as strategies are conducted with separate contracts that can be registered with the proposal core. This core recognizes that all DAO contracts have a proposal registry in commons, and only differ in how a decission is made on whether or not to execute that data. This module seperates the concerns of registering the data and applying logic allowing for any kind of logic to easily be attached to proposal registration, creating a suit of choices to easily compose a DAO. This core expects to call the voting strategy after a proposal is initiated to start any kind of voting logic. After some logic decides to pass the proposal, the strategy contracts will call back to the core to initiate either a time lock (decided by the strategy) or allow the data to be executed. This module adds a batching feature to the execution phase.
 
 ### Proposal Structure
 ```
