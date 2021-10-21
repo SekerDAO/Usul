@@ -149,6 +149,8 @@ seeleModule.generateTransactionHashData
 
 These are logic contracts registered with the Seele proposal module that allow DAOs to choose, change, combine the voting strategies they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
 
+Strategies are built with abstract base contracts to provide composability in creation of new strategies.
+
 ### (OpenZepplin) Linear Voting ERC20
 
 This strategy is similar to Compound or Gitcoin. It's inspired by the redesign of Governor Bravo by OpenZepplin uses token weighted voting only with one-to-one weights based on token ownership.
