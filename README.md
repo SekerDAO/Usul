@@ -25,6 +25,8 @@ The following strategies are a WIP (PRs welcome for additional strategies!)
 - PoH Member Voting
 - MACI ZkSNARK Voting
 - Optimistic Voting
+- Bridging utilities
+- Scoping utilities
 
 ## Seele Module (Proposal Core)
 

@@ -3,7 +3,7 @@
 pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
-import "./BaseTokenVoting.sol";
+import "../extensions/BaseTokenVoting.sol";
 
 /// @title OpenZeppelin Single Voting Strategy - A Seele strategy that enables compound like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>

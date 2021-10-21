@@ -3,7 +3,7 @@
 pragma solidity >=0.8.0;
 
 import "../common/VotingNFT.sol";
-import "./BaseTokenVoting.sol";
+import "../extensions/BaseTokenVoting.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>

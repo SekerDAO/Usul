@@ -4,7 +4,7 @@ pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20VotesComp.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
-import "./BaseTokenVoting.sol";
+import "../extensions/BaseTokenVoting.sol";
 
 /// @title Compound like Linear Voting Strategy - A Seele strategy that enables compound like voting.
 /// @notice This strategy differs in a few ways from compound bravo

@@ -2,23 +2,12 @@
 
 pragma solidity >=0.8.0;
 
-import "./BaseTokenVoting.sol";
+import "../extensions/BaseTokenVoting.sol";
+import "../extensions/BaseMember.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract SimpleMemberVoting is BaseTokenVoting {
-    uint256 public memberCount;
-
-    mapping(address => bool) public members;
-
-    modifier onlyMember() {
-        require(members[msg.sender] == true);
-        _;
-    }
-
-    event MemberAdded(address member);
-    event MemverRemoved(address member);
-
+contract SimpleMemberVoting is BaseTokenVoting, BaseMember {
     constructor(
         address _owner,
         address _seeleModule,
@@ -63,25 +52,13 @@ contract SimpleMemberVoting is BaseTokenVoting {
         emit StrategySetup(_seeleModule, _owner);
     }
 
-    function addMember(address member) public onlyOwner {
-        members[member] = true;
-        memberCount++;
-        emit MemberAdded(member);
-    }
-
-    function removeMember(address member) public onlyOwner {
-        members[member] = false;
-        memberCount--;
-        emit MemverRemoved(member);
-    }
-
     function calculateWeight(address voter, uint256 proposalId)
         public
         view
         override
+        onlyMember(voter)
         returns (uint256)
     {
-        require(members[voter], "voter is not a member");
         return 1;
     }
 }
