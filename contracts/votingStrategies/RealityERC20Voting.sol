@@ -213,7 +213,7 @@ contract RealityERC20Voting is BaseStrategy {
 
     /// @dev Calls the proposal module to notify that a quorum has been reached.
     /// @param proposalId the proposal to vote for.
-    function finalizeStrategy(uint256 proposalId) public override {
+    function finalizeStrategy(uint256 proposalId) external override {
         if (isPassed(proposalId)) {
             IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
         }

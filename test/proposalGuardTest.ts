@@ -459,7 +459,7 @@ describe("ProposalGuardStrategy:", () => {
           proposalGuard.address,
           extraData
         )
-      ).to.be.revertedWith("only calls to seele core");
+      ).to.be.revertedWith("only calls to allowedTarget");
     });
 
     it("can cancel a proposal before success", async () => {
@@ -488,7 +488,7 @@ describe("ProposalGuardStrategy:", () => {
         proposalGuard.address,
         extraData
       );
-      expect(await proposalGuard.checkedProposals(1)).to.equal(true);
+      expect(await proposalGuard.checkedProposals(1, 0)).to.equal(true);
       await proposalGuard.finalizeStrategy(1);
       await proposalModule.executeProposalByIndex(
         1, // proposalId
@@ -528,7 +528,7 @@ describe("ProposalGuardStrategy:", () => {
         proposalGuard.address,
         extraData
       );
-      expect(await proposalGuard.checkedProposals(2)).to.equal(true);
+      expect(await proposalGuard.checkedProposals(2, 0)).to.equal(true);
       await proposalGuard.finalizeStrategy(2);
       await proposalModule.executeProposalByIndex(
         2, // proposalId
@@ -579,7 +579,7 @@ describe("ProposalGuardStrategy:", () => {
         proposalGuard.address,
         extraData
       );
-      expect(await proposalGuard.checkedProposals(1)).to.equal(true);
+      expect(await proposalGuard.checkedProposals(1, 0)).to.equal(true);
       await proposalGuard.finalizeStrategy(1);
       await proposalModule.executeProposalByIndex(
         1, // proposalId
@@ -631,7 +631,7 @@ describe("ProposalGuardStrategy:", () => {
         proposalGuard.address,
         extraData
       );
-      expect(await proposalGuard.checkedProposals(1)).to.equal(true);
+      expect(await proposalGuard.checkedProposals(1, 0)).to.equal(true);
       await proposalGuard.finalizeStrategy(1);
       await proposalModule.executeProposalByIndex(
         0, // proposalId
