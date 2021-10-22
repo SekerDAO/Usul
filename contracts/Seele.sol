@@ -36,7 +36,7 @@ contract Seele is Module {
         bool[] executed; // maybe can be derived from counter
         bytes32[] txHashes;
         uint256 executionCounter;
-        address votingStrategy; // the module that is allowed to vote on this
+        address strategy; // the module that is allowed to vote on this
     }
 
     uint256 public totalProposalCount; // total number of submitted proposals
@@ -205,15 +205,15 @@ contract Seele is Module {
 
     /// @dev Submits a new proposal.
     /// @param txHashes an array of hashed transaction data to execute
-    /// @param votingStrategy the voting strategy to be used with this proposal
-    /// @param data any extra data to pass to the voting strategy
+    /// @param strategy the voting strategy to be used with this proposal
+    /// @param data any extra data to pass to the strategy
     function submitProposal(
         bytes32[] memory txHashes,
-        address votingStrategy,
+        address strategy,
         bytes memory data
     ) external {
         require(
-            isStrategyEnabled(votingStrategy),
+            isStrategyEnabled(strategy),
             "voting strategy is not enabled for proposal"
         );
         for (uint256 i; i < txHashes.length; i++) {
@@ -222,12 +222,12 @@ contract Seele is Module {
         proposals[totalProposalCount].executionCounter = txHashes.length;
         proposals[totalProposalCount].txHashes = txHashes;
         proposals[totalProposalCount].proposer = msg.sender;
-        proposals[totalProposalCount].votingStrategy = votingStrategy;
+        proposals[totalProposalCount].strategy = strategy;
         totalProposalCount++;
-        IStrategy(votingStrategy).receiveProposal(
+        IStrategy(strategy).receiveProposal(
             abi.encode(totalProposalCount - 1, txHashes, data)
         );
-        emit ProposalCreated(votingStrategy, totalProposalCount - 1, msg.sender);
+        emit ProposalCreated(strategy, totalProposalCount - 1, msg.sender);
     }
 
     /// @dev Cancels a proposal.
@@ -245,8 +245,9 @@ contract Seele is Module {
         }
     }
 
-    /// @dev Begins the timelock phase of a successful proposal
+    /// @dev Signals a successful proposal, timelock is optional
     /// @param proposalId the identifier of the proposal
+    /// @param timeLockPeriod the optional delay time
     function receiveStrategy(uint256 proposalId, uint256 timeLockPeriod)
         external
     {
@@ -259,7 +260,7 @@ contract Seele is Module {
             "cannot start timelock, proposal is not active"
         );
         require(
-            msg.sender == proposals[proposalId].votingStrategy,
+            msg.sender == proposals[proposalId].strategy,
             "cannot start timelock, incorrect strategy"
         );
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;

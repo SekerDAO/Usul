@@ -113,14 +113,14 @@ describe("proposalModule:", () => {
       .withArgs(expectedAddress, masterProposalModule.address);
     const proposalModule = proposalContract.attach(expectedAddress);
 
-    const VotingContract = await ethers.getContractFactory(
-      "TestVotingStrategy"
+    const StrategyContract = await ethers.getContractFactory(
+      "TestStrategy"
     );
-    const votingStrategy = await VotingContract.deploy(
+    const strategy = await StrategyContract.deploy(
       proposalModule.address,
       60
     );
-    const votingStrategy_2 = await VotingContract.deploy(
+    const strategy_2 = await StrategyContract.deploy(
       proposalModule.address,
       60
     );
@@ -176,14 +176,14 @@ describe("proposalModule:", () => {
       safe,
       proposalModule,
       "enableStrategy",
-      [votingStrategy.address],
+      [strategy.address],
       [wallet_0]
     );
 
     return {
       proposalModule,
-      votingStrategy,
-      votingStrategy_2,
+      strategy,
+      strategy_2,
       safe,
       safe2,
       factory,
@@ -199,7 +199,7 @@ describe("proposalModule:", () => {
   // can use the safe and a cancel proposal role
   describe("setUp", async () => {
     it("proposal module is initialized", async () => {
-      const { proposalModule, votingStrategy, safe } = await baseSetup();
+      const { proposalModule, strategy, safe } = await baseSetup();
       expect(await proposalModule.avatar()).to.equal(safe.address);
       expect(await proposalModule.totalProposalCount()).to.equal(0);
       expect(await proposalModule.owner()).to.equal(safe.address);
@@ -254,7 +254,7 @@ describe("proposalModule:", () => {
     });
 
     it("safe can disable a voting strategy", async () => {
-      const { proposalModule, safe, votingStrategy } = await baseSetup();
+      const { proposalModule, safe, strategy } = await baseSetup();
       expect(
         await executeContractCallWithSigners(
           safe,
@@ -262,19 +262,19 @@ describe("proposalModule:", () => {
           "disableStrategy",
           [
             "0x0000000000000000000000000000000000000001",
-            votingStrategy.address,
+            strategy.address,
           ],
           [wallet_0]
         )
       )
         .to.emit(proposalModule, "DisabledStrategy")
-        .withArgs(votingStrategy.address);
+        .withArgs(strategy.address);
     });
 
     it("can list voting strategies", async () => {
-      const { proposalModule, safe, votingStrategy } = await baseSetup();
+      const { proposalModule, safe, strategy } = await baseSetup();
       expect(
-        await proposalModule.isStrategyEnabled(votingStrategy.address)
+        await proposalModule.isStrategyEnabled(strategy.address)
       ).to.equal(true);
       await executeContractCallWithSigners(
         safe,
@@ -288,7 +288,7 @@ describe("proposalModule:", () => {
         1
       );
       expect(strats[0][0]).to.equal(wallet_0.address);
-      expect(strats[1]).to.equal(votingStrategy.address);
+      expect(strats[1]).to.equal(strategy.address);
     });
 
     it("should revert if strategy is not enabled", async () => {
@@ -299,11 +299,11 @@ describe("proposalModule:", () => {
     });
 
     it("should revert if receiveStrategy is called from non-registered strat", async () => {
-      const { proposalModule, safe, txHash, votingStrategy } =
+      const { proposalModule, safe, txHash, strategy } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
       await expect(proposalModule.receiveStrategy(0, 60)).to.be.revertedWith(
@@ -312,23 +312,23 @@ describe("proposalModule:", () => {
     });
 
     it("should revert if voting from the wrong strategy", async () => {
-      const { proposalModule, votingStrategy, votingStrategy_2, safe, txHash } =
+      const { proposalModule, strategy, strategy_2, safe, txHash } =
         await baseSetup();
       await executeContractCallWithSigners(
         safe,
         proposalModule,
         "enableStrategy",
-        [votingStrategy_2.address],
+        [strategy_2.address],
         [wallet_0]
       );
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy_2.address,
+        strategy_2.address,
         "0x"
       );
       let proposal = await proposalModule.proposals(0);
-      expect(proposal.votingStrategy).to.equal(votingStrategy_2.address);
-      await expect(votingStrategy.finalizeStrategy(0)).to.be.revertedWith(
+      expect(proposal.strategy).to.equal(strategy_2.address);
+      await expect(strategy.finalizeStrategy(0)).to.be.revertedWith(
         "cannot start timelock, incorrect strategy"
       );
     });
@@ -336,21 +336,21 @@ describe("proposalModule:", () => {
 
   describe("timelock", async () => {
     it("should revert if starting timelock with no proposal", async () => {
-      const { proposalModule, votingStrategy, safe } = await baseSetup();
-      await expect(votingStrategy.finalizeStrategy(0)).to.be.revertedWith(
+      const { proposalModule, strategy, safe } = await baseSetup();
+      await expect(strategy.finalizeStrategy(0)).to.be.revertedWith(
         "cannot start timelock, proposal is not active"
       );
     });
 
     it("should revert if timeLockPeriod has not passed", async () => {
-      const { safe, proposalModule, votingStrategy, addCall, txHash } =
+      const { safe, proposalModule, strategy, addCall, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await expect(
         proposalModule.executeProposalByIndex(
           0, // proposalId
@@ -366,32 +366,32 @@ describe("proposalModule:", () => {
 
   describe("proposal state", async () => {
     it("proposal state should be Unitialized", async () => {
-      const { proposalModule, safe, txHash, votingStrategy } =
+      const { proposalModule, safe, txHash, strategy } =
         await baseSetup();
       expect(await proposalModule.state(0)).to.equal(5);
     });
 
     it("proposal state should be Active", async () => {
-      const { proposalModule, safe, txHash, votingStrategy } =
+      const { proposalModule, safe, txHash, strategy } =
         await baseSetup();
       expect(
         await proposalModule.submitProposal(
           [txHash],
-          votingStrategy.address,
+          strategy.address,
           "0x"
         )
       )
         .to.emit(proposalModule, "ProposalCreated")
-        .withArgs(votingStrategy.address, 0, wallet_0.address);
+        .withArgs(strategy.address, 0, wallet_0.address);
       expect(await proposalModule.state(0)).to.equal(0);
     });
 
     it("proposal cancel should revert with only owner", async () => {
-      const { proposalModule, safe, txHash, votingStrategy } =
+      const { proposalModule, safe, txHash, strategy } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
       await expect(proposalModule.cancelProposals([0])).to.be.revertedWith(
@@ -400,40 +400,40 @@ describe("proposalModule:", () => {
     });
 
     it("proposal state should be TimeLocked", async () => {
-      const { proposalModule, safe, txHash, votingStrategy } =
+      const { proposalModule, safe, txHash, strategy } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);
     });
 
     it("proposal state should be Executing", async () => {
-      const { proposalModule, safe, txHash, votingStrategy } =
+      const { proposalModule, safe, txHash, strategy } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       expect(await proposalModule.state(0)).to.equal(4);
     });
 
     it("proposal state should be Executed", async () => {
-      const { proposalModule, safe, addCall, txHash, votingStrategy } =
+      const { proposalModule, safe, addCall, txHash, strategy } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await proposalModule.executeProposalByIndex(
@@ -448,43 +448,47 @@ describe("proposalModule:", () => {
     });
 
     it("isTxExecuted should be false", async () => {
-      const { proposalModule, safe, addCall, txHash, votingStrategy } =
+      const { proposalModule, safe, addCall, txHash, strategy } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
       expect(await proposalModule.isTxExecuted(0, 0)).to.equal(false);
     });
 
     it("can cancel a proposal after success", async () => {
-      const { proposalModule, votingStrategy, safe, txHash } =
+      const { proposalModule, strategy, safe, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
-      await executeContractCallWithSigners(
-        safe,
-        proposalModule,
-        "cancelProposals",
-        [[0]],
-        [wallet_0]
-      );
+      await strategy.finalizeStrategy(0);
+      expect(
+        await executeContractCallWithSigners(
+          safe,
+          proposalModule,
+          "cancelProposals",
+          [[0]],
+          [wallet_0]
+        )
+      )
+        .to.emit(proposalModule, "ProposalCanceled")
+        .withArgs(0);
       let proposal = await proposalModule.proposals(0);
       expect(proposal.canceled).to.equal(true);
       expect(await proposalModule.state(0)).to.equal(1);
     });
 
     it("can cancel a proposal before success", async () => {
-      const { proposalModule, votingStrategy, safe, txHash } =
+      const { proposalModule, strategy, safe, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
       await executeContractCallWithSigners(
@@ -500,19 +504,19 @@ describe("proposalModule:", () => {
     });
 
     it("can cancel multiple proposals after success", async () => {
-      const { proposalModule, votingStrategy, safe, txHash } =
+      const { proposalModule, strategy, safe, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await executeContractCallWithSigners(
         safe,
         proposalModule,
@@ -528,11 +532,11 @@ describe("proposalModule:", () => {
 
   describe("execution", async () => {
     it("can execute add safe admin DAO proposal", async () => {
-      const { proposalModule, votingStrategy, safe, addCall, txHash } =
+      const { proposalModule, strategy, safe, addCall, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
       let proposal = await proposalModule.proposals(0);
@@ -543,24 +547,28 @@ describe("proposalModule:", () => {
       let isExecuted = await proposalModule.isTxExecuted(0, 0);
       expect(isExecuted).to.equal(false);
       expect(await proposalModule.getTxHash(0, 0)).to.equal(txHash);
-      expect(proposal.votingStrategy).to.equal(votingStrategy.address);
+      expect(proposal.strategy).to.equal(strategy.address);
       expect(await proposalModule.state(0)).to.equal(0);
 
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       expect(await proposalModule.state(0)).to.equal(4);
       proposal = await proposalModule.proposals(0);
       expect(proposal.executionCounter).to.equal(1);
-      await proposalModule.executeProposalByIndex(
-        0, // proposalId
-        safe.address, // target
-        0, // value
-        addCall.data, // data
-        0, // call operation
-        0 // txHash index
-      );
+      expect(
+        await proposalModule.executeProposalByIndex(
+          0, // proposalId
+          safe.address, // target
+          0, // value
+          addCall.data, // data
+          0, // call operation
+          0 // txHash index
+        )
+      )
+        .to.emit(proposalModule, "TransactionExecuted")
+        .withArgs(0, txHash);
       expect(await proposalModule.state(0)).to.equal(3);
       proposal = await proposalModule.proposals(0);
       isExecuted = await proposalModule.isTxExecuted(0, 0);
@@ -574,7 +582,7 @@ describe("proposalModule:", () => {
     it("can execute multiple add safe admin DAO proposal", async () => {
       const {
         proposalModule,
-        votingStrategy,
+        strategy,
         safe,
         addCall,
         addCall_1,
@@ -583,10 +591,10 @@ describe("proposalModule:", () => {
       } = await baseSetup();
       await proposalModule.submitProposal(
         [txHash, txHash_1],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
@@ -628,7 +636,7 @@ describe("proposalModule:", () => {
       const {
         safe,
         proposalModule,
-        votingStrategy,
+        strategy,
         addCall,
         addCall_1,
         txHash,
@@ -636,10 +644,10 @@ describe("proposalModule:", () => {
       } = await baseSetup();
       await proposalModule.submitProposal(
         [txHash, txHash_1],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -659,7 +667,7 @@ describe("proposalModule:", () => {
       const {
         safe,
         proposalModule,
-        votingStrategy,
+        strategy,
         addCall,
         addCall_1,
         txHash,
@@ -667,10 +675,10 @@ describe("proposalModule:", () => {
       } = await baseSetup();
       await proposalModule.submitProposal(
         [txHash, txHash_1],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await proposalModule.executeProposalBatch(
@@ -699,7 +707,7 @@ describe("proposalModule:", () => {
       const {
         safe,
         proposalModule,
-        votingStrategy,
+        strategy,
         addCall,
         addCall_1,
         txHash,
@@ -707,10 +715,10 @@ describe("proposalModule:", () => {
       } = await baseSetup();
       await proposalModule.submitProposal(
         [txHash, txHash_1],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -730,7 +738,7 @@ describe("proposalModule:", () => {
       const {
         safe,
         proposalModule,
-        votingStrategy,
+        strategy,
         addCall,
         addCall_1,
         txHash,
@@ -738,10 +746,10 @@ describe("proposalModule:", () => {
       } = await baseSetup();
       await proposalModule.submitProposal(
         [txHash, txHash_1],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -761,7 +769,7 @@ describe("proposalModule:", () => {
       const {
         safe,
         proposalModule,
-        votingStrategy,
+        strategy,
         addCall,
         addCall_1,
         txHash,
@@ -769,10 +777,10 @@ describe("proposalModule:", () => {
       } = await baseSetup();
       await proposalModule.submitProposal(
         [txHash, txHash_1],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -790,14 +798,14 @@ describe("proposalModule:", () => {
     });
 
     it("it should revert transaction hash does not match indexed hash", async () => {
-      const { safe, proposalModule, votingStrategy, addCall, txHash_1 } =
+      const { safe, proposalModule, strategy, addCall, txHash_1 } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash_1],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await expect(
@@ -815,7 +823,7 @@ describe("proposalModule:", () => {
     it("it can execute batch one at a time", async () => {
       const {
         proposalModule,
-        votingStrategy,
+        strategy,
         safe,
         addCall,
         addCall_1,
@@ -826,10 +834,10 @@ describe("proposalModule:", () => {
       } = await baseSetup();
       await proposalModule.submitProposal(
         [txHash, txHash_1, txHash_2],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
@@ -872,7 +880,7 @@ describe("proposalModule:", () => {
     it("can execute multiple add safe admin DAO proposal batch", async () => {
       const {
         proposalModule,
-        votingStrategy,
+        strategy,
         safe,
         addCall,
         addCall_1,
@@ -883,10 +891,10 @@ describe("proposalModule:", () => {
       } = await baseSetup();
       await proposalModule.submitProposal(
         [txHash, txHash_1, txHash_2],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
@@ -916,11 +924,11 @@ describe("proposalModule:", () => {
     });
 
     it("cannot start finalizeStrategy after cancel proposal", async () => {
-      const { proposalModule, votingStrategy, safe, txHash } =
+      const { proposalModule, strategy, safe, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
       await executeContractCallWithSigners(
@@ -931,20 +939,20 @@ describe("proposalModule:", () => {
         [wallet_0]
       );
       let proposal = await proposalModule.proposals(0);
-      await expect(votingStrategy.finalizeStrategy(0)).to.be.revertedWith(
+      await expect(strategy.finalizeStrategy(0)).to.be.revertedWith(
         "cannot start timelock, proposal is not active"
       );
     });
 
     it("can failsafe remove module before proposal executes", async () => {
-      const { proposalModule, votingStrategy, safe, addCall, txHash } =
+      const { proposalModule, strategy, safe, addCall, txHash } =
         await baseSetup();
       await proposalModule.submitProposal(
         [txHash],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await executeContractCallWithSigners(
         safe,
         safe,
@@ -974,7 +982,7 @@ describe("proposalModule:", () => {
     });
 
     it("can execute batch remove owners", async () => {
-      const { proposalModule, votingStrategy, safe } = await baseSetup();
+      const { proposalModule, strategy, safe } = await baseSetup();
       const wallets = [wallet_0, wallet_1, wallet_2];
       for (let i = 1; i < 3; i++) {
         await executeContractCallWithSigners(
@@ -1030,10 +1038,10 @@ describe("proposalModule:", () => {
       );
       await proposalModule.submitProposal(
         [txHash_0, txHash_1, txHash_2],
-        votingStrategy.address,
+        strategy.address,
         "0x"
       );
-      await votingStrategy.finalizeStrategy(0);
+      await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       await proposalModule.executeProposalBatch(
@@ -1051,7 +1059,7 @@ describe("proposalModule:", () => {
     });
 
     it("can use another safe as voting strat", async () => {
-      const { proposalModule, votingStrategy, safe, safe2, txHash, addCall } =
+      const { proposalModule, strategy, safe, safe2, txHash, addCall } =
         await baseSetup();
       await executeContractCallWithSigners(
         safe,

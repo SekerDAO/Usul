@@ -4,7 +4,7 @@ pragma solidity ^0.8.6;
 
 import "../interfaces/IProposal.sol";
 
-contract TestVotingStrategy {
+contract TestStrategy {
     address public seeleModule;
     uint256 public timeLockPeriod;
 

@@ -349,9 +349,15 @@ describe("quadraticOZVotingStrategy:", () => {
         txHash,
         addCall,
       } = await baseSetup();
-      await govToken.connect(wallet_1).transfer(wallet_0.address, "999999999999999975");
-      await govToken.connect(wallet_2).transfer(wallet_0.address, "999999999999999984");
-      await govToken.connect(wallet_3).transfer(wallet_0.address, "999999999999999991");
+      await govToken
+        .connect(wallet_1)
+        .transfer(wallet_0.address, "999999999999999975");
+      await govToken
+        .connect(wallet_2)
+        .transfer(wallet_0.address, "999999999999999984");
+      await govToken
+        .connect(wallet_3)
+        .transfer(wallet_0.address, "999999999999999991");
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await govToken.connect(wallet_2).delegate(wallet_2.address);
       await govToken.connect(wallet_3).delegate(wallet_3.address);
