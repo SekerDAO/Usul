@@ -45,8 +45,6 @@ contract NFTLinearVoting is BaseTokenVoting {
                 (address, VotingNFT, address, uint256, uint256, uint256, string)
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
-        require(_seeleModule != address(0), "invalid seele module");
-        require(_quorumThreshold > 0, "threshold must ne non-zero");
         require(
             _governanceToken != VotingNFT(address(0)),
             "invalid governance token address"

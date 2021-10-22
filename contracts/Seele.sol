@@ -25,7 +25,8 @@ contract Seele is Module {
         Canceled,
         TimeLocked,
         Executed,
-        Executing
+        Executing,
+        Uninitialized
     }
 
     struct Proposal {
@@ -46,9 +47,9 @@ contract Seele is Module {
     // Mapping of modules
     mapping(address => address) internal strategies;
 
-    event ProposalCreated(address strategy, uint256 proposalNumber);
+    event ProposalCreated(address strategy, uint256 proposalNumber, address proposer);
     event ProposalCanceled(uint256 proposalId);
-    event TransactionExecuted(bytes32 txHash);
+    event TransactionExecuted(uint256 proposalId, bytes32 txHash);
     event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
     event StrategyFinalized(uint256 proposalId, uint256 endDate);
     event ProposalExecuted(uint256 id);
@@ -84,8 +85,6 @@ contract Seele is Module {
             address[] memory _strategies
         ) = abi.decode(initParams, (address, address, address, address[]));
         __Ownable_init();
-        require(_avatar != address(0), "Avatar can not be zero address");
-        require(_target != address(0), "Target can not be zero address");
         avatar = _avatar;
         target = _target;
         setupStrategies(_strategies);
@@ -228,7 +227,7 @@ contract Seele is Module {
         IStrategy(votingStrategy).receiveProposal(
             abi.encode(totalProposalCount - 1, txHashes, data)
         );
-        emit ProposalCreated(votingStrategy, totalProposalCount - 1);
+        emit ProposalCreated(votingStrategy, totalProposalCount - 1, msg.sender);
     }
 
     /// @dev Cancels a proposal.
@@ -316,7 +315,7 @@ contract Seele is Module {
             exec(target, value, data, operation),
             "Module transaction failed"
         );
-        emit TransactionExecuted(txHash);
+        emit TransactionExecuted(proposalId, txHash);
     }
 
     /// @dev Executes batches of transactions inside of a proposal.
@@ -369,7 +368,9 @@ contract Seele is Module {
     /// @return ProposalState the enum of the state of the proposal
     function state(uint256 proposalId) public view returns (ProposalState) {
         Proposal storage _proposal = proposals[proposalId];
-        if (_proposal.executionCounter == 0) {
+        if (_proposal.proposer == address(0)) {
+            return ProposalState.Uninitialized;
+        } else if (_proposal.executionCounter == 0) {
             return ProposalState.Executed;
         } else if (_proposal.canceled) {
             return ProposalState.Canceled;

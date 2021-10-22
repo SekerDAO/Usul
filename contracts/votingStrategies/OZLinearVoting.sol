@@ -53,8 +53,6 @@ contract OZLinearVoting is BaseTokenVoting {
                 )
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
-        require(_seeleModule != address(0), "invalid seele module");
-        require(_quorumThreshold > 0, "threshold must ne non-zero");
         require(
             _governanceToken != ERC20Votes(address(0)),
             "invalid governance token address"

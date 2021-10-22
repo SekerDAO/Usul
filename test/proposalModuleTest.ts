@@ -365,6 +365,12 @@ describe("proposalModule:", () => {
   });
 
   describe("proposal state", async () => {
+    it("proposal state should be Unitialized", async () => {
+      const { proposalModule, safe, txHash, votingStrategy } =
+        await baseSetup();
+      expect(await proposalModule.state(0)).to.equal(5);
+    });
+
     it("proposal state should be Active", async () => {
       const { proposalModule, safe, txHash, votingStrategy } =
         await baseSetup();
@@ -376,7 +382,7 @@ describe("proposalModule:", () => {
         )
       )
         .to.emit(proposalModule, "ProposalCreated")
-        .withArgs(votingStrategy.address, 0);
+        .withArgs(votingStrategy.address, 0, wallet_0.address);
       expect(await proposalModule.state(0)).to.equal(0);
     });
 

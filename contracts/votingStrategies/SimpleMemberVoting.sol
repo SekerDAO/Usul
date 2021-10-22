@@ -40,8 +40,6 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember {
                 (address, address, uint256, uint256, uint256, string)
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
-        require(_seeleModule != address(0), "invalid seele module");
-        require(_quorumThreshold > 0, "threshold must ne non-zero");
         __Ownable_init();
         __EIP712_init_unchained(name_, version());
         transferOwnership(_owner);
