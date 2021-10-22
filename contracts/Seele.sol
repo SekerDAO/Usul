@@ -31,7 +31,6 @@ contract Seele is Module {
     struct Proposal {
         address proposer;
         bool canceled;
-        bool successful;
         uint256 timeLockPeriod; // queue period for safety
         bool[] executed; // maybe can be derived from counter
         bytes32[] txHashes;
@@ -265,7 +264,6 @@ contract Seele is Module {
             "cannot start timelock, incorrect strategy"
         );
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
-        proposals[proposalId].successful = true;
         emit StrategyFinalized(
             proposalId,
             proposals[proposalId].timeLockPeriod

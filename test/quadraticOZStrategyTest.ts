@@ -232,7 +232,20 @@ describe("quadraticOZVotingStrategy:", () => {
       [wallet_1.address],
       [wallet_0]
     );
-
+    await executeContractCallWithSigners(
+      safe,
+      quadtraticVoting,
+      "addMember",
+      [wallet_2.address],
+      [wallet_0]
+    );
+    await executeContractCallWithSigners(
+      safe,
+      quadtraticVoting,
+      "addMember",
+      [wallet_3.address],
+      [wallet_0]
+    );
     return {
       proposalModule,
       quadtraticVoting,
@@ -314,7 +327,6 @@ describe("quadraticOZVotingStrategy:", () => {
         "0x"
       );
       await quadtraticVoting.vote(0, 1);
-      let proposal = await proposalModule.proposals(0);
       await network.provider.send("evm_increaseTime", [60]);
       await quadtraticVoting.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
@@ -326,6 +338,37 @@ describe("quadraticOZVotingStrategy:", () => {
         0, // call operation
         0 // txHash index
       );
+    });
+
+    it("can model perfect squares", async () => {
+      const {
+        proposalModule,
+        govToken,
+        quadtraticVoting,
+        safe,
+        txHash,
+        addCall,
+      } = await baseSetup();
+      await govToken.connect(wallet_1).transfer(wallet_0.address, "999999999999999975");
+      await govToken.connect(wallet_2).transfer(wallet_0.address, "999999999999999984");
+      await govToken.connect(wallet_3).transfer(wallet_0.address, "999999999999999991");
+      await govToken.connect(wallet_1).delegate(wallet_1.address);
+      await govToken.connect(wallet_2).delegate(wallet_2.address);
+      await govToken.connect(wallet_3).delegate(wallet_3.address);
+      await proposalModule.submitProposal(
+        [txHash],
+        quadtraticVoting.address,
+        "0x"
+      );
+      await quadtraticVoting.connect(wallet_1).vote(0, 1);
+      let proposal = await quadtraticVoting.proposals(0);
+      expect(proposal.yesVotes).to.equal(5);
+      await quadtraticVoting.connect(wallet_2).vote(0, 1);
+      proposal = await quadtraticVoting.proposals(0);
+      expect(proposal.yesVotes).to.equal(9);
+      await quadtraticVoting.connect(wallet_3).vote(0, 1);
+      proposal = await quadtraticVoting.proposals(0);
+      expect(proposal.yesVotes).to.equal(12);
     });
   });
 });

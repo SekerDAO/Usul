@@ -38,7 +38,6 @@ This core expects to call the voting strategy after a proposal is initiated to s
 ```
 address proposer;
 bool canceled;
-bool successful;
 uint256 timeLockPeriod; // queue period for safety
 bool[] executed; // maybe can be derived from counter
 bytes32[] txHashes;
