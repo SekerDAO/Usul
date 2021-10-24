@@ -52,6 +52,7 @@ Canceled
 TimeLocked
 Executed
 Executing
+Uninitialized
 ```
 
 ### Proposal API

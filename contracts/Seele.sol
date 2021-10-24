@@ -47,7 +47,11 @@ contract Seele is Module {
     // Mapping of modules
     mapping(address => address) internal strategies;
 
-    event ProposalCreated(address strategy, uint256 proposalNumber, address proposer);
+    event ProposalCreated(
+        address strategy,
+        uint256 proposalNumber,
+        address proposer
+    );
     event ProposalCanceled(uint256 proposalId);
     event TransactionExecuted(uint256 proposalId, bytes32 txHash);
     event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
@@ -257,11 +261,11 @@ contract Seele is Module {
         );
         require(
             state(proposalId) == ProposalState.Active,
-            "cannot start timelock, proposal is not active"
+            "cannot receive strategy, proposal is not active"
         );
         require(
             msg.sender == proposals[proposalId].strategy,
-            "cannot start timelock, incorrect strategy"
+            "cannot receive strategy, incorrect strategy for proposal"
         );
         proposals[proposalId].timeLockPeriod = block.timestamp + timeLockPeriod;
         emit StrategyFinalized(
@@ -351,7 +355,6 @@ contract Seele is Module {
             "starting from an index out of ascending order"
         );
         for (uint256 i = startIndex; i < startIndex + txCount; i++) {
-            // TODO: allow nonces?
             executeProposalByIndex(
                 proposalId,
                 targets[i],

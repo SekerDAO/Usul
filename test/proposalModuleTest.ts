@@ -329,7 +329,7 @@ describe("proposalModule:", () => {
       let proposal = await proposalModule.proposals(0);
       expect(proposal.strategy).to.equal(strategy_2.address);
       await expect(strategy.finalizeStrategy(0)).to.be.revertedWith(
-        "cannot start timelock, incorrect strategy"
+        "cannot receive strategy, incorrect strategy for proposal"
       );
     });
   });
@@ -338,7 +338,7 @@ describe("proposalModule:", () => {
     it("should revert if starting timelock with no proposal", async () => {
       const { proposalModule, strategy, safe } = await baseSetup();
       await expect(strategy.finalizeStrategy(0)).to.be.revertedWith(
-        "cannot start timelock, proposal is not active"
+        "cannot receive strategy, proposal is not active"
       );
     });
 
@@ -940,7 +940,7 @@ describe("proposalModule:", () => {
       );
       let proposal = await proposalModule.proposals(0);
       await expect(strategy.finalizeStrategy(0)).to.be.revertedWith(
-        "cannot start timelock, proposal is not active"
+        "cannot receive strategy, proposal is not active"
       );
     });
 

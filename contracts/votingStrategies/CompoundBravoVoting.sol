@@ -173,7 +173,7 @@ contract CompoundBravoVoting is BaseTokenVoting {
         emit ProposalReceived(proposalId, block.timestamp);
     }
 
-    // TODO: Check storing cast uint96 as uint256
+    /// @notice ERC20VotesComp casts the getPastVotes to uint96, this upcasts back to uint256
     function calculateWeight(address delegatee, uint256 proposalId)
         public
         view
