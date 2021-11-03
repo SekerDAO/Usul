@@ -541,7 +541,6 @@ describe("proposalModule:", () => {
       );
       let proposal = await proposalModule.proposals(0);
       expect(proposal.executionCounter).to.equal(1);
-      expect(proposal.proposer).to.equal(wallet_0.address);
       expect(proposal.canceled).to.equal(false);
       expect(proposal.timeLockPeriod).to.equal(0);
       let isExecuted = await proposalModule.isTxExecuted(0, 0);

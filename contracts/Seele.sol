@@ -30,7 +30,6 @@ contract Seele is Module {
     }
 
     struct Proposal {
-        address proposer;
         bool canceled;
         uint256 timeLockPeriod; // queue period for safety
         bool[] executed; // maybe can be derived from counter
@@ -225,7 +224,6 @@ contract Seele is Module {
         }
         proposals[totalProposalCount].executionCounter = txHashes.length;
         proposals[totalProposalCount].txHashes = txHashes;
-        proposals[totalProposalCount].proposer = msg.sender;
         proposals[totalProposalCount].strategy = strategy;
         totalProposalCount++;
         IStrategy(strategy).receiveProposal(
@@ -372,7 +370,7 @@ contract Seele is Module {
     /// @return ProposalState the enum of the state of the proposal
     function state(uint256 proposalId) public view returns (ProposalState) {
         Proposal storage _proposal = proposals[proposalId];
-        if (_proposal.proposer == address(0)) {
+        if (_proposal.strategy == address(0)) {
             return ProposalState.Uninitialized;
         } else if (_proposal.executionCounter == 0) {
             return ProposalState.Executed;
