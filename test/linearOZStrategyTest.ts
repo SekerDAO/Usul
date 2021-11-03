@@ -5,6 +5,11 @@ import { _TypedDataEncoder } from "@ethersproject/hash";
 import {
   executeContractCallWithSigners,
   buildContractCall,
+  buildMultiSendSafeTx,
+  executeTx,
+  safeApproveHash,
+  buildContractCallVariable,
+  safeSignMessage
 } from "./shared/utils";
 import { AddressZero } from "@ethersproject/constants";
 import { signTypedMessage, TypedDataUtils } from "eth-sig-util";
@@ -74,6 +79,12 @@ describe("linearOZVotingStrategy:", () => {
     );
     const moduleFactory = await moduleFactoryContract.deploy();
 
+    const multisendContract = await hre.ethers.getContractFactory(
+      "@gnosis.pm/safe-contracts/contracts/libraries/MultiSend.sol:MultiSend"
+    );
+    const multisend = await multisendContract.deploy();
+
+
     const linearContract = await ethers.getContractFactory("OZLinearVoting");
     const linearVotingMaster = await linearContract.deploy(
       "0x0000000000000000000000000000000000000001",
@@ -95,12 +106,12 @@ describe("linearOZVotingStrategy:", () => {
         "string",
       ],
       [
-        wallet_0.address,
+        safe.address,
         govToken.address,
         "0x0000000000000000000000000000000000000001",
-        60,
+        60, // voting period
         thresholdBalance, // number of votes wieghted to pass
-        60, // number of days proposals are active
+        60, // delay
         "Test",
       ]
     );
@@ -124,16 +135,22 @@ describe("linearOZVotingStrategy:", () => {
       saltLinear,
       ethers.utils.keccak256(byteCodeLinear)
     );
-    expect(
-      await moduleFactory.deployModule(
-        linearVotingMaster.address,
-        initLinearData,
-        "0x01"
-      )
-    )
-      .to.emit(moduleFactory, "ModuleProxyCreation")
-      .withArgs(expectedLinearAddress, linearVotingMaster.address);
-    const linearVoting = linearVotingMaster.attach(expectedLinearAddress);
+    const deployLinear = buildContractCall(
+      moduleFactory,
+      "deployModule",
+      [linearVotingMaster.address, initLinearData, "0x01"],
+      0
+    );
+    // expect(
+    //   await moduleFactory.deployModule(
+    //     linearVotingMaster.address,
+    //     initLinearData,
+    //     "0x01"
+    //   )
+    // )
+    //   .to.emit(moduleFactory, "ModuleProxyCreation")
+    //   .withArgs(expectedLinearAddress, linearVotingMaster.address);
+    // const linearVoting = linearVotingMaster.attach(expectedLinearAddress);
 
     const proposalContract = await ethers.getContractFactory("Seele");
     const masterProposalModule = await proposalContract.deploy(
@@ -144,7 +161,7 @@ describe("linearOZVotingStrategy:", () => {
     );
     const encodedInitParams = ethers.utils.defaultAbiCoder.encode(
       ["address", "address", "address", "address[]"],
-      [safe.address, safe.address, safe.address, [linearVoting.address]]
+      [safe.address, safe.address, safe.address, [expectedLinearAddress]]
     );
     const initData = masterProposalModule.interface.encodeFunctionData(
       "setUp",
@@ -166,19 +183,76 @@ describe("linearOZVotingStrategy:", () => {
       salt,
       ethers.utils.keccak256(byteCode)
     );
-    expect(
-      await moduleFactory.deployModule(
-        masterProposalModule.address,
-        initData,
-        "0x01"
-      )
-    )
-      .to.emit(moduleFactory, "ModuleProxyCreation")
-      .withArgs(expectedAddress, masterProposalModule.address);
-    const proposalModule = proposalContract.attach(expectedAddress);
+    const deploySeele = buildContractCall(
+      moduleFactory,
+      "deployModule",
+      [masterProposalModule.address, initData, "0x01"],
+      0
+    );
+    // expect(
+    //   await moduleFactory.deployModule(
+    //     masterProposalModule.address,
+    //     initData,
+    //     "0x01"
+    //   )
+    // )
+    //   .to.emit(moduleFactory, "ModuleProxyCreation")
+    //   .withArgs(expectedAddress, masterProposalModule.address);
+    // const proposalModule = proposalContract.attach(expectedAddress);
 
-    await linearVoting.setSeele(expectedAddress);
-    await linearVoting.transferOwnership(safe.address);
+    const setSeele = buildContractCallVariable(
+      linearVotingMaster,
+      expectedLinearAddress,
+      "setSeele",
+      [expectedAddress],
+      0
+    );
+    // const transferOwner = buildContractCall(
+    //   linearVotingMaster,
+    //   "transferOwnership",
+    //   [expectedLinearAddress],
+    //   0
+    // );
+    // await linearVoting.setSeele(expectedAddress);
+    // await linearVoting.transferOwnership(safe.address);
+
+    // const encodedMultiSend = ethers.utils.defaultAbiCoder.encode(
+    //   [
+    //     "uint8[]",
+    //     "address[]",
+    //     "uint256[]",
+    //     "uint256[]",
+    //     "bytes[]"
+    //   ],
+    //   [
+    //     [0,0,0,0],
+    //     [moduleFactory.address, moduleFactory.address, expectedLinearAddress, expectedLinearAddress],
+    //     [0,0,0,0],
+    //     [deployLinear.data.length, deploySeele.data.length, setSeele.data.length, transferOwner.data.length],
+    //     [deployLinear.data, deploySeele.data, setSeele.data, transferOwner.data]
+    //   ]
+    // );
+
+    const registerSeele = buildContractCall(
+      safe,
+      "enableModule",
+      [expectedAddress],
+      0
+    );
+    const multiTx = buildMultiSendSafeTx(multisend, [deployLinear, deploySeele, setSeele, registerSeele], await safe.nonce())
+    const sig = await safeSignMessage(wallet_0, safe, multiTx)
+    executeTx(safe, multiTx, [ sig ])
+    //executeTx(safe, multiTx, [ await safeApproveHash(wallet_0, safe, multiTx, true) ])
+    // await executeContractCallWithSigners(
+    //   safe,
+    //   multisend,
+    //   "multiSend",
+    //   [multiTx],
+    //   [wallet_0]
+    // );
+    //await multisend.multiSend(encodedMultiSend)
+    const linearVoting = linearVotingMaster.attach(expectedLinearAddress);
+    const proposalModule = proposalContract.attach(expectedAddress);
 
     const memberLinearContract = await ethers.getContractFactory(
       "MemberLinearVoting"
@@ -220,13 +294,13 @@ describe("linearOZVotingStrategy:", () => {
       addCall_1.operation,
       0
     );
-    await executeContractCallWithSigners(
-      safe,
-      safe,
-      "enableModule",
-      [proposalModule.address],
-      [wallet_0]
-    );
+    // await executeContractCallWithSigners(
+    //   safe,
+    //   safe,
+    //   "enableModule",
+    //   [proposalModule.address],
+    //   [wallet_0]
+    // );
     // await executeContractCallWithSigners(
     //   safe,
     //   proposalModule,
@@ -260,7 +334,8 @@ describe("linearOZVotingStrategy:", () => {
 
   describe("setUp", async () => {
     it("can register linear voting module", async () => {
-      const { proposalModule, linearVoting } = await baseSetup();
+      const { proposalModule, linearVoting, safe} = await baseSetup();
+      expect(await linearVoting.owner()).to.equal(safe.address)
       expect(
         await proposalModule.isStrategyEnabled(linearVoting.address)
       ).to.equal(true);

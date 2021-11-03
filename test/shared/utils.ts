@@ -81,6 +81,24 @@ export interface SafeSignature {
     data: string
 }
 
+const encodeMetaTransaction = (tx: MetaTransaction): string => {
+    const data = utils.arrayify(tx.data)
+    const encoded = utils.solidityPack(
+        ["uint8", "address", "uint256", "uint256", "bytes"],
+        [tx.operation, tx.to, tx.value, data.length, data]
+    )
+    return encoded.slice(2)
+}
+
+
+export const encodeMultiSend = (txs: MetaTransaction[]): string => {
+    return "0x" + txs.map((tx) => encodeMetaTransaction(tx)).join("")
+}
+
+export const buildMultiSendSafeTx = (multiSend: Contract, txs: MetaTransaction[], nonce: number, overrides?: Partial<SafeTransaction>): SafeTransaction => {
+    return buildContractCall(multiSend, "multiSend", [encodeMultiSend(txs)], nonce, true, overrides)
+}
+
 export const calculateSafeDomainSeparator = (safe: Contract, chainId: BigNumberish): string => {
     return utils._TypedDataEncoder.hashDomain({ verifyingContract: safe.address, chainId })
 }
@@ -172,6 +190,16 @@ export const buildContractCall = (contract: Contract, method: string, params: an
     const data = contract.interface.encodeFunctionData(method, params)
     return buildSafeTransaction(Object.assign({
         to: contract.address,
+        data,
+        operation: delegateCall ? 1 : 0,
+        nonce
+    }, overrides))
+}
+
+export const buildContractCallVariable = (contract: Contract, address: string, method: string, params: any[], nonce: number, delegateCall?: boolean, overrides?: Partial<SafeTransaction>): SafeTransaction => {
+    const data = contract.interface.encodeFunctionData(method, params)
+    return buildSafeTransaction(Object.assign({
+        to: address,
         data,
         operation: delegateCall ? 1 : 0,
         nonce
