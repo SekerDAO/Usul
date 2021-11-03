@@ -219,6 +219,7 @@ contract Seele is Module {
             isStrategyEnabled(strategy),
             "voting strategy is not enabled for proposal"
         );
+        require(txHashes.length > 0, "proposal must contain transactions");
         for (uint256 i; i < txHashes.length; i++) {
             proposals[totalProposalCount].executed.push(false);
         }
