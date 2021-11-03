@@ -342,7 +342,9 @@ contract Seele is Module {
     ) external {
         // force calls from strat so we can scope
         require(
-            targets.length == values.length && targets.length == data.length,
+            targets.length == values.length &&
+                targets.length == data.length &&
+                targets.length == operations.length,
             "execution parameters missmatch"
         );
         require(
