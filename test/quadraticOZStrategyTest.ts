@@ -28,8 +28,8 @@ describe("quadraticOZVotingStrategy:", () => {
     await deployments.fixture();
     const [wallet_0, wallet_1, wallet_2, wallet_3] =
       waffle.provider.getWallets();
-    const defaultBalance = ethers.BigNumber.from("1000000000000000000");
-    const thresholdBalance = ethers.BigNumber.from("1000000000");
+    const defaultBalance = ethers.BigNumber.from("10000000000000000000000");
+    const thresholdPercent = ethers.BigNumber.from(20);
     const totalSupply = ethers.BigNumber.from("100000000000000000000000");
     const safeSupply = ethers.BigNumber.from("50000000000000000000000");
     const govTokenContract = await ethers.getContractFactory("GovernanceToken");
@@ -101,7 +101,7 @@ describe("quadraticOZVotingStrategy:", () => {
         govToken.address,
         "0x0000000000000000000000000000000000000001",
         60,
-        thresholdBalance, // number of votes wieghted to pass
+        thresholdPercent, // number of votes wieghted to pass
         60, // number of days proposals are active
         "Test",
       ]
@@ -257,7 +257,6 @@ describe("quadraticOZVotingStrategy:", () => {
       addCall_1,
       safe,
       defaultBalance,
-      thresholdBalance,
     };
   });
 
@@ -282,7 +281,11 @@ describe("quadraticOZVotingStrategy:", () => {
         govToken.address
       );
       expect(await quadtraticVoting.votingPeriod()).to.equal(60);
-      expect(await quadtraticVoting.quorumThreshold()).to.equal("1000000000");
+      let block = ethers.BigNumber.from(
+        await network.provider.send("eth_blockNumber")
+      );
+      await network.provider.send("evm_mine");
+      expect(await quadtraticVoting.quorum(block)).to.equal("141421356237");
       expect(await quadtraticVoting.timeLockPeriod()).to.equal(60);
     });
   });
@@ -300,7 +303,7 @@ describe("quadraticOZVotingStrategy:", () => {
       );
       await quadtraticVoting.vote(0, 1);
       let proposal = await quadtraticVoting.proposals(0);
-      expect(proposal.yesVotes.toString()).to.equal("223600089445");
+      expect(proposal.yesVotes.toString()).to.equal("141421356237");
       await proposalModule.submitProposal(
         [txHash],
         quadtraticVoting.address,
@@ -308,7 +311,7 @@ describe("quadraticOZVotingStrategy:", () => {
       );
       await quadtraticVoting.connect(wallet_1).vote(1, 1);
       proposal = await quadtraticVoting.proposals(1);
-      expect(proposal.yesVotes.toString()).to.equal("1000000000");
+      expect(proposal.yesVotes.toString()).to.equal("100000000000");
     });
 
     it("can complete a proposal", async () => {
@@ -320,13 +323,15 @@ describe("quadraticOZVotingStrategy:", () => {
         txHash,
         addCall,
       } = await baseSetup();
-      await govToken.delegate(wallet_0.address);
+      await govToken.connect(wallet_1).delegate(wallet_1.address);
+      await govToken.connect(wallet_2).delegate(wallet_2.address);
       await proposalModule.submitProposal(
         [txHash],
         quadtraticVoting.address,
         "0x"
       );
-      await quadtraticVoting.vote(0, 1);
+      await quadtraticVoting.connect(wallet_1).vote(0, 1);
+      await quadtraticVoting.connect(wallet_2).vote(0, 1);
       await network.provider.send("evm_increaseTime", [60]);
       await quadtraticVoting.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
@@ -351,13 +356,13 @@ describe("quadraticOZVotingStrategy:", () => {
       } = await baseSetup();
       await govToken
         .connect(wallet_1)
-        .transfer(wallet_0.address, "999999999999999975");
+        .transfer(wallet_0.address, "9999999999999999999975");
       await govToken
         .connect(wallet_2)
-        .transfer(wallet_0.address, "999999999999999984");
+        .transfer(wallet_0.address, "9999999999999999999984");
       await govToken
         .connect(wallet_3)
-        .transfer(wallet_0.address, "999999999999999991");
+        .transfer(wallet_0.address, "9999999999999999999991");
       await govToken.connect(wallet_1).delegate(wallet_1.address);
       await govToken.connect(wallet_2).delegate(wallet_2.address);
       await govToken.connect(wallet_3).delegate(wallet_3.address);

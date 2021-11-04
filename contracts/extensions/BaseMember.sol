@@ -7,6 +7,7 @@ import "../BaseStrategy.sol";
 /// @title Base Membership - A Seele strategy extension that enables membership gates.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 abstract contract BaseMember is BaseStrategy {
+
     uint256 public memberCount;
 
     mapping(address => bool) public members;
@@ -19,13 +20,13 @@ abstract contract BaseMember is BaseStrategy {
     event MemberAdded(address member);
     event MemverRemoved(address member);
 
-    function addMember(address member) public onlyOwner {
+    function addMember(address member) public virtual onlyOwner {
         members[member] = true;
         memberCount++;
         emit MemberAdded(member);
     }
 
-    function removeMember(address member) public onlyOwner {
+    function removeMember(address member) public virtual onlyOwner {
         members[member] = false;
         memberCount--;
         emit MemverRemoved(member);

@@ -33,8 +33,9 @@ describe("linearOZVotingStrategy:", () => {
     await deployments.fixture();
     const [wallet_0, wallet_1, wallet_2, wallet_3] =
       waffle.provider.getWallets();
-    const defaultBalance = ethers.BigNumber.from("1000000000000000000");
-    const thresholdBalance = ethers.BigNumber.from("2000000000000000000");
+    const defaultBalance = ethers.BigNumber.from("10000000000000000000000");
+    const thresholdBalance = ethers.BigNumber.from("20000000000000000000000");
+    const thresholdPercent = ethers.BigNumber.from(20);
     const totalSupply = ethers.BigNumber.from("100000000000000000000000");
     const safeSupply = ethers.BigNumber.from("50000000000000000000000");
     const govTokenContract = await ethers.getContractFactory("GovernanceToken");
@@ -110,7 +111,7 @@ describe("linearOZVotingStrategy:", () => {
         govToken.address,
         "0x0000000000000000000000000000000000000001",
         60, // voting period
-        thresholdBalance, // number of votes wieghted to pass
+        thresholdPercent, // number of votes wieghted to pass
         60, // delay
         "Test",
       ]
@@ -262,7 +263,7 @@ describe("linearOZVotingStrategy:", () => {
       govToken.address,
       proposalModule.address,
       60,
-      thresholdBalance, // number of votes wieghted to pass
+      thresholdPercent, // number of votes wieghted to pass
       ethers.BigNumber.from(60), // number of days proposals are active
       "Test"
     );
@@ -352,8 +353,12 @@ describe("linearOZVotingStrategy:", () => {
       const { linearVoting, safe, govToken } = await baseSetup();
       expect(await linearVoting.governanceToken()).to.equal(govToken.address);
       expect(await linearVoting.votingPeriod()).to.equal(60);
-      expect(await linearVoting.quorumThreshold()).to.equal(
-        "2000000000000000000"
+      let block = ethers.BigNumber.from(
+        await network.provider.send("eth_blockNumber")
+      );
+      await network.provider.send("evm_mine");
+      expect(await linearVoting.quorum(block)).to.equal(
+        "20000000000000000000000"
       );
       expect(await linearVoting.timeLockPeriod()).to.equal(60);
     });
@@ -424,7 +429,7 @@ describe("linearOZVotingStrategy:", () => {
       const bal = await govToken.balanceOf(wallet_0.address);
       await govToken.delegate(wallet_0.address);
       const delegatation = await govToken.getVotes(wallet_0.address);
-      expect(delegatation).to.equal("49997000000000000000000");
+      expect(delegatation).to.equal("20000000000000000000000");
     });
 
     it("can delegate votes to others", async () => {
@@ -455,7 +460,7 @@ describe("linearOZVotingStrategy:", () => {
       await linearVoting.vote(0, 1);
       const proposalAfterVoting = await linearVoting.proposals(0);
       expect(proposalAfterVoting.yesVotes).to.equal(
-        ethers.BigNumber.from("49997000000000000000000")
+        ethers.BigNumber.from("20000000000000000000000")
       );
       expect(await linearVoting.hasVoted(0, wallet_0.address)).to.equal(true);
     });
@@ -582,7 +587,7 @@ describe("linearOZVotingStrategy:", () => {
       expect(proposal.noVotes).to.equal(defaultBalance);
       await network.provider.send("evm_increaseTime", [60]);
       await expect(linearVoting.finalizeStrategy(0)).to.be.revertedWith(
-        "the yesVotes must be strictly over the noVotes"
+        "majority yesVotes not reached"
       );
     });
 
@@ -736,7 +741,7 @@ describe("linearOZVotingStrategy:", () => {
         0 // txHash index
       );
       expect(await govToken.balanceOf(wallet_2.address)).to.equal(
-        ethers.BigNumber.from("1000000000000001000")
+        ethers.BigNumber.from("10000000000000000001000")
       );
     });
 
@@ -873,7 +878,7 @@ describe("linearOZVotingStrategy:", () => {
       await network.provider.send("evm_mine");
       await memberLinearVoting.vote(0, 1);
       let proposal = await memberLinearVoting.proposals(0);
-      expect(proposal.yesVotes).to.equal("49997000000000000000000");
+      expect(proposal.yesVotes).to.equal("20000000000000000000000");
       await network.provider.send("evm_increaseTime", [60]);
       await memberLinearVoting.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);

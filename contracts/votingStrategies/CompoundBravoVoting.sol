@@ -5,6 +5,7 @@ pragma solidity >=0.8.0;
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20VotesComp.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "../extensions/BaseTokenVoting.sol";
+import "../extensions/BaseQuorumPercent.sol";
 
 /// @title Compound like Linear Voting Strategy - A Seele strategy that enables compound like voting.
 /// @notice This strategy differs in a few ways from compound bravo
@@ -13,7 +14,7 @@ import "../extensions/BaseTokenVoting.sol";
 /// @notice More than one active proposal per proposer is allowed
 /// @notice Only owner is allowed to cancel proposals (safety strat or governance)
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract CompoundBravoVoting is BaseTokenVoting {
+contract CompoundBravoVoting is BaseTokenVoting, BaseQuorumPercent {
     /**
      * @dev Receipt structure from Compound Governor Bravo
      */
@@ -43,7 +44,7 @@ contract CompoundBravoVoting is BaseTokenVoting {
         ERC20VotesComp _governanceToken,
         address _seeleModule,
         uint256 _votingPeriod,
-        uint256 _quorumThreshold,
+        uint256 quorumNumerator_,
         uint256 _timeLockPeriod,
         uint256 _proposalThreshold,
         string memory name_
@@ -53,7 +54,7 @@ contract CompoundBravoVoting is BaseTokenVoting {
             _governanceToken,
             _seeleModule,
             _votingPeriod,
-            _quorumThreshold,
+            quorumNumerator_,
             _timeLockPeriod,
             _proposalThreshold,
             name_
@@ -67,7 +68,7 @@ contract CompoundBravoVoting is BaseTokenVoting {
             ERC20VotesComp _governanceToken,
             address _seeleModule,
             uint256 _votingPeriod,
-            uint256 _quorumThreshold,
+            uint256 quorumNumerator_,
             uint256 _timeLockPeriod,
             uint256 _proposalThreshold,
             string memory name_
@@ -93,12 +94,42 @@ contract CompoundBravoVoting is BaseTokenVoting {
         proposalThreshold = _proposalThreshold;
         __Ownable_init();
         __EIP712_init_unchained(name_, version());
+        updateQuorumNumerator(quorumNumerator_);
         transferOwnership(_owner);
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         seeleModule = _seeleModule;
-        quorumThreshold = _quorumThreshold;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
         emit StrategySetup(_seeleModule, _owner);
+    }
+
+    /// @dev Determines if a proposal has succeeded.
+    /// @param proposalId the proposal to vote for.
+    /// @return boolean.
+    function isPassed(uint256 proposalId)
+        public
+        view
+        override
+        returns (bool)
+    {
+        require(
+            proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
+            "majority yesVotes not reached"
+        );
+        require(
+            proposals[proposalId].yesVotes +
+                proposals[proposalId].abstainVotes >=
+                quorum(proposals[proposalId].startBlock),
+            "a quorum has not been reached for the proposal"
+        );
+        require(
+            proposals[proposalId].deadline < block.timestamp,
+            "voting period has not passed yet"
+        );
+        return true;
+    }
+
+    function quorum(uint256 blockNumber) public view override returns (uint256) {
+        return (governanceToken.getPastTotalSupply(blockNumber) * quorumNumerator()) / quorumDenominator();
     }
 
     /// @dev Updates the votes needed to create a proposal, only executor.

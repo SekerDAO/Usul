@@ -5,10 +5,11 @@ pragma solidity >=0.8.0;
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "../extensions/BaseTokenVoting.sol";
 import "../extensions/BaseMember.sol";
+import "../extensions/BaseQuorumPercent.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract MemberLinearVoting is BaseTokenVoting, BaseMember {
+contract MemberLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     ERC20Votes public governanceToken;
 
     constructor(
@@ -16,7 +17,7 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember {
         ERC20Votes _governanceToken,
         address _seeleModule,
         uint256 _votingPeriod,
-        uint256 _quorumThreshold,
+        uint256 quorumNumerator_,
         uint256 _timeLockPeriod,
         string memory name_
     ) {
@@ -25,7 +26,7 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember {
             _governanceToken,
             _seeleModule,
             _votingPeriod,
-            _quorumThreshold,
+            quorumNumerator_,
             _timeLockPeriod,
             name_
         );
@@ -38,7 +39,7 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember {
             ERC20Votes _governanceToken,
             address _seeleModule,
             uint256 _votingPeriod,
-            uint256 _quorumThreshold,
+            uint256 quorumNumerator_,
             uint256 _timeLockPeriod,
             string memory name_
         ) = abi.decode(
@@ -61,12 +62,42 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember {
         governanceToken = _governanceToken;
         __Ownable_init();
         __EIP712_init_unchained(name_, version());
+        updateQuorumNumerator(quorumNumerator_);
         transferOwnership(_owner);
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         seeleModule = _seeleModule;
-        quorumThreshold = _quorumThreshold;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
         emit StrategySetup(_seeleModule, _owner);
+    }
+
+    /// @dev Determines if a proposal has succeeded.
+    /// @param proposalId the proposal to vote for.
+    /// @return boolean.
+    function isPassed(uint256 proposalId)
+        public
+        view
+        override
+        returns (bool)
+    {
+        require(
+            proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
+            "majority yesVotes not reached"
+        );
+        require(
+            proposals[proposalId].yesVotes +
+                proposals[proposalId].abstainVotes >=
+                quorum(proposals[proposalId].startBlock),
+            "a quorum has not been reached for the proposal"
+        );
+        require(
+            proposals[proposalId].deadline < block.timestamp,
+            "voting period has not passed yet"
+        );
+        return true;
+    }
+
+    function quorum(uint256 blockNumber) public view override returns (uint256) {
+        return (governanceToken.getPastTotalSupply(blockNumber) * quorumNumerator()) / quorumDenominator();
     }
 
     function calculateWeight(address voter, uint256 proposalId)

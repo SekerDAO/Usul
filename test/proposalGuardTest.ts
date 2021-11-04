@@ -28,8 +28,9 @@ describe("ProposalGuardStrategy:", () => {
     await deployments.fixture();
     const [wallet_0, wallet_1, wallet_2, wallet_3] =
       waffle.provider.getWallets();
-    const defaultBalance = ethers.BigNumber.from("1000000000000000000");
-    const thresholdBalance = ethers.BigNumber.from("2000000000000000000");
+    const defaultBalance = ethers.BigNumber.from("10000000000000000000000");
+    const thresholdBalance = ethers.BigNumber.from("20000000000000000000000");
+    const thresholdPercent = ethers.BigNumber.from(20);
     const totalSupply = ethers.BigNumber.from("100000000000000000000000");
     const safeSupply = ethers.BigNumber.from("50000000000000000000000");
     const govTokenContract = await ethers.getContractFactory("GovernanceToken");
@@ -121,7 +122,7 @@ describe("ProposalGuardStrategy:", () => {
       govToken.address,
       proposalModule.address,
       60,
-      thresholdBalance, // number of votes wieghted to pass
+      thresholdPercent, // number of votes wieghted to pass
       60, // number of days proposals are active
       "Test"
     );

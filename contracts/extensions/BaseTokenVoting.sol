@@ -28,13 +28,11 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     }
 
     uint256 public votingPeriod; // the length of time voting is valid for a proposal
-    uint256 public quorumThreshold; // minimum number of votes for proposal to succeed
     uint256 public timeLockPeriod;
     string private _name;
 
     mapping(uint256 => ProposalVoting) public proposals;
 
-    event ThresholdUpdated(uint256 previousThreshold, uint256 newThreshold);
     event TimeLockUpdated(uint256 previousTimeLock, uint256 newTimeLockPeriod);
     event VotingPeriodUpdated(
         uint256 previousVotingPeriod,
@@ -52,14 +50,6 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     ///@dev ERC712 version.
     function version() public view virtual returns (string memory) {
         return "1";
-    }
-
-    /// @dev Updates the quorum needed to pass a proposal, only executor.
-    /// @param _quorumThreshold the voting quorum threshold.
-    function updateThreshold(uint256 _quorumThreshold) external onlyOwner {
-        uint256 previousThreshold = quorumThreshold;
-        quorumThreshold = _quorumThreshold;
-        emit ThresholdUpdated(previousThreshold, _quorumThreshold);
     }
 
     /// @dev Updates the time that proposals are active for voting.
@@ -92,6 +82,8 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     {
         return proposals[proposalId].hasVoted[account];
     }
+
+
 
     /// @dev Submits a vote for a proposal.
     /// @param proposalId the proposal to vote for.
@@ -169,33 +161,6 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
             IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
         }
         emit VoteFinalized(proposalId, block.timestamp);
-    }
-
-    /// @dev Determines if a proposal has succeeded.
-    /// @param proposalId the proposal to vote for.
-    /// @return boolean.
-    function isPassed(uint256 proposalId)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        require(
-            proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
-            "the yesVotes must be strictly over the noVotes"
-        );
-        require(
-            proposals[proposalId].yesVotes +
-                proposals[proposalId].abstainVotes >=
-                quorumThreshold,
-            "a quorum has not been reached for the proposal"
-        );
-        require(
-            proposals[proposalId].deadline < block.timestamp,
-            "voting period has not passed yet"
-        );
-        return true;
     }
 
     function calculateWeight(address voter, uint256 proposalId)

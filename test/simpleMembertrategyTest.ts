@@ -28,8 +28,8 @@ describe("SimpleMemberVotingStrategy:", () => {
     await deployments.fixture();
     const [wallet_0, wallet_1, wallet_2, wallet_3] =
       waffle.provider.getWallets();
-    const defaultBalance = ethers.BigNumber.from("1");
-    const thresholdBalance = ethers.BigNumber.from("2");
+    const defaultBalance = ethers.BigNumber.from(1);
+    const thresholdPercent = ethers.BigNumber.from(100);
 
     const GnosisSafeL2 = await hre.ethers.getContractFactory(
       "@gnosis.pm/safe-contracts/contracts/GnosisSafeL2.sol:GnosisSafeL2"
@@ -117,7 +117,7 @@ describe("SimpleMemberVotingStrategy:", () => {
     );
     const encodedSimpleMemberInitParams = ethers.utils.defaultAbiCoder.encode(
       ["address", "address", "uint256", "uint256", "uint256", "string"],
-      [safe.address, proposalModule.address, 60, thresholdBalance, 60, "Test"]
+      [safe.address, proposalModule.address, 60, thresholdPercent, 60, "Test"]
     );
     const initSimpleMemberData =
       masterSimpleMemberVoting.interface.encodeFunctionData("setUp", [
@@ -213,7 +213,7 @@ describe("SimpleMemberVotingStrategy:", () => {
       addCall_1,
       safe,
       defaultBalance,
-      thresholdBalance,
+      thresholdPercent,
     };
   });
 
@@ -228,7 +228,11 @@ describe("SimpleMemberVotingStrategy:", () => {
     it("linear state is initialized correctly", async () => {
       const { simpleMember, safe } = await baseSetup();
       expect(await simpleMember.votingPeriod()).to.equal(60);
-      expect(await simpleMember.quorumThreshold()).to.equal(2);
+      let block = ethers.BigNumber.from(
+        await network.provider.send("eth_blockNumber")
+      );
+      await network.provider.send("evm_mine");
+      expect(await simpleMember.quorum(block)).to.equal(1);
       expect(await simpleMember.timeLockPeriod()).to.equal(60);
       expect(await simpleMember.members(wallet_0.address)).to.equal(true);
     });
@@ -418,7 +422,7 @@ describe("SimpleMemberVotingStrategy:", () => {
         safe,
         simpleMember,
         defaultBalance,
-        thresholdBalance,
+        thresholdPercent,
       } = await baseSetup();
       await executeContractCallWithSigners(
         safe,
@@ -495,7 +499,7 @@ describe("SimpleMemberVotingStrategy:", () => {
         safe,
         simpleMember,
         defaultBalance,
-        thresholdBalance,
+        thresholdPercent,
       } = await baseSetup();
       await executeContractCallWithSigners(
         safe,
