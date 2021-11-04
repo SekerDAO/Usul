@@ -99,6 +99,7 @@ contract CompoundBravoVoting is BaseTokenVoting, BaseQuorumPercent {
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         seeleModule = _seeleModule;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
+        name = name_;
         emit StrategySetup(_seeleModule, _owner);
     }
 

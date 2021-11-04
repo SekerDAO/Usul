@@ -29,7 +29,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
 
     uint256 public votingPeriod; // the length of time voting is valid for a proposal
     uint256 public timeLockPeriod;
-    string private _name;
+    string public name;
 
     mapping(uint256 => ProposalVoting) public proposals;
 
@@ -41,11 +41,6 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
     event VoteFinalized(uint256 proposalId, uint256 timestamp);
     event Voted(address voter, uint256 proposalId, uint8 support);
-
-    /// @dev ERC712 name.
-    function name() public view virtual returns (string memory) {
-        return _name;
-    }
 
     ///@dev ERC712 version.
     function version() public view virtual returns (string memory) {
