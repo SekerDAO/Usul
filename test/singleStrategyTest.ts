@@ -198,15 +198,13 @@ describe("SingleVotingStrategy:", () => {
       addCall.to,
       addCall.value,
       addCall.data,
-      addCall.operation,
-      0
+      addCall.operation
     );
     const txHash_1 = await proposalModule.getTransactionHash(
       addCall_1.to,
       addCall_1.value,
       addCall_1.data,
-      addCall_1.operation,
-      0
+      addCall_1.operation
     );
     await executeContractCallWithSigners(
       safe,

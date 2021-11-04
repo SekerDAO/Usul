@@ -302,8 +302,7 @@ contract Seele is Module {
             target,
             value,
             data,
-            operation,
-            0
+            operation
         );
         require(
             proposals[proposalId].txHashes[txIndex] == txHash,
@@ -425,12 +424,11 @@ contract Seele is Module {
         address to,
         uint256 value,
         bytes memory data,
-        Enum.Operation operation,
-        uint256 nonce
+        Enum.Operation operation
     ) public view returns (bytes32) {
         return
             keccak256(
-                generateTransactionHashData(to, value, data, operation, nonce)
+                generateTransactionHashData(to, value, data, operation, 0)
             );
     }
 

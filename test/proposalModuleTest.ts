@@ -147,22 +147,19 @@ describe("proposalModule:", () => {
       addCall.to,
       addCall.value,
       addCall.data,
-      addCall.operation,
-      0
+      addCall.operation
     );
     const txHash_1 = await proposalModule.getTransactionHash(
       addCall_1.to,
       addCall_1.value,
       addCall_1.data,
-      addCall_1.operation,
-      0
+      addCall_1.operation
     );
     const txHash_2 = await proposalModule.getTransactionHash(
       addCall_2.to,
       addCall_2.value,
       addCall_2.data,
-      addCall_2.operation,
-      0
+      addCall_2.operation
     );
 
     await executeContractCallWithSigners(
@@ -230,8 +227,7 @@ describe("proposalModule:", () => {
           tx.to,
           tx.value,
           tx.data,
-          tx.operation,
-          tx.nonce
+          tx.operation
         )
       ).to.be.equals(_TypedDataEncoder.hash(domain, EIP712_TYPES, tx));
     });
@@ -1018,22 +1014,19 @@ describe("proposalModule:", () => {
         removeCall_0.to,
         removeCall_0.value,
         removeCall_0.data,
-        removeCall_0.operation,
-        0
+        removeCall_0.operation
       );
       const txHash_1 = await proposalModule.getTransactionHash(
         removeCall_1.to,
         removeCall_1.value,
         removeCall_1.data,
-        removeCall_1.operation,
-        0
+        removeCall_1.operation
       );
       const txHash_2 = await proposalModule.getTransactionHash(
         burnCall.to,
         burnCall.value,
         burnCall.data,
-        burnCall.operation,
-        0
+        burnCall.operation
       );
       await proposalModule.submitProposal(
         [txHash_0, txHash_1, txHash_2],

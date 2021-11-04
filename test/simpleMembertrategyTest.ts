@@ -171,15 +171,13 @@ describe("SimpleMemberVotingStrategy:", () => {
       addCall.to,
       addCall.value,
       addCall.data,
-      addCall.operation,
-      0
+      addCall.operation
     );
     const txHash_1 = await proposalModule.getTransactionHash(
       addCall_1.to,
       addCall_1.value,
       addCall_1.data,
-      addCall_1.operation,
-      0
+      addCall_1.operation
     );
     await executeContractCallWithSigners(
       safe,
@@ -441,8 +439,7 @@ describe("SimpleMemberVotingStrategy:", () => {
         addMemberCall.to,
         addMemberCall.value,
         addMemberCall.data,
-        addMemberCall.operation,
-        0
+        addMemberCall.operation
       );
       await proposalModule.submitProposal([txHash], simpleMember.address, "0x");
       await network.provider.send("evm_mine");
@@ -518,8 +515,7 @@ describe("SimpleMemberVotingStrategy:", () => {
         removeMemberCall.to,
         removeMemberCall.value,
         removeMemberCall.data,
-        removeMemberCall.operation,
-        0
+        removeMemberCall.operation
       );
       await proposalModule.submitProposal([txHash], simpleMember.address, "0x");
       await simpleMember.vote(0, 1);

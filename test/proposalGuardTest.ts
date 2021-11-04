@@ -194,15 +194,13 @@ describe("ProposalGuardStrategy:", () => {
       addCall.to,
       addCall.value,
       addCall.data,
-      addCall.operation,
-      0
+      addCall.operation
     );
     const txHash_1 = await proposalModule.getTransactionHash(
       addCall_1.to,
       addCall_1.value,
       addCall_1.data,
-      addCall_1.operation,
-      0
+      addCall_1.operation
     );
     await executeContractCallWithSigners(
       safe,
@@ -346,8 +344,7 @@ describe("ProposalGuardStrategy:", () => {
         Call.to,
         Call.value,
         Call.data,
-        Call.operation,
-        0
+        Call.operation
       );
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
@@ -381,8 +378,7 @@ describe("ProposalGuardStrategy:", () => {
         Call.to,
         Call.value,
         Call.data,
-        Call.operation,
-        0
+        Call.operation
       );
       const Call2 = buildContractCall(
         proposalModule,
@@ -416,8 +412,7 @@ describe("ProposalGuardStrategy:", () => {
         Call.to,
         Call.value,
         Call.data,
-        Call.operation,
-        0
+        Call.operation
       );
 
       const extraData = ethers.utils.defaultAbiCoder.encode(
@@ -446,8 +441,7 @@ describe("ProposalGuardStrategy:", () => {
         Call.to,
         Call.value,
         Call.data,
-        Call.operation,
-        0
+        Call.operation
       );
 
       const extraData = ethers.utils.defaultAbiCoder.encode(
@@ -477,8 +471,7 @@ describe("ProposalGuardStrategy:", () => {
         Call.to,
         Call.value,
         Call.data,
-        Call.operation,
-        0
+        Call.operation
       );
       const extraData = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint256", "bytes", "uint8"],
@@ -517,8 +510,7 @@ describe("ProposalGuardStrategy:", () => {
         Call.to,
         Call.value,
         Call.data,
-        Call.operation,
-        0
+        Call.operation
       );
       const extraData = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint256", "bytes", "uint8"],
@@ -568,8 +560,7 @@ describe("ProposalGuardStrategy:", () => {
         Call.to,
         Call.value,
         Call.data,
-        Call.operation,
-        0
+        Call.operation
       );
       const extraData = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint256", "bytes", "uint8"],
@@ -620,8 +611,7 @@ describe("ProposalGuardStrategy:", () => {
         Call.to,
         Call.value,
         Call.data,
-        Call.operation,
-        0
+        Call.operation
       );
       const extraData = ethers.utils.defaultAbiCoder.encode(
         ["address", "uint256", "bytes", "uint8"],

@@ -285,15 +285,13 @@ describe("linearOZVotingStrategy:", () => {
       addCall.to,
       addCall.value,
       addCall.data,
-      addCall.operation,
-      0
+      addCall.operation
     );
     const txHash_1 = await proposalModule.getTransactionHash(
       addCall_1.to,
       addCall_1.value,
       addCall_1.data,
-      addCall_1.operation,
-      0
+      addCall_1.operation
     );
     // await executeContractCallWithSigners(
     //   safe,
@@ -402,8 +400,7 @@ describe("linearOZVotingStrategy:", () => {
         Call.to,
         Call.value,
         Call.data,
-        Call.operation,
-        0
+        Call.operation
       );
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
@@ -723,8 +720,7 @@ describe("linearOZVotingStrategy:", () => {
         transferCall.to,
         transferCall.value,
         transferCall.data,
-        transferCall.operation,
-        0
+        transferCall.operation
       );
       await proposalModule.submitProposal([txHash], linearVoting.address, "0x");
       await linearVoting.vote(0, 1);
@@ -865,8 +861,7 @@ describe("linearOZVotingStrategy:", () => {
         addMemberCall.to,
         addMemberCall.value,
         addMemberCall.data,
-        addMemberCall.operation,
-        0
+        addMemberCall.operation
       );
       await govToken.delegate(wallet_0.address);
       await network.provider.send("evm_mine");
@@ -948,8 +943,7 @@ describe("linearOZVotingStrategy:", () => {
         removeMemberCall.to,
         removeMemberCall.value,
         removeMemberCall.data,
-        removeMemberCall.operation,
-        0
+        removeMemberCall.operation
       );
       await govToken.delegate(wallet_0.address);
       await network.provider.send("evm_mine");
