@@ -73,12 +73,7 @@ contract OZLinearVoting is BaseTokenVoting, BaseQuorumPercent {
     /// @dev Determines if a proposal has succeeded.
     /// @param proposalId the proposal to vote for.
     /// @return boolean.
-    function isPassed(uint256 proposalId)
-        public
-        view
-        override
-        returns (bool)
-    {
+    function isPassed(uint256 proposalId) public view override returns (bool) {
         require(
             proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
             "majority yesVotes not reached"
@@ -96,8 +91,15 @@ contract OZLinearVoting is BaseTokenVoting, BaseQuorumPercent {
         return true;
     }
 
-    function quorum(uint256 blockNumber) public view override returns (uint256) {
-        return (governanceToken.getPastTotalSupply(blockNumber) * quorumNumerator()) / quorumDenominator();
+    function quorum(uint256 blockNumber)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return
+            (governanceToken.getPastTotalSupply(blockNumber) *
+                quorumNumerator()) / quorumDenominator();
     }
 
     function calculateWeight(address delegatee, uint256 proposalId)

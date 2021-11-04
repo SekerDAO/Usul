@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
-
     struct Checkpoint {
         uint32 fromBlock;
         uint256 members;
@@ -79,12 +78,7 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     /// @dev Determines if a proposal has succeeded.
     /// @param proposalId the proposal to vote for.
     /// @return boolean.
-    function isPassed(uint256 proposalId)
-        public
-        view
-        override
-        returns (bool)
-    {
+    function isPassed(uint256 proposalId) public view override returns (bool) {
         require(
             proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
             "majority yesVotes not reached"
@@ -102,8 +96,15 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         return true;
     }
 
-    function quorum(uint256 blockNumber) public view override returns (uint256) {
-        return (getPastTotalMembers(blockNumber) * quorumNumerator()) / quorumDenominator();
+    function quorum(uint256 blockNumber)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        return
+            (getPastTotalMembers(blockNumber) * quorumNumerator()) /
+            quorumDenominator();
     }
 
     function _writeCheckpoint(
@@ -118,7 +119,12 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         if (pos > 0 && ckpts[pos - 1].fromBlock == block.number) {
             ckpts[pos - 1].members = newWeight;
         } else {
-            ckpts.push(Checkpoint({fromBlock: SafeCast.toUint32(block.number), members: newWeight}));
+            ckpts.push(
+                Checkpoint({
+                    fromBlock: SafeCast.toUint32(block.number),
+                    members: newWeight
+                })
+            );
         }
     }
 
@@ -130,7 +136,11 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
      *
      * - `blockNumber` must have been already mined
      */
-    function getPastTotalMembers(uint256 blockNumber) public view returns (uint256) {
+    function getPastTotalMembers(uint256 blockNumber)
+        public
+        view
+        returns (uint256)
+    {
         require(blockNumber < block.number, "ERC20Votes: block not yet mined");
         return _checkpointsLookup(_totalMemberCheckpoints, blockNumber);
     }
@@ -138,7 +148,11 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     /**
      * @dev Lookup a value in a list of (sorted) checkpoints.
      */
-    function _checkpointsLookup(Checkpoint[] storage ckpts, uint256 blockNumber) private view returns (uint256) {
+    function _checkpointsLookup(Checkpoint[] storage ckpts, uint256 blockNumber)
+        private
+        view
+        returns (uint256)
+    {
         // We run a binary search to look for the earliest checkpoint taken after `blockNumber`.
         //
         // During the loop, the index of the wanted checkpoint remains in the range [low-1, high).

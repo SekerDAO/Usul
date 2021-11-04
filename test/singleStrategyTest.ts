@@ -293,16 +293,14 @@ describe("SingleVotingStrategy:", () => {
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       await proposalModule.executeProposalByIndex(
         1, // proposalId
         safe.address, // target
         0, // value
         addCall_1.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       const owners = await safe.getOwners();
       expect(owners[0]).to.equal(wallet_2.address);

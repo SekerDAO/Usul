@@ -338,8 +338,7 @@ describe("quadraticOZVotingStrategy:", () => {
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
     });
 

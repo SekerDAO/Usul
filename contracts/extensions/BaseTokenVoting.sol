@@ -78,8 +78,6 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
         return proposals[proposalId].hasVoted[account];
     }
 
-
-
     /// @dev Submits a vote for a proposal.
     /// @param proposalId the proposal to vote for.
     /// @param support against, for, or abstain.

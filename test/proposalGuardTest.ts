@@ -357,8 +357,7 @@ describe("ProposalGuardStrategy:", () => {
         proposalGuard.address, // target
         0, // value
         Call.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await proposalGuard.allowedGuards(wallet_2.address)).to.equal(
         true
@@ -489,8 +488,7 @@ describe("ProposalGuardStrategy:", () => {
         proposalModule.address, // target
         0, // value
         Call.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await proposalModule.state(0)).to.equal(1);
     });
@@ -528,8 +526,7 @@ describe("ProposalGuardStrategy:", () => {
         proposalModule.address, // target
         0, // value
         Call.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await proposalModule.state(0)).to.equal(1);
       expect(await proposalModule.state(1)).to.equal(1);
@@ -578,8 +575,7 @@ describe("ProposalGuardStrategy:", () => {
         proposalModule.address, // target
         0, // value
         Call.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await proposalModule.state(0)).to.equal(1);
     });
@@ -629,8 +625,7 @@ describe("ProposalGuardStrategy:", () => {
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       await expect(
         proposalModule.executeProposalByIndex(
@@ -638,8 +633,7 @@ describe("ProposalGuardStrategy:", () => {
           proposalModule.address, // target
           0, // value
           Call.data, // data
-          0, // call operation
-          0 // txHash index
+          0 // call operation
         )
       ).to.be.revertedWith("Module transaction failed");
     });

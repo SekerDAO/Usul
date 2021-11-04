@@ -9,7 +9,11 @@ import "../extensions/BaseQuorumPercent.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract MemberQuadraticVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
+contract MemberQuadraticVoting is
+    BaseTokenVoting,
+    BaseMember,
+    BaseQuorumPercent
+{
     ERC20Votes public governanceToken;
 
     constructor(
@@ -74,12 +78,7 @@ contract MemberQuadraticVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
     /// @dev Determines if a proposal has succeeded.
     /// @param proposalId the proposal to vote for.
     /// @return boolean.
-    function isPassed(uint256 proposalId)
-        public
-        view
-        override
-        returns (bool)
-    {
+    function isPassed(uint256 proposalId) public view override returns (bool) {
         require(
             proposals[proposalId].yesVotes > proposals[proposalId].noVotes,
             "majority yesVotes not reached"
@@ -97,8 +96,14 @@ contract MemberQuadraticVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
         return true;
     }
 
-    function quorum(uint256 blockNumber) public view override returns (uint256) {
-        uint256 threshhold = (governanceToken.getPastTotalSupply(blockNumber) * quorumNumerator()) / quorumDenominator();
+    function quorum(uint256 blockNumber)
+        public
+        view
+        override
+        returns (uint256)
+    {
+        uint256 threshhold = (governanceToken.getPastTotalSupply(blockNumber) *
+            quorumNumerator()) / quorumDenominator();
         return sqrt(threshhold);
     }
 

@@ -389,8 +389,7 @@ describe("NFTVotingStrategy:", () => {
         nftLinearVoting.address, // target
         0, // value
         Call.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await nftLinearVoting.timeLockPeriod()).to.equal(1337);
     });
@@ -450,8 +449,7 @@ describe("NFTVotingStrategy:", () => {
         nftSingleVoting.address, // target
         0, // value
         Call.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await nftSingleVoting.timeLockPeriod()).to.equal(1337);
     });

@@ -113,13 +113,8 @@ describe("proposalModule:", () => {
       .withArgs(expectedAddress, masterProposalModule.address);
     const proposalModule = proposalContract.attach(expectedAddress);
 
-    const StrategyContract = await ethers.getContractFactory(
-      "TestStrategy"
-    );
-    const strategy = await StrategyContract.deploy(
-      proposalModule.address,
-      60
-    );
+    const StrategyContract = await ethers.getContractFactory("TestStrategy");
+    const strategy = await StrategyContract.deploy(proposalModule.address, 60);
     const strategy_2 = await StrategyContract.deploy(
       proposalModule.address,
       60
@@ -212,7 +207,7 @@ describe("proposalModule:", () => {
     it("isTxExecuted should revert", async () => {
       const { proposalModule } = await baseSetup();
       await expect(proposalModule.isTxExecuted(0, 0)).to.be.revertedWith(
-        "0x32"
+        "no executions in this proposal"
       );
     });
 
@@ -256,10 +251,7 @@ describe("proposalModule:", () => {
           safe,
           proposalModule,
           "disableStrategy",
-          [
-            "0x0000000000000000000000000000000000000001",
-            strategy.address,
-          ],
+          ["0x0000000000000000000000000000000000000001", strategy.address],
           [wallet_0]
         )
       )
@@ -269,9 +261,9 @@ describe("proposalModule:", () => {
 
     it("can list voting strategies", async () => {
       const { proposalModule, safe, strategy } = await baseSetup();
-      expect(
-        await proposalModule.isStrategyEnabled(strategy.address)
-      ).to.equal(true);
+      expect(await proposalModule.isStrategyEnabled(strategy.address)).to.equal(
+        true
+      );
       await executeContractCallWithSigners(
         safe,
         proposalModule,
@@ -295,13 +287,8 @@ describe("proposalModule:", () => {
     });
 
     it("should revert if receiveStrategy is called from non-registered strat", async () => {
-      const { proposalModule, safe, txHash, strategy } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      const { proposalModule, safe, txHash, strategy } = await baseSetup();
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await expect(proposalModule.receiveStrategy(0, 60)).to.be.revertedWith(
         "Strategy not authorized"
       );
@@ -317,11 +304,7 @@ describe("proposalModule:", () => {
         [strategy_2.address],
         [wallet_0]
       );
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy_2.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], strategy_2.address, "0x");
       let proposal = await proposalModule.proposals(0);
       expect(proposal.strategy).to.equal(strategy_2.address);
       await expect(strategy.finalizeStrategy(0)).to.be.revertedWith(
@@ -341,11 +324,7 @@ describe("proposalModule:", () => {
     it("should revert if timeLockPeriod has not passed", async () => {
       const { safe, proposalModule, strategy, addCall, txHash } =
         await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await strategy.finalizeStrategy(0);
       await expect(
         proposalModule.executeProposalByIndex(
@@ -353,8 +332,7 @@ describe("proposalModule:", () => {
           safe.address, // target
           0, // value
           addCall.data, // data
-          0, // call operation
-          0 // txHash index
+          0 // call operation
         )
       ).to.be.revertedWith("proposal is not in execution state");
     });
@@ -362,20 +340,14 @@ describe("proposalModule:", () => {
 
   describe("proposal state", async () => {
     it("proposal state should be Unitialized", async () => {
-      const { proposalModule, safe, txHash, strategy } =
-        await baseSetup();
+      const { proposalModule, safe, txHash, strategy } = await baseSetup();
       expect(await proposalModule.state(0)).to.equal(5);
     });
 
     it("proposal state should be Active", async () => {
-      const { proposalModule, safe, txHash, strategy } =
-        await baseSetup();
+      const { proposalModule, safe, txHash, strategy } = await baseSetup();
       expect(
-        await proposalModule.submitProposal(
-          [txHash],
-          strategy.address,
-          "0x"
-        )
+        await proposalModule.submitProposal([txHash], strategy.address, "0x")
       )
         .to.emit(proposalModule, "ProposalCreated")
         .withArgs(strategy.address, 0, wallet_0.address);
@@ -383,38 +355,23 @@ describe("proposalModule:", () => {
     });
 
     it("proposal cancel should revert with only owner", async () => {
-      const { proposalModule, safe, txHash, strategy } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      const { proposalModule, safe, txHash, strategy } = await baseSetup();
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await expect(proposalModule.cancelProposals([0])).to.be.revertedWith(
         "Ownable: caller is not the owner"
       );
     });
 
     it("proposal state should be TimeLocked", async () => {
-      const { proposalModule, safe, txHash, strategy } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      const { proposalModule, safe, txHash, strategy } = await baseSetup();
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await strategy.finalizeStrategy(0);
       expect(await proposalModule.state(0)).to.equal(2);
     });
 
     it("proposal state should be Executing", async () => {
-      const { proposalModule, safe, txHash, strategy } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      const { proposalModule, safe, txHash, strategy } = await baseSetup();
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
@@ -424,11 +381,7 @@ describe("proposalModule:", () => {
     it("proposal state should be Executed", async () => {
       const { proposalModule, safe, addCall, txHash, strategy } =
         await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
@@ -437,8 +390,7 @@ describe("proposalModule:", () => {
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await proposalModule.state(0)).to.equal(3);
     });
@@ -446,22 +398,13 @@ describe("proposalModule:", () => {
     it("isTxExecuted should be false", async () => {
       const { proposalModule, safe, addCall, txHash, strategy } =
         await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       expect(await proposalModule.isTxExecuted(0, 0)).to.equal(false);
     });
 
     it("can cancel a proposal after success", async () => {
-      const { proposalModule, strategy, safe, txHash } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      const { proposalModule, strategy, safe, txHash } = await baseSetup();
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await strategy.finalizeStrategy(0);
       expect(
         await executeContractCallWithSigners(
@@ -480,13 +423,8 @@ describe("proposalModule:", () => {
     });
 
     it("can cancel a proposal before success", async () => {
-      const { proposalModule, strategy, safe, txHash } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      const { proposalModule, strategy, safe, txHash } = await baseSetup();
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await executeContractCallWithSigners(
         safe,
         proposalModule,
@@ -500,18 +438,9 @@ describe("proposalModule:", () => {
     });
 
     it("can cancel multiple proposals after success", async () => {
-      const { proposalModule, strategy, safe, txHash } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      const { proposalModule, strategy, safe, txHash } = await baseSetup();
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await strategy.finalizeStrategy(0);
       await executeContractCallWithSigners(
         safe,
@@ -530,13 +459,9 @@ describe("proposalModule:", () => {
     it("can execute add safe admin DAO proposal", async () => {
       const { proposalModule, strategy, safe, addCall, txHash } =
         await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       let proposal = await proposalModule.proposals(0);
-      expect(proposal.executionCounter).to.equal(1);
+      expect(proposal.executionCounter).to.equal(0);
       expect(proposal.canceled).to.equal(false);
       expect(proposal.timeLockPeriod).to.equal(0);
       let isExecuted = await proposalModule.isTxExecuted(0, 0);
@@ -551,15 +476,14 @@ describe("proposalModule:", () => {
       await network.provider.send("evm_mine");
       expect(await proposalModule.state(0)).to.equal(4);
       proposal = await proposalModule.proposals(0);
-      expect(proposal.executionCounter).to.equal(1);
+      expect(proposal.executionCounter).to.equal(0);
       expect(
         await proposalModule.executeProposalByIndex(
           0, // proposalId
           safe.address, // target
           0, // value
           addCall.data, // data
-          0, // call operation
-          0 // txHash index
+          0 // call operation
         )
       )
         .to.emit(proposalModule, "TransactionExecuted")
@@ -571,7 +495,7 @@ describe("proposalModule:", () => {
       const owners = await safe.getOwners();
       expect(owners[0]).to.equal(wallet_2.address);
       expect(owners[1]).to.equal(wallet_0.address);
-      expect(proposal.executionCounter).to.equal(0);
+      expect(proposal.executionCounter).to.equal(1);
     });
 
     it("can execute multiple add safe admin DAO proposal", async () => {
@@ -593,14 +517,13 @@ describe("proposalModule:", () => {
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
-      expect(proposal.executionCounter).to.equal(2);
+      expect(proposal.executionCounter).to.equal(0);
       await proposalModule.executeProposalByIndex(
         0, // proposalId
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       proposal = await proposalModule.proposals(0);
       let isExecuted = await proposalModule.isTxExecuted(0, 0);
@@ -614,8 +537,7 @@ describe("proposalModule:", () => {
         safe.address, // target
         0, // value
         addCall_1.data, // data
-        0, // call operation
-        1 // txHash index
+        0 // call operation
       );
       proposal = await proposalModule.proposals(0);
       isExecuted = await proposalModule.isTxExecuted(0, 1);
@@ -624,7 +546,7 @@ describe("proposalModule:", () => {
       expect(owners[0]).to.equal(wallet_3.address);
       expect(owners[1]).to.equal(wallet_2.address);
       expect(owners[2]).to.equal(wallet_0.address);
-      expect(proposal.executionCounter).to.equal(0);
+      expect(proposal.executionCounter).to.equal(2);
     });
 
     it("it should revert with parameter length missmatch", async () => {
@@ -651,9 +573,7 @@ describe("proposalModule:", () => {
           [safe.address, safe.address],
           [0, 0],
           [addCall.data],
-          [0, 0], // call options
-          0, // txHash start index
-          2 // tx length
+          [0, 0] // call options
         )
       ).to.be.revertedWith("execution parameters missmatch");
     });
@@ -681,9 +601,7 @@ describe("proposalModule:", () => {
         [safe.address],
         [0],
         [addCall.data],
-        [0], // call options
-        0, // txHash start index
-        1 // tx length
+        [0] // call options
       );
       await expect(
         proposalModule.executeProposalBatch(
@@ -691,11 +609,9 @@ describe("proposalModule:", () => {
           [safe.address],
           [0],
           [addCall.data],
-          [0], // call options
-          0, // txHash start index
-          1 // tx length
+          [0] // call options
         )
-      ).to.be.revertedWith("transaction is already executed");
+      ).to.be.revertedWith("transaction hash does not match indexed hash");
     });
 
     it("it should revert no transactions are supplied to batch", async () => {
@@ -722,9 +638,7 @@ describe("proposalModule:", () => {
           [],
           [],
           [],
-          [], // call options
-          0, // txHash start index
-          2 // tx length
+          [] // call options
         )
       ).to.be.revertedWith("no transactions to execute supplied to batch");
     });
@@ -752,54 +666,16 @@ describe("proposalModule:", () => {
           0, // proposalId
           [safe.address],
           [0],
-          [addCall.data],
-          [0], // call options
-          1, // txHash start index
-          1 // tx length
+          [addCall_1.data],
+          [0] // call options
         )
-      ).to.be.revertedWith("starting from an index out of ascending order");
-    });
-
-    it("transaction is not in ascending order of execution", async () => {
-      const {
-        safe,
-        proposalModule,
-        strategy,
-        addCall,
-        addCall_1,
-        txHash,
-        txHash_1,
-      } = await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash, txHash_1],
-        strategy.address,
-        "0x"
-      );
-      await strategy.finalizeStrategy(0);
-      await network.provider.send("evm_increaseTime", [60]);
-      await network.provider.send("evm_mine");
-      await expect(
-        proposalModule.executeProposalByIndex(
-          0, // proposalId
-          safe.address, // target
-          0, // value
-          addCall_1.data, // data
-          0, // call operation
-          1 // txHash index
-        )
-      ).to.be.revertedWith(
-        "transaction is not in ascending order of execution"
-      );
+      ).to.be.revertedWith("transaction hash does not match indexed hash");
     });
 
     it("it should revert transaction hash does not match indexed hash", async () => {
       const { safe, proposalModule, strategy, addCall, txHash_1 } =
         await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash_1],
-        strategy.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash_1], strategy.address, "0x");
       await strategy.finalizeStrategy(0);
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
@@ -809,8 +685,7 @@ describe("proposalModule:", () => {
           safe.address, // target
           0, // value
           addCall.data, // data
-          0, // call operation
-          0 // txHash index
+          0 // call operation
         )
       ).to.be.revertedWith("transaction hash does not match indexed hash");
     });
@@ -836,40 +711,81 @@ describe("proposalModule:", () => {
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
-      expect(proposal.executionCounter).to.equal(3);
+      expect(proposal.executionCounter).to.equal(0);
       await proposalModule.executeProposalBatch(
         0, // proposalId
-        [safe.address, safe.address, safe.address],
-        [0, 0, 0],
-        [addCall.data, addCall_1.data, addCall_2.data],
-        [0, 0, 0], // call options
-        0, // txHash start index
-        1 // tx length
-      );
-      proposal = await proposalModule.proposals(0);
-      expect(proposal.executionCounter).to.equal(2);
-      await proposalModule.executeProposalBatch(
-        0, // proposalId
-        [safe.address, safe.address, safe.address],
-        [0, 0, 0],
-        [addCall.data, addCall_1.data, addCall_2.data],
-        [0, 0, 0], // call options
-        1, // txHash start index
-        1 // tx length
+        [safe.address],
+        [0],
+        [addCall.data],
+        [0] // call options
       );
       proposal = await proposalModule.proposals(0);
       expect(proposal.executionCounter).to.equal(1);
       await proposalModule.executeProposalBatch(
         0, // proposalId
-        [safe.address, safe.address, safe.address],
-        [0, 0, 0],
-        [addCall.data, addCall_1.data, addCall_2.data],
-        [0, 0, 0], // call options
-        2, // txHash start index
-        1 // tx length
+        [safe.address],
+        [0],
+        [addCall_1.data],
+        [0] // call options
       );
       proposal = await proposalModule.proposals(0);
+      expect(proposal.executionCounter).to.equal(2);
+      await proposalModule.executeProposalBatch(
+        0, // proposalId
+        [safe.address],
+        [0],
+        [addCall_2.data],
+        [0] // call options
+      );
+      proposal = await proposalModule.proposals(0);
+      expect(proposal.executionCounter).to.equal(3);
+    });
+
+    it("it can execute batch staggared", async () => {
+      const {
+        proposalModule,
+        strategy,
+        safe,
+        addCall,
+        addCall_1,
+        addCall_2,
+        txHash,
+        txHash_1,
+        txHash_2,
+      } = await baseSetup();
+      await proposalModule.submitProposal(
+        [txHash, txHash_1, txHash_2],
+        strategy.address,
+        "0x"
+      );
+      await strategy.finalizeStrategy(0);
+      await network.provider.send("evm_increaseTime", [60]);
+      await network.provider.send("evm_mine");
+      let proposal = await proposalModule.proposals(0);
       expect(proposal.executionCounter).to.equal(0);
+      await proposalModule.executeProposalBatch(
+        0, // proposalId
+        [safe.address],
+        [0],
+        [addCall.data],
+        [0] // call options
+      );
+      proposal = await proposalModule.proposals(0);
+      expect(proposal.executionCounter).to.equal(1);
+      await proposalModule.executeProposalBatch(
+        0, // proposalId
+        [safe.address, safe.address],
+        [0, 0],
+        [addCall_1.data, addCall_2.data],
+        [0, 0] // call options
+      );
+      let owners = await safe.getOwners();
+      expect(owners[0]).to.equal(wallet_4.address);
+      expect(owners[1]).to.equal(wallet_3.address);
+      expect(owners[2]).to.equal(wallet_2.address);
+      expect(owners[3]).to.equal(wallet_0.address);
+      proposal = await proposalModule.proposals(0);
+      expect(proposal.executionCounter).to.equal(3);
     });
 
     it("can execute multiple add safe admin DAO proposal batch", async () => {
@@ -893,15 +809,13 @@ describe("proposalModule:", () => {
       await network.provider.send("evm_increaseTime", [60]);
       await network.provider.send("evm_mine");
       let proposal = await proposalModule.proposals(0);
-      expect(proposal.executionCounter).to.equal(3);
+      expect(proposal.executionCounter).to.equal(0);
       await proposalModule.executeProposalBatch(
         0, // proposalId
         [safe.address, safe.address, safe.address],
         [0, 0, 0],
         [addCall.data, addCall_1.data, addCall_2.data],
-        [0, 0, 0], // call options
-        0, // txHash start index
-        3 // tx length
+        [0, 0, 0] // call options
       );
       proposal = await proposalModule.proposals(0);
       let isExecuted = await proposalModule.isTxExecuted(0, 0);
@@ -915,17 +829,12 @@ describe("proposalModule:", () => {
       expect(owners[1]).to.equal(wallet_3.address);
       expect(owners[2]).to.equal(wallet_2.address);
       expect(owners[3]).to.equal(wallet_0.address);
-      expect(proposal.executionCounter).to.equal(0);
+      expect(proposal.executionCounter).to.equal(3);
     });
 
     it("cannot start finalizeStrategy after cancel proposal", async () => {
-      const { proposalModule, strategy, safe, txHash } =
-        await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      const { proposalModule, strategy, safe, txHash } = await baseSetup();
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await executeContractCallWithSigners(
         safe,
         proposalModule,
@@ -942,11 +851,7 @@ describe("proposalModule:", () => {
     it("can failsafe remove module before proposal executes", async () => {
       const { proposalModule, strategy, safe, addCall, txHash } =
         await baseSetup();
-      await proposalModule.submitProposal(
-        [txHash],
-        strategy.address,
-        "0x"
-      );
+      await proposalModule.submitProposal([txHash], strategy.address, "0x");
       await strategy.finalizeStrategy(0);
       await executeContractCallWithSigners(
         safe,
@@ -970,8 +875,7 @@ describe("proposalModule:", () => {
           safe.address, // target
           0, // value
           addCall.data, // data
-          0, // call operation
-          0 // txHash index
+          0 // call operation
         )
       ).to.be.revertedWith("GS104");
     });
@@ -1041,9 +945,7 @@ describe("proposalModule:", () => {
         [safe.address, safe.address, safe.address],
         [0, 0, 0],
         [removeCall_0.data, removeCall_1.data, burnCall.data],
-        [0, 0, 0], // call options
-        0, // txHash start index
-        3 // tx length
+        [0, 0, 0] // call options
       );
       let owners = await safe.getOwners();
       expect(owners[0]).to.equal("0x0000000000000000000000000000000000000002");
@@ -1075,8 +977,7 @@ describe("proposalModule:", () => {
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       let owners = await safe.getOwners();
       expect(owners[0]).to.equal(wallet_2.address);

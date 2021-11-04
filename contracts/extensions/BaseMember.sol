@@ -7,7 +7,6 @@ import "../BaseStrategy.sol";
 /// @title Base Membership - A Seele strategy extension that enables membership gates.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 abstract contract BaseMember is BaseStrategy {
-
     uint256 public memberCount;
 
     mapping(address => bool) public members;

@@ -9,7 +9,7 @@ import {
   executeTx,
   safeApproveHash,
   buildContractCallVariable,
-  safeSignMessage
+  safeSignMessage,
 } from "./shared/utils";
 import { AddressZero } from "@ethersproject/constants";
 import { signTypedMessage, TypedDataUtils } from "eth-sig-util";
@@ -84,7 +84,6 @@ describe("linearOZVotingStrategy:", () => {
       "@gnosis.pm/safe-contracts/contracts/libraries/MultiSend.sol:MultiSend"
     );
     const multisend = await multisendContract.deploy();
-
 
     const linearContract = await ethers.getContractFactory("OZLinearVoting");
     const linearVotingMaster = await linearContract.deploy(
@@ -240,9 +239,13 @@ describe("linearOZVotingStrategy:", () => {
       [expectedAddress],
       0
     );
-    const multiTx = buildMultiSendSafeTx(multisend, [deployLinear, deploySeele, setSeele, registerSeele], await safe.nonce())
-    const sig = await safeSignMessage(wallet_0, safe, multiTx)
-    executeTx(safe, multiTx, [ sig ])
+    const multiTx = buildMultiSendSafeTx(
+      multisend,
+      [deployLinear, deploySeele, setSeele, registerSeele],
+      await safe.nonce()
+    );
+    const sig = await safeSignMessage(wallet_0, safe, multiTx);
+    executeTx(safe, multiTx, [sig]);
     //executeTx(safe, multiTx, [ await safeApproveHash(wallet_0, safe, multiTx, true) ])
     // await executeContractCallWithSigners(
     //   safe,
@@ -333,8 +336,8 @@ describe("linearOZVotingStrategy:", () => {
 
   describe("setUp", async () => {
     it("can register linear voting module", async () => {
-      const { proposalModule, linearVoting, safe} = await baseSetup();
-      expect(await linearVoting.owner()).to.equal(safe.address)
+      const { proposalModule, linearVoting, safe } = await baseSetup();
+      expect(await linearVoting.owner()).to.equal(safe.address);
       expect(
         await proposalModule.isStrategyEnabled(linearVoting.address)
       ).to.equal(true);
@@ -413,8 +416,7 @@ describe("linearOZVotingStrategy:", () => {
         linearVoting.address, // target
         0, // value
         Call.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await linearVoting.timeLockPeriod()).to.equal(1337);
     });
@@ -649,8 +651,7 @@ describe("linearOZVotingStrategy:", () => {
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await proposalModule.state(0)).to.equal(3);
       const owners = await safe.getOwners();
@@ -689,16 +690,14 @@ describe("linearOZVotingStrategy:", () => {
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       await proposalModule.executeProposalByIndex(
         1, // proposalId
         safe.address, // target
         0, // value
         addCall_1.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       const owners = await safe.getOwners();
       expect(owners[0]).to.equal(wallet_2.address);
@@ -733,8 +732,7 @@ describe("linearOZVotingStrategy:", () => {
         govToken.address, // target
         0, // value
         transferCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await govToken.balanceOf(wallet_2.address)).to.equal(
         ethers.BigNumber.from("10000000000000000001000")
@@ -885,8 +883,7 @@ describe("linearOZVotingStrategy:", () => {
         memberLinearVoting.address, // target
         0, // value
         addMemberCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       const member = await memberLinearVoting.members(wallet_1.address);
       expect(member).to.equal(true);
@@ -963,8 +960,7 @@ describe("linearOZVotingStrategy:", () => {
         memberLinearVoting.address, // target
         0, // value
         removeMemberCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       const member = await memberLinearVoting.members(wallet_0.address);
       expect(member).to.equal(false);

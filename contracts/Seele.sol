@@ -32,7 +32,6 @@ contract Seele is Module {
     struct Proposal {
         bool canceled;
         uint256 timeLockPeriod; // queue period for safety
-        bool[] executed; // maybe can be derived from counter
         bytes32[] txHashes;
         uint256 executionCounter;
         address strategy; // the module that is allowed to vote on this
@@ -191,7 +190,11 @@ contract Seele is Module {
         view
         returns (bool)
     {
-        return proposals[proposalId].executed[index];
+        require(
+            proposals[proposalId].txHashes.length > 0,
+            "no executions in this proposal"
+        );
+        return proposals[proposalId].executionCounter > index;
     }
 
     /// @dev Returns the hash of a transaction in a proposal.
@@ -220,10 +223,6 @@ contract Seele is Module {
             "voting strategy is not enabled for proposal"
         );
         require(txHashes.length > 0, "proposal must contain transactions");
-        for (uint256 i; i < txHashes.length; i++) {
-            proposals[totalProposalCount].executed.push(false);
-        }
-        proposals[totalProposalCount].executionCounter = txHashes.length;
         proposals[totalProposalCount].txHashes = txHashes;
         proposals[totalProposalCount].strategy = strategy;
         totalProposalCount++;
@@ -238,7 +237,10 @@ contract Seele is Module {
     function cancelProposals(uint256[] memory proposalIds) external onlyOwner {
         for (uint256 i = 0; i < proposalIds.length; i++) {
             Proposal storage _proposal = proposals[proposalIds[i]];
-            require(_proposal.executionCounter > 0, "nothing to cancel");
+            require(
+                _proposal.executionCounter < _proposal.txHashes.length,
+                "nothing to cancel"
+            );
             require(
                 _proposal.canceled == false,
                 "proposal is already canceled"
@@ -280,40 +282,26 @@ contract Seele is Module {
     /// @param value ether value to pass with the call
     /// @param data the data to be executed from the call
     /// @param operation Call or Delegatecall
-    /// @param txIndex the index of the transaction to execute
     function executeProposalByIndex(
         uint256 proposalId,
         address target,
         uint256 value,
         bytes memory data,
-        Enum.Operation operation,
-        uint256 txIndex
+        Enum.Operation operation
     ) public {
         // force calls from strat so we can scope
         require(
             state(proposalId) == ProposalState.Executing,
             "proposal is not in execution state"
         );
+        bytes32 txHash = getTransactionHash(target, value, data, operation);
         require(
-            proposals[proposalId].executed[txIndex] == false,
-            "transaction is already executed"
-        );
-        bytes32 txHash = getTransactionHash(
-            target,
-            value,
-            data,
-            operation
-        );
-        require(
-            proposals[proposalId].txHashes[txIndex] == txHash,
+            proposals[proposalId].txHashes[
+                proposals[proposalId].executionCounter
+            ] == txHash,
             "transaction hash does not match indexed hash"
         );
-        require(
-            txIndex == 0 || proposals[proposalId].executed[txIndex - 1],
-            "transaction is not in ascending order of execution"
-        );
-        proposals[proposalId].executed[txIndex] = true;
-        proposals[proposalId].executionCounter--;
+        proposals[proposalId].executionCounter++;
         require(
             exec(target, value, data, operation),
             "Module transaction failed"
@@ -328,43 +316,39 @@ contract Seele is Module {
     /// @param values ether values to pass with the calls
     /// @param data the data to be executed from the calls
     /// @param operations Calls or Delegatecalls
-    /// @param startIndex the start index of the transactions to execute
-    /// @param txCount the number of txs to execute in this batch
     function executeProposalBatch(
         uint256 proposalId,
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory data,
-        Enum.Operation[] memory operations,
-        uint256 startIndex,
-        uint256 txCount
+        Enum.Operation[] memory operations
     ) external {
-        // force calls from strat so we can scope
+        require(
+            targets.length != 0,
+            "no transactions to execute supplied to batch"
+        );
         require(
             targets.length == values.length &&
                 targets.length == data.length &&
                 targets.length == operations.length,
             "execution parameters missmatch"
         );
+        uint256 startIndex = proposals[proposalId].executionCounter;
         require(
-            targets.length != 0,
-            "no transactions to execute supplied to batch"
+            startIndex + targets.length <=
+                proposals[proposalId].txHashes.length,
+            "attempting to execute too many transactions"
         );
-        require(
-            startIndex == 0 || proposals[proposalId].executed[startIndex - 1],
-            "starting from an index out of ascending order"
-        );
-        for (uint256 i = startIndex; i < startIndex + txCount; i++) {
+        for (uint256 i = startIndex; i < startIndex + targets.length; i++) {
             executeProposalByIndex(
                 proposalId,
-                targets[i],
-                values[i],
-                data[i],
-                operations[i],
-                i
+                targets[i - startIndex],
+                values[i - startIndex],
+                data[i - startIndex],
+                operations[i - startIndex]
             );
         }
-        emit TransactionExecutedBatch(startIndex, startIndex + txCount);
+        emit TransactionExecutedBatch(startIndex, startIndex + targets.length);
     }
 
     /// @dev Get the state of a proposal
@@ -374,7 +358,7 @@ contract Seele is Module {
         Proposal storage _proposal = proposals[proposalId];
         if (_proposal.strategy == address(0)) {
             return ProposalState.Uninitialized;
-        } else if (_proposal.executionCounter == 0) {
+        } else if (_proposal.executionCounter == _proposal.txHashes.length) {
             return ProposalState.Executed;
         } else if (_proposal.canceled) {
             return ProposalState.Canceled;

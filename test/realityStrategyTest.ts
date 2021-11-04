@@ -293,8 +293,7 @@ describe("realityVotingStrategies:", () => {
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       expect(await proposalModule.state(0)).to.equal(3);
       let proposal = await proposalModule.proposals(0);
@@ -303,7 +302,7 @@ describe("realityVotingStrategies:", () => {
       const owners = await safe.getOwners();
       expect(owners[0]).to.equal(wallet_1.address);
       expect(owners[1]).to.equal(wallet_0.address);
-      expect(proposal.executionCounter).to.equal(0);
+      expect(proposal.executionCounter).to.equal(1);
     });
   });
   // can use the safe and a cancel proposal role

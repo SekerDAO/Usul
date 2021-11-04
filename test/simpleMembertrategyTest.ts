@@ -305,16 +305,14 @@ describe("SimpleMemberVotingStrategy:", () => {
         safe.address, // target
         0, // value
         addCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       await proposalModule.executeProposalByIndex(
         1, // proposalId
         safe.address, // target
         0, // value
         addCall_1.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       const owners = await safe.getOwners();
       expect(owners[0]).to.equal(wallet_2.address);
@@ -458,8 +456,7 @@ describe("SimpleMemberVotingStrategy:", () => {
         simpleMember.address, // target
         0, // value
         addMemberCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       const member = await simpleMember.members(wallet_2.address);
       expect(member).to.equal(true);
@@ -529,8 +526,7 @@ describe("SimpleMemberVotingStrategy:", () => {
         simpleMember.address, // target
         0, // value
         removeMemberCall.data, // data
-        0, // call operation
-        0 // txHash index
+        0 // call operation
       );
       const member = await simpleMember.members(wallet_0.address);
       expect(member).to.equal(false);
