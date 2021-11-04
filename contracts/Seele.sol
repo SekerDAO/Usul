@@ -302,7 +302,7 @@ contract Seele is Module {
             target,
             value,
             data,
-            Enum.Operation.Call,
+            operation,
             0
         );
         require(
