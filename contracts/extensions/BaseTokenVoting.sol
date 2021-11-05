@@ -116,17 +116,11 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
         uint256 weight = calculateWeight(voter, proposalId);
         proposals[proposalId].hasVoted[voter] = true;
         if (support == uint8(VoteType.Against)) {
-            proposals[proposalId].noVotes =
-                proposals[proposalId].noVotes +
-                weight;
+            proposals[proposalId].noVotes += weight;
         } else if (support == uint8(VoteType.For)) {
-            proposals[proposalId].yesVotes =
-                proposals[proposalId].yesVotes +
-                weight;
+            proposals[proposalId].yesVotes += weight;
         } else if (support == uint8(VoteType.Abstain)) {
-            proposals[proposalId].abstainVotes =
-                proposals[proposalId].abstainVotes +
-                weight;
+            proposals[proposalId].abstainVotes += weight;
         } else {
             revert("invalid value for enum VoteType");
         }
