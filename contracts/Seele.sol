@@ -333,22 +333,24 @@ contract Seele is Module {
                 targets.length == operations.length,
             "execution parameters missmatch"
         );
-        uint256 startIndex = proposals[proposalId].executionCounter;
         require(
-            startIndex + targets.length <=
+            proposals[proposalId].executionCounter + targets.length <=
                 proposals[proposalId].txHashes.length,
             "attempting to execute too many transactions"
         );
-        for (uint256 i = startIndex; i < startIndex + targets.length; i++) {
+        for (uint256 i = 0; i < targets.length; i++) {
             executeProposalByIndex(
                 proposalId,
-                targets[i - startIndex],
-                values[i - startIndex],
-                data[i - startIndex],
-                operations[i - startIndex]
+                targets[i],
+                values[i],
+                data[i],
+                operations[i]
             );
         }
-        emit TransactionExecutedBatch(startIndex, startIndex + targets.length);
+        emit TransactionExecutedBatch(
+            proposals[proposalId].executionCounter,
+            proposals[proposalId].executionCounter + targets.length
+        );
     }
 
     /// @dev Get the state of a proposal
