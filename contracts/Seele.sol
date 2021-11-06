@@ -383,7 +383,7 @@ contract Seele is Module {
         Enum.Operation operation,
         uint256 nonce
     ) public view returns (bytes memory) {
-        uint256 chainId = getChainId();
+        uint256 chainId = block.chainid;
         bytes32 domainSeparator = keccak256(
             abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, this)
         );
@@ -416,15 +416,5 @@ contract Seele is Module {
             keccak256(
                 generateTransactionHashData(to, value, data, operation, 0)
             );
-    }
-
-    /// @dev Returns the chain id used by this contract.
-    function getChainId() public view returns (uint256) {
-        uint256 id;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            id := chainid()
-        }
-        return id;
     }
 }

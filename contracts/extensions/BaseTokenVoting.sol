@@ -155,14 +155,4 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
         view
         virtual
         returns (uint256);
-
-    /// @dev Returns the chain id used by this contract.
-    function getChainId() public view returns (uint256) {
-        uint256 id;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            id := chainid()
-        }
-        return id;
-    }
 }
