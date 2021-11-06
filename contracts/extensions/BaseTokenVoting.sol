@@ -113,8 +113,8 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
             "voting period has passed"
         );
         require(!hasVoted(proposalId, voter), "voter has already voted");
-        uint256 weight = calculateWeight(voter, proposalId);
         proposals[proposalId].hasVoted[voter] = true;
+        uint256 weight = calculateWeight(voter, proposalId);
         if (support == uint8(VoteType.Against)) {
             proposals[proposalId].noVotes += weight;
         } else if (support == uint8(VoteType.For)) {
