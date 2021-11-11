@@ -1,7 +1,7 @@
 # Usul Zodiac Module
 
 <p align="center">
-  <img width="600" src="https://pbs.twimg.com/media/Ezw7YFqWEAMgqUl.jpg">
+  <img width="600" src="https://dunenovels.com/wp-content/uploads/2020/11/WindsofDune-2.jpg">
 </p>
 
 ## About
