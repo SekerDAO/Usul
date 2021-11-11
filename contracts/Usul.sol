@@ -5,9 +5,9 @@ pragma solidity >=0.8.0;
 import "@gnosis.pm/zodiac/contracts/core/Module.sol";
 import "./interfaces/IStrategy.sol";
 
-/// @title Seele Module - A Zodiac module that enables a voting agnostic proposal mechanism.
+/// @title Usul Module - A Zodiac module that enables a voting agnostic proposal mechanism.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract Seele is Module {
+contract Usul is Module {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
         0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
     // keccak256(
@@ -55,7 +55,7 @@ contract Seele is Module {
     event TransactionExecutedBatch(uint256 startIndex, uint256 endIndex);
     event StrategyFinalized(uint256 proposalId, uint256 endDate);
     event ProposalExecuted(uint256 id);
-    event SeeleSetup(
+    event UsulSetup(
         address indexed initiator,
         address indexed owner,
         address indexed avatar,
@@ -91,7 +91,7 @@ contract Seele is Module {
         target = _target;
         setupStrategies(_strategies);
         transferOwnership(_owner);
-        emit SeeleSetup(msg.sender, _owner, _avatar, _target);
+        emit UsulSetup(msg.sender, _owner, _avatar, _target);
     }
 
     function setupStrategies(address[] memory _strategies) internal {

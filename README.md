@@ -1,4 +1,4 @@
-# Seele Zodiac Module
+# Usul Zodiac Module
 
 <p align="center">
   <img width="600" src="https://pbs.twimg.com/media/Ezw7YFqWEAMgqUl.jpg">
@@ -6,7 +6,7 @@
 
 ## About
 
-Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Seele Module.
+Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Usul Module.
 
 This module — another tool in the Zodiac DAO standard — provides a proposal core that can register swappable voting contracts called `Strategies`, allowing DAOs to choose from various on-chain voting methods that best suit their needs.
 
@@ -28,7 +28,7 @@ The following strategies are a WIP (PRs welcome for additional strategies!)
 - StarkWare ZKSNARK voting
 - Bridge Voting
 
-## Seele Module (Proposal Core)
+## Usul Module (Proposal Core)
 
 This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting, or strategies, as strategies are conducted with separate contracts that can be registered with the proposal core. This core recognizes that all DAO contracts have a proposal registry in common, and only differ in how a decission is made on whether or not to execute that data. This module seperates the concerns of registering the data and applying logic allowing for any kind of logic to easily be attached to proposal registration. This creates a suite of choices to compose a DAO, allows DAOs to use multiple strategies in concert to create sub-DAOs or committees, and DAOs can easily enable or disable strategies to evolve the DAO over time. 
 
@@ -60,42 +60,42 @@ Uninitialized
 /// @dev Enables a voting strategy that can vote on proposals
 /// @param strategy Address of the strategy to be enabled
 /// @notice This can only be called by the owner
-seeleModuleenableStrategy(address strategy)
+UsulModuleenableStrategy(address strategy)
 
 /// @dev Disables a voting strategy on the module
 /// @param prevStrategy Strategy that pointed to the strategy to be removed in the linked list
 /// @param strategy Strategy to be removed
 /// @notice This can only be called by the owner
-seeleModule.disableStrategy(address prevStrategy, address strategy)
+UsulModule.disableStrategy(address prevStrategy, address strategy)
 
 /// @dev Returns if a strategy is enabled
 /// @return True if the strategy is enabled
-seeleModule.isStrategyEnabled(address _strategy)
+UsulModule.isStrategyEnabled(address _strategy)
 
 /// @dev Returns array of strategy.
 /// @param start Start of the page.
 /// @param pageSize Maximum number of strategy that should be returned.
 /// @return array Array of strategy.
 /// @return next Start of the next page.
-seeleModule.getStrategiesPaginated(address start, uint256 pageSize)
+UsulModule.getStrategiesPaginated(address start, uint256 pageSize)
 
 /// @dev Returns true if a proposal transaction by index is exectuted.
 /// @param proposalId the proposal to inspect.
 /// @param index the transaction to inspect.
 /// @return boolean.
-seeleModule.isTxExecuted(uint256 proposalId, uint256 index)
+UsulModule.isTxExecuted(uint256 proposalId, uint256 index)
 
 /// @dev Returns the hash of a transaction in a proposal.
 /// @param proposalId the proposal to inspect.
 /// @param index the transaction to inspect.
 /// @return transaction hash.
-seeleModule.getTxHash(uint256 proposalId, uint256 index)
+UsulModule.getTxHash(uint256 proposalId, uint256 index)
 
 /// @dev Submits a new proposal.
 /// @param txHashes an array of hashed transaction data to execute
 /// @param votingStrategy the voting strategy to be used with this proposal
 /// @param data any extra data to pass to the voting strategy
-seeleModule.submitProposal(
+UsulModule.submitProposal(
     bytes32[] memory txHashes,
     address votingStrategy,
     bytes memory data
@@ -103,11 +103,11 @@ seeleModule.submitProposal(
 
 /// @dev Cancels a proposal. Only callable by governance owner
 /// @param proposalIds array of proposals to cancel.
-seeleModule.cancelProposals(uint256[] memory proposalIds)
+UsulModule.cancelProposals(uint256[] memory proposalIds)
 
 /// @dev Begins the timelock phase of a successful proposal, only callable by register strat
 /// @param proposalId the identifier of the proposal
-seeleModule.receiveStrategy(uint256 proposalId, uint256 timeLockPeriod)
+UsulModule.receiveStrategy(uint256 proposalId, uint256 timeLockPeriod)
 
 /// @dev The execution of a transaction contained within a passed proposal
 /// @param proposalID The ID of the queued proposal to execute
@@ -116,7 +116,7 @@ seeleModule.receiveStrategy(uint256 proposalId, uint256 timeLockPeriod)
 /// @param data The data to be executed on the Gnosis Safe
 /// @param operation The enumarated call or delegatecall option
 /// @param txIndex the index of the transaction to be executed in proposal.txHashes array
-seeleModule.executeProposalByIndex
+UsulModule.executeProposalByIndex
 
 /// @dev This performs a batch of transaction executions in one ethereum transaction
 /// @param proposalID The ID of the queued proposal to execute
@@ -126,19 +126,19 @@ seeleModule.executeProposalByIndex
 /// @param operations The array of enumarated call or delegatecall option
 /// @param startIndex The starting index of the transaction to be executed in proposal.txHashes array
 /// @param txCount The number of transactions to be executed in this batch
-seeleModule.executeProposalBatch
+UsulModule.executeProposalBatch
 
 /// @dev Get the state of a proposal
 /// @param proposalId the identifier of the proposal
 /// @return ProposalState the enum of the state of the proposal
-seeleModule.state(uint256 proposalId)
+UsulModule.state(uint256 proposalId)
 
 /// @dev A view that returns if all transactions have been executed in a proposal
-seeleModule.isProposalFullyExecuted
+UsulModule.isProposalFullyExecuted
 /// @param proposalId the id of the proposal that you would like see is fully executed or not
 
 /// @dev A view to that returns the transaction for given transaction data
-seeleModule.generateTransactionHashData
+UsulModule.generateTransactionHashData
 /// @param target The address that the Gnosis Safe targets execution to
 /// @param value The Ether value to pass to the execution
 /// @param data The data to be executed on the Gnosis Safe
@@ -147,7 +147,7 @@ seeleModule.generateTransactionHashData
 
 ## Strategies
 
-These are logic contracts registered with the Seele proposal module that allow DAOs to choose, change, combine the voting strategies they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
+These are logic contracts registered with the Usul proposal module that allow DAOs to choose, change, combine the voting strategies they wish to use. A DAO may start with linear weighted voting and then swap to quadratic voting or any other strategy they would like to use. This includes non-token based voting using the membership voting contracts in conjunction with a system like PoH or BrightID.
 
 Strategies are built with abstract base contracts to provide composability in creation of new strategies.
 

@@ -3,7 +3,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 pragma solidity >=0.8.0;
 
-/// @title BaseQuorumPercent - A Seele strategy extension that enables percent based quorums.
+/// @title BaseQuorumPercent - A Usul strategy extension that enables percent based quorums.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 abstract contract BaseQuorumPercent is OwnableUpgradeable {
     uint256 private _quorumNumerator;

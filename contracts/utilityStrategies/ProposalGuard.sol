@@ -16,26 +16,26 @@ contract ProposalGuard is BaseStrategy, BaseScope {
     constructor(
         address[] memory _guards,
         address _owner,
-        address _seele
+        address _Usul
     ) {
-        bytes memory initParams = abi.encode(_guards, _owner, _seele);
+        bytes memory initParams = abi.encode(_guards, _owner, _Usul);
         setUp(initParams);
     }
 
     function setUp(bytes memory initParams) public override initializer {
-        (address[] memory _guards, address _owner, address _seele) = abi.decode(
+        (address[] memory _guards, address _owner, address _Usul) = abi.decode(
             initParams,
             (address[], address, address)
         );
-        seeleModule = _seele;
+        UsulModule = _Usul;
         __Ownable_init();
         for (uint256 i = 0; i < _guards.length; i++) {
             enableGuard(_guards[i]);
         }
         updateAllowedSignature(bytes4(keccak256("cancelProposals(uint256[])"))); // 0xe0a8f6f5
-        updateAllowedTarget(_seele); // proposal guard can only call seele
+        updateAllowedTarget(_Usul); // proposal guard can only call Usul
         transferOwnership(_owner);
-        emit StrategySetup(_seele, _owner);
+        emit StrategySetup(_Usul, _owner);
     }
 
     /// @dev Disables a guard
@@ -62,7 +62,7 @@ contract ProposalGuard is BaseStrategy, BaseScope {
     /// @param data extra data for proposal guard
     /// @notice This data contains the call to cancel a proposal. It must match the hash
     /// of the transaction and the function selector must only be a cancelProposal call.
-    function receiveProposal(bytes memory data) external override onlySeele {
+    function receiveProposal(bytes memory data) external override onlyUsul {
         (
             uint256 proposalId,
             bytes32[] memory txHash,
@@ -77,7 +77,7 @@ contract ProposalGuard is BaseStrategy, BaseScope {
             "cannot finalize guard proposal"
         );
         if (isPassed(proposalId)) {
-            IProposal(seeleModule).receiveStrategy(proposalId, 0);
+            IProposal(UsulModule).receiveStrategy(proposalId, 0);
         }
     }
 

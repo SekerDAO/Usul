@@ -6,7 +6,7 @@ import "../common/VotingNFT.sol";
 import "../extensions/BaseTokenVoting.sol";
 import "../extensions/BaseQuorumFixed.sol";
 
-/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
+/// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 contract NFTSingleVoting is BaseTokenVoting, BaseQuorumFixed {
     VotingNFT public governanceToken;
@@ -16,7 +16,7 @@ contract NFTSingleVoting is BaseTokenVoting, BaseQuorumFixed {
     constructor(
         address _owner,
         VotingNFT _governanceToken,
-        address _seeleModule,
+        address _UsulModule,
         uint256 _votingPeriod,
         uint256 quorumThreshold_,
         uint256 _timeLockPeriod,
@@ -25,7 +25,7 @@ contract NFTSingleVoting is BaseTokenVoting, BaseQuorumFixed {
         bytes memory initParams = abi.encode(
             _owner,
             _governanceToken,
-            _seeleModule,
+            _UsulModule,
             _votingPeriod,
             quorumThreshold_,
             _timeLockPeriod,
@@ -38,7 +38,7 @@ contract NFTSingleVoting is BaseTokenVoting, BaseQuorumFixed {
         (
             address _owner,
             VotingNFT _governanceToken,
-            address _seeleModule,
+            address _UsulModule,
             uint256 _votingPeriod,
             uint256 quorumThreshold_,
             uint256 _timeLockPeriod,
@@ -58,10 +58,10 @@ contract NFTSingleVoting is BaseTokenVoting, BaseQuorumFixed {
         updateQuorumThreshold(quorumThreshold_);
         transferOwnership(_owner);
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
-        seeleModule = _seeleModule;
+        UsulModule = _UsulModule;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
         name = name_;
-        emit StrategySetup(_seeleModule, _owner);
+        emit StrategySetup(_UsulModule, _owner);
     }
 
     /// @dev Determines if a proposal has succeeded.

@@ -8,22 +8,22 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 abstract contract BaseStrategy is OwnableUpgradeable, FactoryFriendly {
     /// @dev Emitted each time the avatar is set.
-    event SeeleSet(address indexed previousSeele, address indexed newSeele);
-    event StrategySetup(address indexed seeleModule, address indexed owner);
+    event UsulSet(address indexed previousUsul, address indexed newUsul);
+    event StrategySetup(address indexed UsulModule, address indexed owner);
 
-    address public seeleModule;
+    address public UsulModule;
 
-    modifier onlySeele() {
-        require(msg.sender == seeleModule, "only seele module may enter");
+    modifier onlyUsul() {
+        require(msg.sender == UsulModule, "only Usul module may enter");
         _;
     }
 
     /// @dev Sets the executor to a new account (`newExecutor`).
     /// @notice Can only be called by the current owner.
-    function setSeele(address _seele) public onlyOwner {
-        address previousSeele = seeleModule;
-        seeleModule = _seele;
-        emit SeeleSet(previousSeele, _seele);
+    function setUsul(address _Usul) public onlyOwner {
+        address previousUsul = UsulModule;
+        UsulModule = _Usul;
+        emit UsulSet(previousUsul, _Usul);
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.

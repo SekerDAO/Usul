@@ -139,7 +139,7 @@ describe("quadraticOZVotingStrategy:", () => {
       expectedQuadtraticAddress
     );
 
-    const proposalContract = await ethers.getContractFactory("Seele");
+    const proposalContract = await ethers.getContractFactory("Usul");
     const masterProposalModule = await proposalContract.deploy(
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",
@@ -181,7 +181,7 @@ describe("quadraticOZVotingStrategy:", () => {
       .withArgs(expectedAddress, masterProposalModule.address);
     const proposalModule = proposalContract.attach(expectedAddress);
 
-    await quadtraticVoting.setSeele(expectedAddress);
+    await quadtraticVoting.setUsul(expectedAddress);
     await quadtraticVoting.transferOwnership(safe.address);
 
     await govToken.transfer(safe.address, safeSupply);

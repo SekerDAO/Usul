@@ -152,7 +152,7 @@ describe("linearOZVotingStrategy:", () => {
     //   .withArgs(expectedLinearAddress, linearVotingMaster.address);
     // const linearVoting = linearVotingMaster.attach(expectedLinearAddress);
 
-    const proposalContract = await ethers.getContractFactory("Seele");
+    const proposalContract = await ethers.getContractFactory("Usul");
     const masterProposalModule = await proposalContract.deploy(
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",
@@ -183,7 +183,7 @@ describe("linearOZVotingStrategy:", () => {
       salt,
       ethers.utils.keccak256(byteCode)
     );
-    const deploySeele = buildContractCall(
+    const deployUsul = buildContractCall(
       moduleFactory,
       "deployModule",
       [masterProposalModule.address, initData, "0x01"],
@@ -200,10 +200,10 @@ describe("linearOZVotingStrategy:", () => {
     //   .withArgs(expectedAddress, masterProposalModule.address);
     // const proposalModule = proposalContract.attach(expectedAddress);
 
-    const setSeele = buildContractCallVariable(
+    const setUsul = buildContractCallVariable(
       linearVotingMaster,
       expectedLinearAddress,
-      "setSeele",
+      "setUsul",
       [expectedAddress],
       0
     );
@@ -213,7 +213,7 @@ describe("linearOZVotingStrategy:", () => {
     //   [expectedLinearAddress],
     //   0
     // );
-    // await linearVoting.setSeele(expectedAddress);
+    // await linearVoting.setUsul(expectedAddress);
     // await linearVoting.transferOwnership(safe.address);
 
     // const encodedMultiSend = ethers.utils.defaultAbiCoder.encode(
@@ -228,12 +228,12 @@ describe("linearOZVotingStrategy:", () => {
     //     [0,0,0,0],
     //     [moduleFactory.address, moduleFactory.address, expectedLinearAddress, expectedLinearAddress],
     //     [0,0,0,0],
-    //     [deployLinear.data.length, deploySeele.data.length, setSeele.data.length, transferOwner.data.length],
-    //     [deployLinear.data, deploySeele.data, setSeele.data, transferOwner.data]
+    //     [deployLinear.data.length, deployUsul.data.length, setUsul.data.length, transferOwner.data.length],
+    //     [deployLinear.data, deployUsul.data, setUsul.data, transferOwner.data]
     //   ]
     // );
 
-    const registerSeele = buildContractCall(
+    const registerUsul = buildContractCall(
       safe,
       "enableModule",
       [expectedAddress],
@@ -241,7 +241,7 @@ describe("linearOZVotingStrategy:", () => {
     );
     const multiTx = buildMultiSendSafeTx(
       multisend,
-      [deployLinear, deploySeele, setSeele, registerSeele],
+      [deployLinear, deployUsul, setUsul, registerUsul],
       await safe.nonce()
     );
     const sig = await safeSignMessage(wallet_0, safe, multiTx);

@@ -5,7 +5,7 @@ pragma solidity >=0.8.0;
 import "../BaseStrategy.sol";
 import "@gnosis.pm/safe-contracts/contracts/common/Enum.sol";
 
-/// @title Base scope - A Seele strategy extension that scopes execution of proposals.
+/// @title Base scope - A Usul strategy extension that scopes execution of proposals.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 abstract contract BaseScope is BaseStrategy {
     bytes32 public constant DOMAIN_SEPARATOR_TYPEHASH =
@@ -85,7 +85,7 @@ abstract contract BaseScope is BaseStrategy {
     ) internal view returns (bytes memory) {
         uint256 chainId = getChainId();
         bytes32 domainSeparator = keccak256(
-            abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, seeleModule) // use seele as the verifying contract
+            abi.encode(DOMAIN_SEPARATOR_TYPEHASH, chainId, UsulModule) // use Usul as the verifying contract
         );
         bytes32 transactionHash = keccak256(
             abi.encode(

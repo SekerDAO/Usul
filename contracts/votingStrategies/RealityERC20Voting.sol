@@ -34,7 +34,7 @@ contract RealityERC20Voting is BaseStrategy {
 
     constructor(
         address _owner,
-        address _seeleModule,
+        address _UsulModule,
         RealitioV3 _oracle,
         uint32 timeout,
         uint32 cooldown,
@@ -46,7 +46,7 @@ contract RealityERC20Voting is BaseStrategy {
     ) {
         bytes memory initParams = abi.encode(
             _owner,
-            _seeleModule,
+            _UsulModule,
             _oracle,
             timeout,
             cooldown,
@@ -62,7 +62,7 @@ contract RealityERC20Voting is BaseStrategy {
     function setUp(bytes memory initParams) public override initializer {
         (
             address _owner,
-            address _seeleModule,
+            address _UsulModule,
             RealitioV3 _oracle,
             uint32 timeout,
             uint32 cooldown,
@@ -98,11 +98,11 @@ contract RealityERC20Voting is BaseStrategy {
         questionArbitrator = arbitrator;
         minimumBond = bond;
         template = templateId;
-        seeleModule = _seeleModule;
+        UsulModule = _UsulModule;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
         __Ownable_init();
         transferOwnership(_owner);
-        emit StrategySetup(_seeleModule, _owner);
+        emit StrategySetup(_UsulModule, _owner);
     }
 
     /// @dev Updates the grace period time after a proposal passed before it can execute.
@@ -171,7 +171,7 @@ contract RealityERC20Voting is BaseStrategy {
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(bytes calldata data) external override onlySeele {
+    function receiveProposal(bytes calldata data) external override onlyUsul {
         (
             uint256 proposalId,
             bytes32[] memory txHashes,
@@ -215,7 +215,7 @@ contract RealityERC20Voting is BaseStrategy {
     /// @param proposalId the proposal to vote for.
     function finalizeStrategy(uint256 proposalId) external override {
         if (isPassed(proposalId)) {
-            IProposal(seeleModule).receiveStrategy(proposalId, timeLockPeriod);
+            IProposal(UsulModule).receiveStrategy(proposalId, timeLockPeriod);
         }
     }
 

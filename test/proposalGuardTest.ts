@@ -74,7 +74,7 @@ describe("ProposalGuardStrategy:", () => {
       "ModuleProxyFactory"
     );
     const moduleFactory = await moduleFactoryContract.deploy();
-    const proposalContract = await ethers.getContractFactory("Seele");
+    const proposalContract = await ethers.getContractFactory("Usul");
     const masterProposalModule = await proposalContract.deploy(
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",
@@ -427,7 +427,7 @@ describe("ProposalGuardStrategy:", () => {
       ).to.be.revertedWith("proposal is not a cancel signature");
     });
 
-    it("should revert if tx is not targeting Seele", async () => {
+    it("should revert if tx is not targeting Usul", async () => {
       const { proposalModule, safe, linearVoting, proposalGuard, govToken } =
         await baseSetup();
       const Call = buildContractCall(

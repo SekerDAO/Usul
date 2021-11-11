@@ -66,7 +66,7 @@ describe("realityVotingStrategies:", () => {
       "ModuleProxyFactory"
     );
     const moduleFactory = await moduleFactoryContract.deploy();
-    const proposalContract = await ethers.getContractFactory("Seele");
+    const proposalContract = await ethers.getContractFactory("Usul");
     const masterProposalModule = await proposalContract.deploy(
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",

@@ -71,7 +71,7 @@ describe("proposalModule:", () => {
       "ModuleProxyFactory"
     );
     const moduleFactory = await moduleFactoryContract.deploy();
-    const proposalContract = await ethers.getContractFactory("Seele");
+    const proposalContract = await ethers.getContractFactory("Usul");
     const masterProposalModule = await proposalContract.deploy(
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",
@@ -197,7 +197,7 @@ describe("proposalModule:", () => {
       expect(await proposalModule.owner()).to.equal(safe.address);
     });
 
-    it("can register Seele proposal engine module", async () => {
+    it("can register Usul proposal engine module", async () => {
       const { proposalModule, safe } = await baseSetup();
       expect(await safe.isModuleEnabled(proposalModule.address)).to.equal(true);
     });

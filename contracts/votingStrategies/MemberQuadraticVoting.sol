@@ -7,7 +7,7 @@ import "../extensions/BaseTokenVoting.sol";
 import "../extensions/BaseMember.sol";
 import "../extensions/BaseQuorumPercent.sol";
 
-/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
+/// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 contract MemberQuadraticVoting is
     BaseTokenVoting,
@@ -19,7 +19,7 @@ contract MemberQuadraticVoting is
     constructor(
         address _owner,
         ERC20Votes _governanceToken,
-        address _seeleModule,
+        address _UsulModule,
         uint256 _votingPeriod,
         uint256 quorumNumerator_,
         uint256 _timeLockPeriod,
@@ -28,7 +28,7 @@ contract MemberQuadraticVoting is
         bytes memory initParams = abi.encode(
             _owner,
             _governanceToken,
-            _seeleModule,
+            _UsulModule,
             _votingPeriod,
             quorumNumerator_,
             _timeLockPeriod,
@@ -41,7 +41,7 @@ contract MemberQuadraticVoting is
         (
             address _owner,
             ERC20Votes _governanceToken,
-            address _seeleModule,
+            address _UsulModule,
             uint256 _votingPeriod,
             uint256 quorumNumerator_,
             uint256 _timeLockPeriod,
@@ -69,10 +69,10 @@ contract MemberQuadraticVoting is
         updateQuorumNumerator(quorumNumerator_);
         transferOwnership(_owner);
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
-        seeleModule = _seeleModule;
+        UsulModule = _UsulModule;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
         name = name_;
-        emit StrategySetup(_seeleModule, _owner);
+        emit StrategySetup(_UsulModule, _owner);
     }
 
     /// @dev Determines if a proposal has succeeded.

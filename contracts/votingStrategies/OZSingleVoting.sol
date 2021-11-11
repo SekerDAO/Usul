@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "../extensions/BaseTokenVoting.sol";
 import "../extensions/BaseQuorumFixed.sol";
 
-/// @title OpenZeppelin Single Voting Strategy - A Seele strategy that enables compound like voting.
+/// @title OpenZeppelin Single Voting Strategy - A Usul strategy that enables compound like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 contract OZSingleVoting is BaseTokenVoting, BaseQuorumFixed {
     ERC20Votes public governanceToken;
@@ -14,7 +14,7 @@ contract OZSingleVoting is BaseTokenVoting, BaseQuorumFixed {
     constructor(
         address _owner,
         ERC20Votes _governanceToken,
-        address _seeleModule,
+        address _UsulModule,
         uint256 _votingPeriod,
         uint256 quorumThreshold_,
         uint256 _timeLockPeriod,
@@ -23,7 +23,7 @@ contract OZSingleVoting is BaseTokenVoting, BaseQuorumFixed {
         bytes memory initParams = abi.encode(
             _owner,
             _governanceToken,
-            _seeleModule,
+            _UsulModule,
             _votingPeriod,
             quorumThreshold_,
             _timeLockPeriod,
@@ -36,7 +36,7 @@ contract OZSingleVoting is BaseTokenVoting, BaseQuorumFixed {
         (
             address _owner,
             ERC20Votes _governanceToken,
-            address _seeleModule,
+            address _UsulModule,
             uint256 _votingPeriod,
             uint256 quorumThreshold_,
             uint256 _timeLockPeriod,
@@ -54,7 +54,7 @@ contract OZSingleVoting is BaseTokenVoting, BaseQuorumFixed {
                 )
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
-        require(_seeleModule != address(0), "invalid seele module");
+        require(_UsulModule != address(0), "invalid Usul module");
         require(quorumThreshold_ > 0, "threshold must ne non-zero");
         require(
             _governanceToken != ERC20Votes(address(0)),
@@ -66,10 +66,10 @@ contract OZSingleVoting is BaseTokenVoting, BaseQuorumFixed {
         updateQuorumThreshold(quorumThreshold_);
         transferOwnership(_owner);
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
-        seeleModule = _seeleModule;
+        UsulModule = _UsulModule;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
         name = name_;
-        emit StrategySetup(_seeleModule, _owner);
+        emit StrategySetup(_UsulModule, _owner);
     }
 
     /// @dev Determines if a proposal has succeeded.

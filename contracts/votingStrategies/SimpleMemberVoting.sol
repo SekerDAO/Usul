@@ -8,7 +8,7 @@ import "../extensions/BaseQuorumPercent.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
-/// @title OpenZeppelin Linear Voting Strategy - A Seele strategy that enables compount like voting.
+/// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     struct Checkpoint {
@@ -20,7 +20,7 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
 
     constructor(
         address _owner,
-        address _seeleModule,
+        address _UsulModule,
         uint256 _votingPeriod,
         uint256 quorumNumerator_,
         uint256 _timeLockPeriod,
@@ -28,7 +28,7 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     ) {
         bytes memory initParams = abi.encode(
             _owner,
-            _seeleModule,
+            _UsulModule,
             _votingPeriod,
             quorumNumerator_,
             _timeLockPeriod,
@@ -40,7 +40,7 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     function setUp(bytes memory initParams) public override initializer {
         (
             address _owner,
-            address _seeleModule,
+            address _UsulModule,
             uint256 _votingPeriod,
             uint256 quorumNumerator_,
             uint256 _timeLockPeriod,
@@ -55,10 +55,10 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         updateQuorumNumerator(quorumNumerator_);
         transferOwnership(_owner);
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
-        seeleModule = _seeleModule;
+        UsulModule = _UsulModule;
         timeLockPeriod = _timeLockPeriod * 1 seconds;
         name = name_;
-        emit StrategySetup(_seeleModule, _owner);
+        emit StrategySetup(_UsulModule, _owner);
     }
 
     function addMember(address member) public override onlyOwner {
