@@ -9,15 +9,15 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const Seele = await ethers.getContractFactory("Seele");
-  const seele = await Seele.deploy(
+  const Usul = await ethers.getContractFactory("Usul");
+  const usul = await Usul.deploy(
     "0x0000000000000000000000000000000000000001",
     "0x0000000000000000000000000000000000000001",
     "0x0000000000000000000000000000000000000001",
     []
   );
 
-  console.log("Seele address:", seele.address);
+  console.log("Usul address:", usul.address);
 }
 
 main()

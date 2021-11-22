@@ -1,0 +1,9 @@
+module.exports = [
+	"0x0000000000000000000000000000000000000001",
+	"0x0000000000000000000000000000000000000001",
+	"0x0000000000000000000000000000000000000001",
+	2, // number of votes wieghted to pass
+	1,
+	2, // number of days proposals are active
+	"OZLinearVoting"
+];
