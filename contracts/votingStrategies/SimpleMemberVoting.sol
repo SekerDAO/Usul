@@ -62,6 +62,7 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     }
 
     function addMember(address member) public override onlyOwner {
+        require(members[member] == false, "member is already registered");
         members[member] = true;
         _writeCheckpoint(_totalMemberCheckpoints, _add, 1);
         memberCount++;
@@ -69,10 +70,11 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     }
 
     function removeMember(address member) public override onlyOwner {
+        require(members[member] == true, "member is not registered");
         members[member] = false;
         _writeCheckpoint(_totalMemberCheckpoints, _subtract, 1);
         memberCount--;
-        emit MemverRemoved(member);
+        emit MemberRemoved(member);
     }
 
     /// @dev Determines if a proposal has succeeded.

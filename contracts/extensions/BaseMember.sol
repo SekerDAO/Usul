@@ -17,17 +17,19 @@ abstract contract BaseMember is BaseStrategy {
     }
 
     event MemberAdded(address member);
-    event MemverRemoved(address member);
+    event MemberRemoved(address member);
 
     function addMember(address member) public virtual onlyOwner {
+        require(members[member] == false, "member is already registered");
         members[member] = true;
         memberCount++;
         emit MemberAdded(member);
     }
 
     function removeMember(address member) public virtual onlyOwner {
+        require(members[member] == true, "member is not registered");
         members[member] = false;
         memberCount--;
-        emit MemverRemoved(member);
+        emit MemberRemoved(member);
     }
 }

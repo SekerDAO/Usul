@@ -405,7 +405,7 @@ describe("SimpleMemberVotingStrategy:", () => {
         safe,
         simpleMember,
         "addMember",
-        [wallet_0.address],
+        [wallet_1.address],
         [wallet_0]
       );
       const member = await simpleMember.members(wallet_0.address);
@@ -469,20 +469,20 @@ describe("SimpleMemberVotingStrategy:", () => {
         safe,
         simpleMember,
         "addMember",
-        [wallet_0.address],
+        [wallet_1.address],
         [wallet_0]
       );
-      let member = await simpleMember.members(wallet_0.address);
+      let member = await simpleMember.members(wallet_1.address);
       expect(member).to.equal(true);
       expect(await simpleMember.memberCount()).to.equal(2);
       await executeContractCallWithSigners(
         safe,
         simpleMember,
         "removeMember",
-        [wallet_0.address],
+        [wallet_1.address],
         [wallet_0]
       );
-      member = await simpleMember.members(wallet_0.address);
+      member = await simpleMember.members(wallet_1.address);
       expect(member).to.equal(false);
       expect(await simpleMember.memberCount()).to.equal(1);
     });
