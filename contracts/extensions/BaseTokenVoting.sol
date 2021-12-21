@@ -40,7 +40,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     );
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
     event VoteFinalized(uint256 proposalId, uint256 timestamp);
-    event Voted(address voter, uint256 proposalId, uint8 support);
+    event Voted(address voter, uint256 proposalId, uint8 support, uint256 weight);
 
     ///@dev ERC712 version.
     function version() public view virtual returns (string memory) {
@@ -124,7 +124,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
         } else {
             revert("invalid value for enum VoteType");
         }
-        emit Voted(voter, proposalId, support);
+        emit Voted(voter, proposalId, support, weight);
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
