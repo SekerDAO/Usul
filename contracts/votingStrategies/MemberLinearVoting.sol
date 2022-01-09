@@ -19,7 +19,8 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         uint256 _votingPeriod,
         uint256 quorumNumerator_,
         uint256 _timeLockPeriod,
-        string memory name_
+        string memory name_,
+        address[] memory _members
     ) {
         bytes memory initParams = abi.encode(
             _owner,
@@ -28,7 +29,8 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
             _votingPeriod,
             quorumNumerator_,
             _timeLockPeriod,
-            name_
+            name_,
+            _members
         );
         setUp(initParams);
     }
@@ -41,7 +43,8 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
             uint256 _votingPeriod,
             uint256 quorumNumerator_,
             uint256 _timeLockPeriod,
-            string memory name_
+            string memory name_,
+            address[] memory _members
         ) = abi.decode(
                 initParams,
                 (
@@ -51,7 +54,8 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
                     uint256,
                     uint256,
                     uint256,
-                    string
+                    string,
+                    address[]
                 )
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
@@ -59,8 +63,11 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
             _governanceToken != ERC20Votes(address(0)),
             "invalid governance token address"
         );
-        governanceToken = _governanceToken;
         __Ownable_init();
+        for (uint256 i = 0; i < _members.length; i++) {
+            addMember(_members[i]);
+        }
+        governanceToken = _governanceToken;
         __EIP712_init_unchained(name_, version());
         updateQuorumNumerator(quorumNumerator_);
         transferOwnership(_owner);

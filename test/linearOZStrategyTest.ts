@@ -268,7 +268,8 @@ describe("linearOZVotingStrategy:", () => {
       60,
       thresholdPercent, // number of votes wieghted to pass
       ethers.BigNumber.from(60), // number of days proposals are active
-      "Test"
+      "Test",
+      []
     );
 
     await govToken.transfer(safe.address, safeSupply);

@@ -113,11 +113,28 @@ describe("SimpleMemberVotingStrategy:", () => {
       2,
       1,
       0,
-      ""
+      "",
+      ["0x0000000000000000000000000000000000000001"]
     );
     const encodedSimpleMemberInitParams = ethers.utils.defaultAbiCoder.encode(
-      ["address", "address", "uint256", "uint256", "uint256", "string"],
-      [safe.address, proposalModule.address, 60, thresholdPercent, 60, "Test"]
+      [
+        "address",
+        "address",
+        "uint256",
+        "uint256",
+        "uint256",
+        "string",
+        "address[]",
+      ],
+      [
+        safe.address,
+        proposalModule.address,
+        60,
+        thresholdPercent,
+        60,
+        "Test",
+        [wallet_0.address],
+      ]
     );
     const initSimpleMemberData =
       masterSimpleMemberVoting.interface.encodeFunctionData("setUp", [
@@ -194,14 +211,6 @@ describe("SimpleMemberVotingStrategy:", () => {
       [wallet_0]
     );
 
-    await executeContractCallWithSigners(
-      safe,
-      simpleMember,
-      "addMember",
-      [wallet_0.address],
-      [wallet_0]
-    );
-
     return {
       proposalModule,
       simpleMember,
@@ -216,14 +225,14 @@ describe("SimpleMemberVotingStrategy:", () => {
   });
 
   describe("setUp", async () => {
-    it("can register linear voting module", async () => {
+    it("can register simpleMember voting module", async () => {
       const { proposalModule, simpleMember } = await baseSetup();
       expect(
         await proposalModule.isStrategyEnabled(simpleMember.address)
       ).to.equal(true);
     });
 
-    it("linear state is initialized correctly", async () => {
+    it("simpleMember state is initialized correctly", async () => {
       const { simpleMember, safe } = await baseSetup();
       expect(await simpleMember.votingPeriod()).to.equal(60);
       let block = ethers.BigNumber.from(

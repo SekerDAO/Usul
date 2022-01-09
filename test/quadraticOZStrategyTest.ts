@@ -84,7 +84,8 @@ describe("quadraticOZVotingStrategy:", () => {
       2, // number of votes wieghted to pass
       1,
       1, // number of days proposals are active
-      ""
+      "",
+      ["0x0000000000000000000000000000000000000001"]
     );
     const encodedQuadraticInitParams = ethers.utils.defaultAbiCoder.encode(
       [
@@ -95,6 +96,7 @@ describe("quadraticOZVotingStrategy:", () => {
         "uint256",
         "uint256",
         "string",
+        "address[]",
       ],
       [
         wallet_0.address,
@@ -104,6 +106,7 @@ describe("quadraticOZVotingStrategy:", () => {
         thresholdPercent, // number of votes wieghted to pass
         60, // number of days proposals are active
         "Test",
+        [wallet_2.address, wallet_3.address],
       ]
     );
     const initQuadraticData =
@@ -230,20 +233,6 @@ describe("quadraticOZVotingStrategy:", () => {
       [wallet_1.address],
       [wallet_0]
     );
-    await executeContractCallWithSigners(
-      safe,
-      quadtraticVoting,
-      "addMember",
-      [wallet_2.address],
-      [wallet_0]
-    );
-    await executeContractCallWithSigners(
-      safe,
-      quadtraticVoting,
-      "addMember",
-      [wallet_3.address],
-      [wallet_0]
-    );
     return {
       proposalModule,
       quadtraticVoting,
@@ -285,6 +274,8 @@ describe("quadraticOZVotingStrategy:", () => {
       await network.provider.send("evm_mine");
       expect(await quadtraticVoting.quorum(block)).to.equal("141421356237");
       expect(await quadtraticVoting.timeLockPeriod()).to.equal(60);
+      expect(await quadtraticVoting.members(wallet_2.address)).to.equal(true);
+      expect(await quadtraticVoting.members(wallet_3.address)).to.equal(true);
     });
   });
 
