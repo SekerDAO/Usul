@@ -24,7 +24,8 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         uint256 _votingPeriod,
         uint256 quorumNumerator_,
         uint256 _timeLockPeriod,
-        string memory name_
+        string memory name_,
+        address[] memory _members
     ) {
         bytes memory initParams = abi.encode(
             _owner,
@@ -32,7 +33,8 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
             _votingPeriod,
             quorumNumerator_,
             _timeLockPeriod,
-            name_
+            name_,
+            _members
         );
         setUp(initParams);
     }
@@ -44,13 +46,17 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
             uint256 _votingPeriod,
             uint256 quorumNumerator_,
             uint256 _timeLockPeriod,
-            string memory name_
+            string memory name_,
+            address[] memory _members
         ) = abi.decode(
                 initParams,
-                (address, address, uint256, uint256, uint256, string)
+                (address, address, uint256, uint256, uint256, string, address[])
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         __Ownable_init();
+        for (uint256 i = 0; i < _members.length; i++) {
+            addMember(_members[i]);
+        }
         __EIP712_init_unchained(name_, version());
         updateQuorumNumerator(quorumNumerator_);
         transferOwnership(_owner);
@@ -82,18 +88,16 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         return true;
     }
 
-    function quorum(uint256 blockNumber)
+    function quorum(uint256)
         public
         view
         override
         returns (uint256)
     {
-        return
-            (memberCount * quorumNumerator()) /
-            quorumDenominator();
+        return (memberCount * quorumNumerator()) / quorumDenominator();
     }
 
-    function calculateWeight(address voter, uint256 proposalId)
+    function calculateWeight(address voter, uint256)
         public
         view
         override

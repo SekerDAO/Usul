@@ -40,7 +40,12 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     );
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
     event VoteFinalized(uint256 proposalId, uint256 timestamp);
-    event Voted(address voter, uint256 proposalId, uint8 support, uint256 weight);
+    event Voted(
+        address voter,
+        uint256 proposalId,
+        uint8 support,
+        uint256 weight
+    );
 
     ///@dev ERC712 version.
     function version() public view virtual returns (string memory) {
