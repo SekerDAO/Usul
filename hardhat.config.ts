@@ -10,8 +10,8 @@ import "@nomiclabs/hardhat-etherscan";
  * @type import('hardhat/config').HardhatUserConfig
  */
 
-const INFURA_API_KEY_RINKEBY = "8987bc25c1b34ad7b0a6d370fc287ef9";
-const RINKEBY_PRIVATE_KEY = "011f5d8c37def36f4bd85f8b1a8e82bf104abdaac8c0710ab70e5f86dba180cc";
+const INFURA_API_KEY_RINKEBY = "";
+const RINKEBY_PRIVATE_KEY = "";
 
 module.exports = {
   defaultNetwork: "kovan",
