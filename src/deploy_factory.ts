@@ -9,7 +9,7 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const Factory = await ethers.getContractFactory("ModuleProxyFactory");
+  const Factory = await ethers.getContractFactory("GnosisSafeProxyFactory");
   const factory = await Factory.deploy();
 
   console.log("Factory address:", factory.address);
