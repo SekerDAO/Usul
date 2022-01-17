@@ -9,10 +9,16 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const Factory = await ethers.getContractFactory("GnosisSafeProxyFactory");
-  const factory = await Factory.deploy();
+  const Usul = await ethers.getContractFactory("Usul");
+  const usul = await Usul.deploy(
+    "0x0000000000000000000000000000000000000001",
+    "0x0000000000000000000000000000000000000001",
+    "0x0000000000000000000000000000000000000001",
+    [],
+    {gasPrice: 20000000000}
+  );
 
-  console.log("Factory address:", factory.address);
+  console.log("Usul address:", usul.address);
 }
 
 main()

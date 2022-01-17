@@ -13,17 +13,17 @@ async function main() {
   const _avatar = "" // kovan safe
   const _target = "" // kovan safe
   const _amb = "0xFe446bEF1DbF7AFE24E81e05BC8B271C1BA9a560" // kovan amb
-  const _controller = "" // sokol gnosis safe
+  const _controller = "0xd3138C773Db0618106a4d9967040137A68c255B1" // sokol gnosis safe
   const _chainId = "0x64" // kovan
   
   const Bridge = await ethers.getContractFactory("AMBModule");
   const bridge = await Bridge.deploy(
-    _owner,
-    _avatar,
-    _target,
-    _amb,
-    _controller,
-    _chainId
+    "0x0000000000000000000000000000000000000001",
+    "0x0000000000000000000000000000000000000001",
+    "0x0000000000000000000000000000000000000001",
+    "0x0000000000000000000000000000000000000001",
+    "0x0000000000000000000000000000000000000001",
+    "0x0000000000000000000000000000000000000000000000000000000000000000"
   );
 
   console.log("Bridge address:", bridge.address);

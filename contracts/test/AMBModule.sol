@@ -78,6 +78,12 @@ contract AMBModule is Module {
         emit AmbModuleSetup(msg.sender, _owner, _avatar, _target);
     }
 
+    function requireToPassMessage(
+        address _contract,
+        bytes memory _data,
+        uint256 _gas
+    ) external returns (bytes32) {}
+
     /// @dev Check that the amb, chainId, and owner are valid
     modifier onlyValid() {
         require(msg.sender == address(amb), "Unauthorized amb");

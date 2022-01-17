@@ -9,17 +9,25 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   const { deploy } = deployments;
 
-  const GNOSISL2_MASTER = "0xE51abdf814f8854941b9Fe8e3A4F65CAB4e7A4a8"
+  console.log("Deploying contracts with the account:", deployer.address);
+  console.log("Account balance:", (await deployer.getBalance()).toString());
+
+  const GNOSISL2_MASTER_KOVAN = "0xE51abdf814f8854941b9Fe8e3A4F65CAB4e7A4a8"
+  const GNOSISL2_MASTER_SOKOL = "0xE51abdf814f8854941b9Fe8e3A4F65CAB4e7A4a8"
   const KOVAN_FACTORY = "0x64F9F99BBdC5Ef6CEEf5Acd9bAd7ea582589A00d"
+  const SOKOL_FACTORY = "0xE89ce3bcD35bA068A9F9d906896D3d03Ad5C30EC"
+  const SOKOL_MULTISEND = "0xA238CBeb142c10Ef7Ad8442C6D1f9E89e07e7761"
 
   const factory = new ethers.Contract(
-    KOVAN_FACTORY,
+    //KOVAN_FACTORY,
+    SOKOL_FACTORY,
     GnosisSafeProxyFactory.abi,
     deployer
   )
 
   const safeAddress = await factory.callStatic.createProxy(
-    GNOSISL2_MASTER,
+    //GNOSISL2_MASTER,
+    GNOSISL2_MASTER_SOKOL,
     "0x"
   )
 
@@ -32,8 +40,10 @@ async function main() {
   )
 
   const createProxyTx = await factory.createProxy(
-    GNOSISL2_MASTER,
-    safeSetupTx.data
+    //GNOSISL2_MASTER,
+    GNOSISL2_MASTER_SOKOL,
+    safeSetupTx.data,
+    {gasPrice: 20000000000}
   )
   await createProxyTx.wait()
 

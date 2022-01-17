@@ -9,18 +9,15 @@ async function main() {
 
   console.log("Account balance:", (await deployer.getBalance()).toString());
 
-  const Linear = await ethers.getContractFactory("OZLinearVoting");
-  const linear = await Linear.deploy(
-      "0x0000000000000000000000000000000000000001",
-      "0x0000000000000000000000000000000000000001",
-      "0x0000000000000000000000000000000000000001",
-      2, // number of votes wieghted to pass
-      1,
-      2, // number of days proposals are active
-      "OZLinearVoting"
+  const Gov = await ethers.getContractFactory("GovernanceToken");
+  const gov = await Gov.deploy(
+    "Test",
+    "TST",
+    ethers.BigNumber.from("100000000000000000000000"),
+    {gasPrice: 20000000000}
   );
 
-  console.log("OZLinearVoting address:", linear.address);
+  console.log("Govtoken address:", gov.address);
 }
 
 main()
