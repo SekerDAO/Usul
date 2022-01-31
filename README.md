@@ -8,17 +8,16 @@
 
 Welcome to the [Zodiac](https://github.com/gnosis/zodiac) Usul Module.
 
-This module — another tool in the Zodiac DAO standard — provides a proposal core that can register swappable voting contracts called `Strategies`, allowing DAOs to choose from various on-chain voting methods that best suit their needs.
+This module — a tool in the Zodiac DAO standard — provides a proposal core that can register swappable voting contracts called `Strategies`, allowing DAOs to choose from various on-chain voting methods that best suit their needs.
 
 The available voting methods as of this time are...
-- OZ Linear Voting ERC20
-- OZ Linear Voting ERC20 + Membership Gate
-- Comp Governor Bravo Linear Voting ERC20
-- Single Weight ERC20
+- Linear Voting OZ ERC20 [Using OZ Voting token](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Votes.sol)
+- Linear Voting OZ ERC20 + Membership Gate
+- Single Weight OZ ERC20
 - Simple Membership Voting (No Token)
-- Quadratic Voting ERC20 + Membership Gate
 
 The following strategies are a WIP (PRs welcome for additional strategies!)
+- Quadratic Voting ERC20 + Membership Gate
 - Conviction ERC20 Voting
 - NFT Voting (Weighted and Single)
 - BrightID Member Voting
@@ -30,7 +29,7 @@ The following strategies are a WIP (PRs welcome for additional strategies!)
 
 ## Usul Module (Proposal Core)
 
-This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting, or strategies, as strategies are conducted with separate contracts that can be registered with the proposal core. This core recognizes that all DAO contracts have a proposal registry in common, and only differ in how a decission is made on whether or not to execute that data. This module seperates the concerns of registering the data and applying logic allowing for any kind of logic to easily be attached to proposal registration. This creates a suite of choices to compose a DAO, allows DAOs to use multiple strategies in concert to create sub-DAOs or committees, and DAOs can easily enable or disable strategies to evolve the DAO over time. 
+This is the core of the module that is registered with the Gnosis Safe as a Zodiac module. This module is agnostic to voting, or strategies, as strategies are conducted with separate contracts that can be registered with the proposal core. This core recognizes that all DAO contracts have a proposal registry in common, and generally only differ in how a decission is made on whether or not to execute that data. This module seperates the concerns of registering the data and applying logic allowing for any kind of logic to easily be attached to proposal registration. This creates a suite of choices to compose a DAO, allows DAOs to use multiple strategies in concert to create sub-DAOs or committees, and DAOs can easily enable or disable strategies to evolve the DAO over time. 
 
 This core expects to call the voting strategy after a proposal is initiated to start any kind of voting logic. After some logic decides to pass the proposal, the strategy contracts will call back to the core to initiate either a time lock (decided by the strategy) or allow the data to be executed. This module adds a batching feature to the execution phase.
 
@@ -151,21 +150,11 @@ These are logic contracts registered with the Usul proposal module that allow DA
 
 Strategies are built with abstract base contracts to provide composability in creation of new strategies.
 
-### (OpenZepplin) Linear Voting ERC20
+### Linear Voting with (OpenZepplin) ERC20
 
 This strategy is similar to Compound or Gitcoin. It's inspired by the redesign of Governor Bravo by OpenZepplin uses token weighted voting only with one-to-one weights based on token ownership.
 
 Membership versions are supplied to gate voters similar to Moloch.
-
-### (Compound) Governor Bravo Linear Voting
-
-This strategy is a 1-1 functionally complete Governor Bravo from Compound. There are a few design choices that we make that separate this strategy from Governor Bravo like storing transaction hashes rather than transaction data directly on the proposal when initialized.
-
-Membership versions are supplied to gate voters similar to Moloch.
-
-### Quadratic Voting
-
-This strategy scales the power that large token holders have down. This needs to come with sybil protection in the form of PoH or BrightID membership gating.
 
 ### Single Weight ERC20 Voting
 
