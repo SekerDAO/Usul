@@ -86,7 +86,11 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     /// @dev Submits a vote for a proposal.
     /// @param proposalId the proposal to vote for.
     /// @param support against, for, or abstain.
-    function vote(uint256 proposalId, uint8 support) external virtual {
+    function vote(
+        uint256 proposalId,
+        uint8 support,
+        bytes memory
+    ) external virtual {
         _vote(proposalId, msg.sender, support);
     }
 
@@ -97,7 +101,8 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     function voteSignature(
         uint256 proposalId,
         uint8 support,
-        bytes memory signature
+        bytes memory signature,
+        bytes memory
     ) external virtual {
         address voter = ECDSA.recover(
             _hashTypedDataV4(

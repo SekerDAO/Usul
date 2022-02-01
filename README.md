@@ -12,9 +12,11 @@ This module — a tool in the Zodiac DAO standard — provides a proposal core t
 
 The available voting methods as of this time are...
 - Linear Voting OZ ERC20 [Using OZ Voting token](https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/extensions/ERC20Votes.sol)
-- Linear Voting OZ ERC20 + Membership Gate
+- Linear Voting OZ ERC20 + Membership
 - Single Weight OZ ERC20
 - Simple Membership Voting (No Token)
+- NFT Linear Voting
+- NFT Single Membership Voting
 
 The following strategies are a WIP (PRs welcome for additional strategies!)
 - Quadratic Voting ERC20 + Membership Gate

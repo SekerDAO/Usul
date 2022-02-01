@@ -5,7 +5,10 @@
   "scripts": {
     "lint:check-tests": "yarn prettier ./test/*.ts --check",
     "lint:fix-tests": "yarn prettier ./test/*.ts --write",
-    "prettier:solidity": "./node_modules/.bin/prettier --write contracts/**/*.sol",
+    "lint": "yarn lint:sol && yarn lint:ts",
+    "lint:sol": "solhint 'contracts/*.sol'",
+    "lint:ts": "eslint --max-warnings 0 .",
+    "fmt:sol": "./node_modules/.bin/prettier --write contracts/**/*.sol",
     "clean": "rimraf ./build/",
     "precompile": "yarn clean",
     "compile": "npx hardhat compile",

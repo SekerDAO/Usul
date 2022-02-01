@@ -88,12 +88,7 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         return true;
     }
 
-    function quorum(uint256)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function quorum(uint256) public view override returns (uint256) {
         return (memberCount * quorumNumerator()) / quorumDenominator();
     }
 
