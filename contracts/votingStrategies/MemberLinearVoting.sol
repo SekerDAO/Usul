@@ -8,7 +8,7 @@ import "../extensions/BaseMember.sol";
 import "../extensions/BaseQuorumPercent.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
-/// @author Nathan Ginnever - <team@hyphal.xyz>
+/// @author Nathan Ginnever - <team@sekerdao.com>
 contract MemberLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     ERC20Votes public governanceToken;
 

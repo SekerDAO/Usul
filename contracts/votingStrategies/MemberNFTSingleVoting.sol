@@ -2,20 +2,21 @@
 
 pragma solidity >=0.8.0;
 
-import "../common/VotingNFT.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../extensions/BaseTokenVoting.sol";
 import "../extensions/BaseQuorumFixed.sol";
+import "../extensions/BaseMember.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract MemberNFTSingleVoting is BaseTokenVoting, BaseQuorumFixed {
-    VotingNFT public governanceToken;
-
-    mapping(uint256 => uint256) nftVoted; // mapping proposal id to nft id to bool
+contract NFTLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
+    
+    IERC721 public tokenAddress;
+    mapping(uint256 => mapping(uint256 => bool)) idHasVoted; // map proposalId to nft ids to hasBeenUsed
 
     constructor(
         address _owner,
-        VotingNFT _governanceToken,
+        IERC721 _governanceToken,
         address _UsulModule,
         uint256 _votingPeriod,
         uint256 quorumThreshold_,
@@ -37,7 +38,7 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseQuorumFixed {
     function setUp(bytes memory initParams) public override initializer {
         (
             address _owner,
-            VotingNFT _governanceToken,
+            IERC721 _governanceToken,
             address _UsulModule,
             uint256 _votingPeriod,
             uint256 quorumThreshold_,
@@ -45,14 +46,14 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseQuorumFixed {
             string memory name_
         ) = abi.decode(
                 initParams,
-                (address, VotingNFT, address, uint256, uint256, uint256, string)
+                (address, IERC721, address, uint256, uint256, uint256, string)
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(
-            _governanceToken != VotingNFT(address(0)),
+            _governanceToken != IERC721(address(0)),
             "invalid governance token address"
         );
-        governanceToken = _governanceToken;
+        tokenAddress = _governanceToken;
         __Ownable_init();
         __EIP712_init_unchained(name_, version());
         updateQuorumThreshold(quorumThreshold_);
@@ -85,23 +86,66 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseQuorumFixed {
         return true;
     }
 
-    //todo: use percentage based on total supply
     function quorum() public view override returns (uint256) {
         return quorumThreshold();
     }
 
-    function calculateWeight(address delegatee, uint256 proposalId)
+    function checkPreviousVote(uint256[] memory ids, uint256 proposalId)
+        internal
+    {
+        for (uint256 i = 0; i < ids.length; i++) {
+            require(
+                idHasVoted[proposalId][ids[i]] == false,
+                "no weight, contains an id that has already voted"
+            );
+            require(
+                tokenAddress.ownerOf(ids[i]) == msg.sender,
+                "voter does not own an id"
+            );
+            idHasVoted[proposalId][ids[i]] = true;
+        }
+    }
+
+    /// @dev Submits a vote for a proposal.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    function vote(
+        uint256 proposalId,
+        uint8 support,
+        bytes memory extraData
+    ) external override {
+        uint256[] memory ids = abi.decode(extraData, (uint256[]));
+        checkPreviousVote(ids, proposalId);
+        _vote(proposalId, msg.sender, support);
+    }
+
+    /// @dev Submits a vote for a proposal by ERC712 signature.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    /// @param signature 712 signed vote
+    function voteSignature(
+        uint256 proposalId,
+        uint8 support,
+        bytes memory signature,
+        bytes memory extraData
+    ) external override {
+        address voter = ECDSA.recover(
+            _hashTypedDataV4(
+                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
+            ),
+            signature
+        );
+        uint256[] memory ids = abi.decode(extraData, (uint256[]));
+        checkPreviousVote(ids, proposalId);
+        _vote(proposalId, voter, support);
+    }
+
+    function calculateWeight(address voter, uint256)
         public
         view
         override
         returns (uint256)
     {
-        require(
-            governanceToken.getPastVotes(
-                delegatee,
-                proposals[proposalId].startBlock
-            ) > 0
-        );
-        return 1;
+        return tokenAddress.balanceOf(voter);
     }
 }

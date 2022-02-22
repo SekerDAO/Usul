@@ -97,7 +97,7 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
     /// @dev Submits a vote for a proposal by ERC712 signature.
     /// @param proposalId the proposal to vote for.
     /// @param support against, for, or abstain.
-    /// @param signature 712 signed vote
+    /// @param signature 712 signed vote.
     function voteSignature(
         uint256 proposalId,
         uint8 support,
