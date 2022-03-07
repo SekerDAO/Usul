@@ -78,6 +78,36 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         emit StrategySetup(_UsulModule, _owner);
     }
 
+    /// @dev Submits a vote for a proposal.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    function vote(
+        uint256 proposalId,
+        uint8 support,
+        bytes memory
+    ) external onlyMember(msg.sender) override virtual {
+        _vote(proposalId, msg.sender, support);
+    }
+
+    /// @dev Submits a vote for a proposal by ERC712 signature.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    /// @param signature 712 signed vote.
+    function voteSignature(
+        uint256 proposalId,
+        uint8 support,
+        bytes memory signature,
+        bytes memory
+    ) external onlyMember(msg.sender) override virtual {
+        address voter = ECDSA.recover(
+            _hashTypedDataV4(
+                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
+            ),
+            signature
+        );
+        _vote(proposalId, voter, support);
+    }
+
     /// @dev Determines if a proposal has succeeded.
     /// @param proposalId the proposal to vote for.
     /// @return boolean.
