@@ -113,7 +113,7 @@ contract NFTLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
         uint256 proposalId,
         uint8 support,
         bytes memory extraData
-    ) external override {
+    ) onlyMember(msg.sender) override external {
         uint256[] memory ids = abi.decode(extraData, (uint256[]));
         checkPreviousVote(ids, proposalId);
         _vote(proposalId, msg.sender, support);
@@ -128,13 +128,14 @@ contract NFTLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
         uint8 support,
         bytes memory signature,
         bytes memory extraData
-    ) external override {
+    ) override external {
         address voter = ECDSA.recover(
             _hashTypedDataV4(
                 keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
             ),
             signature
         );
+        require(members[voter], "voter is not a member");
         uint256[] memory ids = abi.decode(extraData, (uint256[]));
         checkPreviousVote(ids, proposalId);
         _vote(proposalId, voter, support);

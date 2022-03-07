@@ -98,13 +98,14 @@ contract MemberLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         uint8 support,
         bytes memory signature,
         bytes memory
-    ) external onlyMember(msg.sender) override virtual {
+    ) external override virtual {
         address voter = ECDSA.recover(
             _hashTypedDataV4(
                 keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
             ),
             signature
         );
+        require(members[voter], "voter is not a member");
         _vote(proposalId, voter, support);
     }
 
