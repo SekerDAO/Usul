@@ -15,7 +15,7 @@
     "pretest": "yarn compile",
     "test": "npx hardhat test",
     "prepublishOnly": "yarn compile",
-    "deploy": "ts-node scripts/deploy.ts"
+    "deploy": "hardhat deploy --network"
   },
   "repository": {
     "type": "git",
@@ -39,6 +39,7 @@
     "@types/chai": "^4.2.18",
     "@types/mocha": "^8.2.2",
     "@types/node": "^14.17.0",
+    "@types/yargs": "16.0.0",
     "@zoralabs/auction-house": "^1.1.1",
     "chai": "^4.3.4",
     "eth-sig-util": "^3.0.1",
@@ -48,6 +49,7 @@
     "ethers": "^5.2.0",
     "ethers-eip712": "^0.2.0",
     "hardhat": "^2.5.0",
+    "hardhat-contract-sizer": "^2.1.1",
     "hardhat-deploy": "^0.7.5",
     "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.3.2",
@@ -59,6 +61,11 @@
   },
   "dependencies": {
     "@gnosis.pm/zodiac": "1.0.1",
-    "@openzeppelin/contracts": "4.3.2"
+    "@openzeppelin/contracts": "4.3.2",
+    "argv": "^0.0.2",
+    "base64-sol": "^1.1.0",
+    "dotenv": "^8.0.0",
+    "solc": "0.8.1",
+    "yargs": "^16.1.1"
   }
 }

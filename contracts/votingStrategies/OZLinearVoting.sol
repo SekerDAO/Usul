@@ -63,6 +63,7 @@ contract OZLinearVoting is BaseTokenVoting, BaseQuorumPercent {
         __EIP712_init_unchained(name_, version());
         updateQuorumNumerator(quorumNumerator_);
         transferOwnership(_owner);
+        // call setUsul
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         UsulModule = _UsulModule;
         timeLockPeriod = _timeLockPeriod * 1 seconds;

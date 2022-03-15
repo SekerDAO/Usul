@@ -1,43 +1,96 @@
+import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
-import "@openzeppelin/hardhat-upgrades";
 import "solidity-coverage";
 import "hardhat-deploy";
-import "hardhat-gas-reporter"
-import "@nomiclabs/hardhat-etherscan";
-//import "@nomiclabs/hardhat-ethers";
-/**
- * @type import('hardhat/config').HardhatUserConfig
- */
+import "hardhat-gas-reporter";
+import "hardhat-contract-sizer";
+import dotenv from "dotenv";
+import type { HttpNetworkUserConfig } from "hardhat/types";
+import yargs from "yargs";
+//import "./src/tasks/setup";
 
-const INFURA_API_KEY = "";
-const RINKEBY_PRIVATE_KEY = "";
+const argv = yargs
+  .option("network", {
+    type: "string",
+    default: "hardhat",
+  })
+  .help(false)
+  .version(false).argv;
 
-module.exports = {
-  defaultNetwork: "hardhat",
+// Load environment variables.
+dotenv.config();
+const { INFURA_KEY, MNEMONIC, ETHERSCAN_API_KEY, PK } = process.env;
+
+const DEFAULT_MNEMONIC =
+  "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
+
+const sharedNetworkConfig: HttpNetworkUserConfig = {};
+if (PK) {
+  sharedNetworkConfig.accounts = [PK];
+} else {
+  sharedNetworkConfig.accounts = {
+    mnemonic: MNEMONIC || DEFAULT_MNEMONIC,
+  };
+}
+
+if (["rinkeby", "mainnet"].includes(argv.network) && INFURA_KEY === undefined) {
+  throw new Error(
+    `Could not find Infura key in env, unable to connect to network ${argv.network}`
+  );
+}
+
+export default {
+  paths: {
+    artifacts: "build/artifacts",
+    cache: "build/cache",
+    //deploy: "src/deploy",
+    sources: "contracts",
+  },
   solidity: {
-    version: "0.8.6",
-    allowUnlimitedContractSize: true,
+    compilers: [{ version: "0.8.6" }, { version: "0.6.12" }],
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200
-      }
-    }
+        runs: 1,
+      },
+    },
   },
   networks: {
     hardhat: {
-    }
-    // rinkeby: {
-    //   url: `https://rinkeby.infura.io/v3/${INFURA_API_KEY}`,
-    //   accounts: [`0x${RINKEBY_PRIVATE_KEY}`],
-    // }
+      allowUnlimitedContractSize: true,
+    },
+    mainnet: {
+      ...sharedNetworkConfig,
+      url: `https://mainnet.infura.io/v3/${INFURA_KEY}`,
+    },
+    rinkeby: {
+      ...sharedNetworkConfig,
+      url: `https://rinkeby.infura.io/v3/${INFURA_KEY}`,
+    },
+    xdai: {
+      ...sharedNetworkConfig,
+      url: "https://xdai.poanetwork.dev",
+    },
+    kovan: {
+      ...sharedNetworkConfig,
+      url: `https://kovan.infura.io/v3/${INFURA_KEY}`,
+    },
+    sokol: {
+      ...sharedNetworkConfig,
+      url: "https://sokol.poa.network",
+    },
+    matic: {
+      ...sharedNetworkConfig,
+      url: "https://rpc-mainnet.maticvigil.com",
+    },
+  },
+  namedAccounts: {
+    deployer: 0,
+  },
+  mocha: {
+    timeout: 2000000,
   },
   etherscan: {
-    // Your API key for Etherscan
-    // Obtain one at https://etherscan.io/
-    apiKey: ""
+    apiKey: ETHERSCAN_API_KEY,
   },
-  gasReporter: {
-    enabled: false
-  }
 };
