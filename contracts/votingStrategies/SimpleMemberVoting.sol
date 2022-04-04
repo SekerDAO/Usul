@@ -11,13 +11,6 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 /// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
-    struct Checkpoint {
-        uint32 fromBlock;
-        uint256 members;
-    }
-
-    Checkpoint[] private _totalMemberCheckpoints;
-
     constructor(
         address _owner,
         address _UsulModule,
