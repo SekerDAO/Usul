@@ -65,6 +65,41 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
         emit StrategySetup(_UsulModule, _owner);
     }
 
+    /// @dev Submits a vote for a proposal.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    function vote(
+        uint256 proposalId,
+        uint8 support,
+        bytes memory extraData
+    ) onlyMember(msg.sender) external {
+        uint256[] memory ids = abi.decode(extraData, (uint256[]));
+        checkPreviousVote(ids, proposalId);
+        _vote(proposalId, msg.sender, support, calculateWeight(msg.sender, proposalId));
+    }
+
+    /// @dev Submits a vote for a proposal by ERC712 signature.
+    /// @param proposalId the proposal to vote for.
+    /// @param support against, for, or abstain.
+    /// @param signature 712 signed vote
+    function voteSignature(
+        uint256 proposalId,
+        uint8 support,
+        bytes memory signature,
+        bytes memory extraData
+    ) external {
+        address voter = ECDSA.recover(
+            _hashTypedDataV4(
+                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
+            ),
+            signature
+        );
+        require(members[voter], "voter is not a member");
+        uint256[] memory ids = abi.decode(extraData, (uint256[]));
+        checkPreviousVote(ids, proposalId);
+        _vote(proposalId, voter, support, calculateWeight(voter, proposalId));
+    }
+
     /// @dev Determines if a proposal has succeeded.
     /// @param proposalId the proposal to vote for.
     /// @return boolean.
@@ -106,45 +141,9 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
         }
     }
 
-    /// @dev Submits a vote for a proposal.
-    /// @param proposalId the proposal to vote for.
-    /// @param support against, for, or abstain.
-    function vote(
-        uint256 proposalId,
-        uint8 support,
-        bytes memory extraData
-    ) onlyMember(msg.sender) override external {
-        uint256[] memory ids = abi.decode(extraData, (uint256[]));
-        checkPreviousVote(ids, proposalId);
-        _vote(proposalId, msg.sender, support);
-    }
-
-    /// @dev Submits a vote for a proposal by ERC712 signature.
-    /// @param proposalId the proposal to vote for.
-    /// @param support against, for, or abstain.
-    /// @param signature 712 signed vote
-    function voteSignature(
-        uint256 proposalId,
-        uint8 support,
-        bytes memory signature,
-        bytes memory extraData
-    ) override external {
-        address voter = ECDSA.recover(
-            _hashTypedDataV4(
-                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
-            ),
-            signature
-        );
-        require(members[voter], "voter is not a member");
-        uint256[] memory ids = abi.decode(extraData, (uint256[]));
-        checkPreviousVote(ids, proposalId);
-        _vote(proposalId, voter, support);
-    }
-
     function calculateWeight(address voter, uint256)
         public
         view
-        override
         returns (uint256)
     {
         return tokenAddress.balanceOf(voter);

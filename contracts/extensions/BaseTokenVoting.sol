@@ -83,40 +83,11 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
         return proposals[proposalId].hasVoted[account];
     }
 
-    /// @dev Submits a vote for a proposal.
-    /// @param proposalId the proposal to vote for.
-    /// @param support against, for, or abstain.
-    function vote(
-        uint256 proposalId,
-        uint8 support,
-        bytes memory
-    ) external virtual {
-        _vote(proposalId, msg.sender, support);
-    }
-
-    /// @dev Submits a vote for a proposal by ERC712 signature.
-    /// @param proposalId the proposal to vote for.
-    /// @param support against, for, or abstain.
-    /// @param signature 712 signed vote.
-    function voteSignature(
-        uint256 proposalId,
-        uint8 support,
-        bytes memory signature,
-        bytes memory
-    ) external virtual {
-        address voter = ECDSA.recover(
-            _hashTypedDataV4(
-                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
-            ),
-            signature
-        );
-        _vote(proposalId, voter, support);
-    }
-
     function _vote(
         uint256 proposalId,
         address voter,
-        uint8 support
+        uint8 support,
+        uint256 weight
     ) internal {
         require(
             block.timestamp <= proposals[proposalId].deadline,
@@ -124,7 +95,6 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
         );
         require(!hasVoted(proposalId, voter), "voter has already voted");
         proposals[proposalId].hasVoted[voter] = true;
-        uint256 weight = calculateWeight(voter, proposalId);
         if (support == uint8(VoteType.Against)) {
             proposals[proposalId].noVotes += weight;
         } else if (support == uint8(VoteType.For)) {
@@ -159,10 +129,4 @@ abstract contract BaseTokenVoting is BaseStrategy, EIP712Upgradeable {
         }
         emit VoteFinalized(proposalId, block.timestamp);
     }
-
-    function calculateWeight(address voter, uint256 proposalId)
-        public
-        view
-        virtual
-        returns (uint256);
 }
