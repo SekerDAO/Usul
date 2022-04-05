@@ -4,12 +4,12 @@ pragma solidity >=0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../extensions/BaseTokenVoting.sol";
-import "../extensions/BaseQuorumFixed.sol";
+import "../extensions/BaseQuorumPercent.sol";
 import "../extensions/BaseMember.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
+contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
     
     IERC721 public tokenAddress;
     mapping(uint256 => mapping(uint256 => bool)) idHasVoted; // map proposalId to nft ids to hasBeenUsed
@@ -41,7 +41,7 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
             IERC721 _governanceToken,
             address _UsulModule,
             uint256 _votingPeriod,
-            uint256 quorumThreshold_,
+            uint256 quorumNumerator_,
             uint256 _timeLockPeriod,
             string memory name_
         ) = abi.decode(
@@ -56,7 +56,7 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
         tokenAddress = _governanceToken;
         __Ownable_init();
         __EIP712_init_unchained(name_, version());
-        updateQuorumThreshold(quorumThreshold_);
+        _updateQuorumNumerator(quorumNumerator_);
         transferOwnership(_owner);
         votingPeriod = _votingPeriod * 1 seconds; // switch to hours in prod
         UsulModule = _UsulModule;
@@ -74,8 +74,8 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
         bytes memory extraData
     ) onlyMember(msg.sender) external {
         uint256[] memory ids = abi.decode(extraData, (uint256[]));
-        checkPreviousVote(ids, proposalId);
-        _vote(proposalId, msg.sender, support, calculateWeight(msg.sender, proposalId));
+        require(tokenAddress.balanceOf(msg.sender) >= 1, "voter does not own a voting NFT");
+        _vote(proposalId, msg.sender, support, 1);
     }
 
     /// @dev Submits a vote for a proposal by ERC712 signature.
@@ -95,9 +95,8 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
             signature
         );
         require(members[voter], "voter is not a member");
-        uint256[] memory ids = abi.decode(extraData, (uint256[]));
-        checkPreviousVote(ids, proposalId);
-        _vote(proposalId, voter, support, calculateWeight(voter, proposalId));
+        require(tokenAddress.balanceOf(voter) >= 1, "voter does not own a voting NFT");
+        _vote(proposalId, voter, support, 1);
     }
 
     /// @dev Determines if a proposal has succeeded.
@@ -111,7 +110,7 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
         require(
             proposals[proposalId].yesVotes +
                 proposals[proposalId].abstainVotes >=
-                quorum(),
+                quorum(block.number),
             "a quorum has not been reached for the proposal"
         );
         require(
@@ -121,31 +120,7 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
         return true;
     }
 
-    function quorum() public view override returns (uint256) {
-        return quorumThreshold();
-    }
-
-    function checkPreviousVote(uint256[] memory ids, uint256 proposalId)
-        internal
-    {
-        for (uint256 i = 0; i < ids.length; i++) {
-            require(
-                idHasVoted[proposalId][ids[i]] == false,
-                "no weight, contains an id that has already voted"
-            );
-            require(
-                tokenAddress.ownerOf(ids[i]) == msg.sender,
-                "voter does not own an id"
-            );
-            idHasVoted[proposalId][ids[i]] = true;
-        }
-    }
-
-    function calculateWeight(address voter, uint256)
-        public
-        view
-        returns (uint256)
-    {
-        return tokenAddress.balanceOf(voter);
+    function quorum(uint256) public view override returns (uint256) {
+        return (memberCount * quorumNumerator()) / quorumDenominator();
     }
 }
