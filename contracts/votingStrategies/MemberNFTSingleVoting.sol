@@ -9,7 +9,7 @@ import "../extensions/BaseMember.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract NFTLinearVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
+contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumFixed {
     
     IERC721 public tokenAddress;
     mapping(uint256 => mapping(uint256 => bool)) idHasVoted; // map proposalId to nft ids to hasBeenUsed
