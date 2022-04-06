@@ -73,8 +73,8 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
         uint8 support,
         bytes memory extraData
     ) onlyMember(msg.sender) external {
-        uint256[] memory ids = abi.decode(extraData, (uint256[]));
-        require(tokenAddress.balanceOf(msg.sender) >= 1, "voter does not own a voting NFT");
+        uint256 id = abi.decode(extraData, (uint256));
+        checkPreviousVote(id, proposalId);
         _vote(proposalId, msg.sender, support, 1);
     }
 
@@ -95,7 +95,8 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
             signature
         );
         require(members[voter], "voter is not a member");
-        require(tokenAddress.balanceOf(voter) >= 1, "voter does not own a voting NFT");
+        uint256 id = abi.decode(extraData, (uint256));
+        checkPreviousVote(id, proposalId);
         _vote(proposalId, voter, support, 1);
     }
 
@@ -122,5 +123,20 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
 
     function quorum(uint256) public view override returns (uint256) {
         return (memberCount * quorumNumerator()) / quorumDenominator();
+    }
+
+    function checkPreviousVote(uint256 id, uint256 proposalId)
+        internal
+    {
+
+        require(
+            idHasVoted[proposalId][id] == false,
+            "no weight, contains an id that has already voted"
+        );
+        require(
+            tokenAddress.ownerOf(id) == msg.sender,
+            "voter does not own an id"
+        );
+        idHasVoted[proposalId][id] = true;
     }
 }
