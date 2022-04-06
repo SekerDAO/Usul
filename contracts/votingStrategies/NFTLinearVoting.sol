@@ -73,7 +73,7 @@ contract NFTLinearVoting is BaseTokenVoting, BaseQuorumFixed {
         bytes memory extraData
     ) external {
         uint256[] memory ids = abi.decode(extraData, (uint256[]));
-        checkPreviousVote(ids, proposalId);
+        checkPreviousVote(ids, proposalId, msg.sender);
         _vote(proposalId, msg.sender, support, ids.length);
     }
 
@@ -94,7 +94,7 @@ contract NFTLinearVoting is BaseTokenVoting, BaseQuorumFixed {
             signature
         );
         uint256[] memory ids = abi.decode(extraData, (uint256[]));
-        checkPreviousVote(ids, proposalId);
+        checkPreviousVote(ids, proposalId, voter);
         _vote(proposalId, voter, support, ids.length);
     }
 
@@ -123,7 +123,7 @@ contract NFTLinearVoting is BaseTokenVoting, BaseQuorumFixed {
         return quorumThreshold();
     }
 
-    function checkPreviousVote(uint256[] memory ids, uint256 proposalId)
+    function checkPreviousVote(uint256[] memory ids, uint256 proposalId, address voter)
         internal
     {
         for (uint256 i = 0; i < ids.length; i++) {
@@ -132,7 +132,7 @@ contract NFTLinearVoting is BaseTokenVoting, BaseQuorumFixed {
                 "no weight, contains an id that has already voted"
             );
             require(
-                tokenAddress.ownerOf(ids[i]) == msg.sender,
+                tokenAddress.ownerOf(ids[i]) == voter,
                 "voter does not own an id"
             );
             idHasVoted[proposalId][ids[i]] = true;
