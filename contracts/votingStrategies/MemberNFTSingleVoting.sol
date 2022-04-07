@@ -90,7 +90,7 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
     ) external {
         address voter = ECDSA.recover(
             _hashTypedDataV4(
-                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support))
+                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support, extraData))
             ),
             signature
         );
