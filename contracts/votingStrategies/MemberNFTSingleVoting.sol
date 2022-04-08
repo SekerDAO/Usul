@@ -133,10 +133,10 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
             idHasVoted[proposalId][id] == false,
             "no weight, contains an id that has already voted"
         );
+        idHasVoted[proposalId][id] = true;
         require(
             tokenAddress.ownerOf(id) == voter,
             "voter does not own an id"
         );
-        idHasVoted[proposalId][id] = true;
     }
 }

@@ -131,11 +131,11 @@ contract NFTLinearVoting is BaseTokenVoting, BaseQuorumFixed {
                 idHasVoted[proposalId][ids[i]] == false,
                 "no weight, contains an id that has already voted"
             );
+            idHasVoted[proposalId][ids[i]] = true;
             require(
                 tokenAddress.ownerOf(ids[i]) == voter,
                 "voter does not own an id"
             );
-            idHasVoted[proposalId][ids[i]] = true;
         }
     }
 }
