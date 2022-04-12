@@ -7,16 +7,13 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts();
   const { deploy } = deployments;
 
-  await deploy("OZLinearVoting", {
+  await deploy("Usul", {
     from: deployer,
     args: [
       '0x0000000000000000000000000000000000000001',
       '0x0000000000000000000000000000000000000001',
       '0x0000000000000000000000000000000000000001',
-      2,
-      1,
-      1,
-      'SimpleMemberVoting'
+      ['0x0000000000000000000000000000000000000002']
     ],
     log: true,
     deterministicDeployment: true
@@ -24,5 +21,5 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 };
 
-deploy.tags = ["oz-linear-voting"];
+deploy.tags = ["usul"];
 export default deploy;

@@ -19,8 +19,8 @@ const deploy: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       ['0x0000000000000000000000000000000000000001']
     ],
     log: true,
-    deterministicDeployment: true,
-    gasPrice: ethers.BigNumber.from("2352250007")
+    deterministicDeployment: true
+    //gasPrice: ethers.BigNumber.from("2352250007")
   });
 };
 
