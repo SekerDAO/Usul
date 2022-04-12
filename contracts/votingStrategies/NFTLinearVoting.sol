@@ -9,7 +9,6 @@ import "../extensions/BaseQuorumFixed.sol";
 /// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
 contract NFTLinearVoting is BaseTokenVoting, BaseQuorumFixed {
-    
     IERC721 public tokenAddress;
     mapping(uint256 => mapping(uint256 => bool)) idHasVoted; // map proposalId to nft ids to hasBeenUsed
 
@@ -89,7 +88,9 @@ contract NFTLinearVoting is BaseTokenVoting, BaseQuorumFixed {
     ) external {
         address voter = ECDSA.recover(
             _hashTypedDataV4(
-                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support, extraData))
+                keccak256(
+                    abi.encode(VOTE_TYPEHASH, proposalId, support, extraData)
+                )
             ),
             signature
         );
@@ -123,9 +124,11 @@ contract NFTLinearVoting is BaseTokenVoting, BaseQuorumFixed {
         return quorumThreshold();
     }
 
-    function checkPreviousVote(uint256[] memory ids, uint256 proposalId, address voter)
-        internal
-    {
+    function checkPreviousVote(
+        uint256[] memory ids,
+        uint256 proposalId,
+        address voter
+    ) internal {
         for (uint256 i = 0; i < ids.length; i++) {
             require(
                 idHasVoted[proposalId][ids[i]] == false,

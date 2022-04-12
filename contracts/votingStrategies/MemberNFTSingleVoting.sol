@@ -9,8 +9,11 @@ import "../extensions/BaseMember.sol";
 
 /// @title OpenZeppelin Linear Voting Strategy - A Usul strategy that enables compount like voting.
 /// @author Nathan Ginnever - <team@hyphal.xyz>
-contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
-    
+contract MemberNFTSingleVoting is
+    BaseTokenVoting,
+    BaseMember,
+    BaseQuorumPercent
+{
     IERC721 public tokenAddress;
     mapping(uint256 => mapping(uint256 => bool)) idHasVoted; // map proposalId to nft ids to hasBeenUsed
 
@@ -21,7 +24,8 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
         uint256 _votingPeriod,
         uint256 quorumThreshold_,
         uint256 _timeLockPeriod,
-        string memory name_
+        string memory name_,
+        address[] memory _members
     ) {
         bytes memory initParams = abi.encode(
             _owner,
@@ -30,7 +34,8 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
             _votingPeriod,
             quorumThreshold_,
             _timeLockPeriod,
-            name_
+            name_,
+            _members
         );
         setUp(initParams);
     }
@@ -43,10 +48,20 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
             uint256 _votingPeriod,
             uint256 quorumNumerator_,
             uint256 _timeLockPeriod,
-            string memory name_
+            string memory name_,
+            address[] memory _members
         ) = abi.decode(
                 initParams,
-                (address, IERC721, address, uint256, uint256, uint256, string)
+                (
+                    address,
+                    IERC721,
+                    address,
+                    uint256,
+                    uint256,
+                    uint256,
+                    string,
+                    address[]
+                )
             );
         require(_votingPeriod > 1, "votingPeriod must be greater than 1");
         require(
@@ -55,6 +70,9 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
         );
         tokenAddress = _governanceToken;
         __Ownable_init();
+        for (uint256 i = 0; i < _members.length; i++) {
+            addMember(_members[i]);
+        }
         __EIP712_init_unchained(name_, version());
         _updateQuorumNumerator(quorumNumerator_);
         transferOwnership(_owner);
@@ -72,7 +90,7 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
         uint256 proposalId,
         uint8 support,
         bytes memory extraData
-    ) onlyMember(msg.sender) external {
+    ) external onlyMember(msg.sender) {
         uint256 id = abi.decode(extraData, (uint256));
         checkPreviousVote(id, proposalId, msg.sender);
         _vote(proposalId, msg.sender, support, 1);
@@ -90,7 +108,9 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
     ) external {
         address voter = ECDSA.recover(
             _hashTypedDataV4(
-                keccak256(abi.encode(VOTE_TYPEHASH, proposalId, support, extraData))
+                keccak256(
+                    abi.encode(VOTE_TYPEHASH, proposalId, support, extraData)
+                )
             ),
             signature
         );
@@ -125,18 +145,16 @@ contract MemberNFTSingleVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent
         return (memberCount * quorumNumerator()) / quorumDenominator();
     }
 
-    function checkPreviousVote(uint256 id, uint256 proposalId, address voter)
-        internal
-    {
-
+    function checkPreviousVote(
+        uint256 id,
+        uint256 proposalId,
+        address voter
+    ) internal {
         require(
             idHasVoted[proposalId][id] == false,
             "no weight, contains an id that has already voted"
         );
         idHasVoted[proposalId][id] = true;
-        require(
-            tokenAddress.ownerOf(id) == voter,
-            "voter does not own an id"
-        );
+        require(tokenAddress.ownerOf(id) == voter, "voter does not own an id");
     }
 }

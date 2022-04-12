@@ -68,7 +68,12 @@ contract SimpleMemberVoting is BaseTokenVoting, BaseMember, BaseQuorumPercent {
         uint8 support,
         bytes memory
     ) external {
-        _vote(proposalId, msg.sender, support, calculateWeight(msg.sender, proposalId));
+        _vote(
+            proposalId,
+            msg.sender,
+            support,
+            calculateWeight(msg.sender, proposalId)
+        );
     }
 
     /// @dev Submits a vote for a proposal by ERC712 signature.
