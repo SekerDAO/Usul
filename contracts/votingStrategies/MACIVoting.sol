@@ -4,40 +4,31 @@ pragma solidity >=0.8.0;
 
 import "../extensions/BaseMember.sol";
 import "./MACI/IMACI.sol";
-import "./MACI/IMACIFactory.sol";
 import "./MACI/IParams.sol";
 import "./MACI/IPubKey.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-// contract MessageAqFactory is Ownable {
-//     function deploy(uint256 _subDepth) public onlyOwner returns (AccQueue) {
-//         AccQueue aq = new AccQueueQuinaryMaci(_subDepth);
-//         aq.transferOwnership(owner());
-//         return aq;
-//     }
-// }
+struct Proposal {
+    uint256 maciPollId;
+    bool finalized;
+}
 
 /// @title MACI Voting - A Usul strategy that enables secret voting using MACI.
 /// @author Nathan Ginnever - <team@hyphal.xyz> & Auryn Macmillan - <auryn.macmillan@gnosis.io>
 abstract contract MACIVoting is BaseMember, IPubKey, IParams {
-    struct MACIDeployments {
-        address add; // address of the MACI deployement.
-        mapping(address => bool) registeredVoters; // whether or not voter has already registered.
-    }
-
     address public coordinator;
-    address public MACIFactory;
+    address public MACI;
     address public messageAqFactory;
     address public VkRegistry;
 
     PubKey public coordinatorPubKey;
 
     uint256 public duration;
+    uint256 internal nextPollId = 0;
+
+    mapping(uint256 => Proposal) proposals;
 
     MaxValues public maxValues;
     TreeDepths public treeDepths;
-
-    mapping(uint256 => MACIDeployments) public MaciDeployments;
 
     event MACIFacotrySet(address MACIFactory);
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
@@ -49,11 +40,10 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
     error AlreadyRegistered(address member);
 
     /// @dev Acts as signup gatekeeper for MACI.
-    function register(address _member, bytes memory _data) public {
+    function register(address _member, bytes memory _data) public onlyMember {
         uint256 proposalId = abi.decode(_data, (uint256));
-        if (msg.sender != MaciDeployments[proposalId].add)
-            revert NotMACI(msg.sender);
-        if (MaciDeployments[proposalId].registeredVoters[_member])
+        if (msg.sender != MACI) revert NotMACI(msg.sender);
+        if (IMACI(MACI).registeredVoters[_member])
             revert AlreadyRegistered(_member);
     }
 
@@ -65,29 +55,30 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
         override
         onlyUsul
     {
-        uint256 proposalId = abi.decode(data, (uint256));
+        (uint256 proposalId, , ) = abi.decode(
+            data,
+            (uint256, bytes32[], bytes)
+        );
 
-        // deploy MACI
-        MaciDeployments[proposalId].add = IMACIFactory(MACIFactory).deployMaci(
-            address(this),
-            address(this),
-            coordinator,
-            coordinatorPubKey
-        );
-        // initialize MACI
-        IMACI(MaciDeployments[proposalId].add).init(
-            VkRegistry,
-            messageAqFactory
-        );
+        proposals(proposalId).maciPollId = nextPollId;
+
         // deploy poll
-        IMACI(MaciDeployments[proposalId].add).deployPoll(
+        IMACI(MACI).deployPoll(
             duration,
             maxValues,
             treeDepths,
             coordinatorPubKey
         );
+
+        nextPollId++;
         emit ProposalReceived(proposalId, block.timestamp);
     }
+
+    function finalizePoll(
+        uint256 pollId,
+        uint256 _totalSpent,
+        uint256 _totalSpentSalt
+    ) public {}
 
     function getVoiceCredits(address _user, bytes memory _data)
         public
@@ -102,10 +93,10 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
     /// @return boolean.
     function isPassed(uint256 proposalId) public view override returns (bool) {}
 
-    /// @dev Sets the MACIFactory
-    /// @param _MACIFactory Address of the deployed MACI instance this
-    function setMACIFactory(address _MACIFactory) public onlyOwner {
-        MACIFactory = _MACIFactory;
-        emit MACIFacotrySet(MACIFactory);
+    /// @dev Sets the MACI
+    /// @param _MACI Address of the deployed MACI instance this
+    function setMACI(address _MACI) public onlyOwner {
+        MACI = _MACI;
+        emit MACIFacotrySet(MACI);
     }
 }
