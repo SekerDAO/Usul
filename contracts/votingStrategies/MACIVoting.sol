@@ -25,26 +25,52 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
     uint256 public duration;
     uint256 internal nextPollId = 0;
 
-    mapping(uint256 => Proposal) proposals;
+    mapping(uint256 => Proposal) public proposals;
+    mapping(address => bool) public registered;
 
     MaxValues public maxValues;
     TreeDepths public treeDepths;
 
     event MACIFacotrySet(address MACIFactory);
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
+    event MemberRegistered(address member);
 
-    /// `sender` is not MACI.
+    // Can only be called by MACI.
     error NotMACI(address sender);
-
-    /// `member` has already registered.
+    // `member` has already registered.
     error AlreadyRegistered(address member);
+    // Address is not a member.
+    error NotMember(address member);
+    // Can only be called by coordinator.
+    error NotCoordinator(address sender);
 
-    /// @dev Acts as signup gatekeeper for MACI.
-    function register(address _member, bytes memory _data) public onlyMember {
-        uint256 proposalId = abi.decode(_data, (uint256));
+    modifier onlyMACI() {
         if (msg.sender != MACI) revert NotMACI(msg.sender);
-        if (IMACI(MACI).registeredVoters[_member])
-            revert AlreadyRegistered(_member);
+        _;
+    }
+
+    modifier onlyCoordinator() {
+        if (msg.sender != coordinator) revert NotCoordinator(msg.sender);
+        _;
+    }
+
+    // @dev Acts as signup gatekeeper for MACI.
+    function register(address member, bytes memory) public onlyMACI {
+        if (!members[member]) revert NotMember(member);
+        if (registered[member]) revert AlreadyRegistered(member);
+
+        registered[member] = true;
+
+        emit MemberRegistered(member);
+    }
+
+    // @dev Acts as voiceCreditProxy for MACI
+    function getVoiceCredits(address, bytes memory)
+        public
+        pure
+        returns (uint256 voiceCredits)
+    {
+        voiceCredits = 1;
     }
 
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
@@ -60,9 +86,10 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
             (uint256, bytes32[], bytes)
         );
 
-        proposals(proposalId).maciPollId = nextPollId;
+        // map Usul proposal ID to MACI proposal ID
+        proposals[proposalId].maciPollId = nextPollId;
 
-        // deploy poll
+        // deploy MACI poll
         IMACI(MACI).deployPoll(
             duration,
             maxValues,
@@ -71,21 +98,20 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
         );
 
         nextPollId++;
+
         emit ProposalReceived(proposalId, block.timestamp);
     }
 
-    function finalizePoll(
-        uint256 pollId,
+    function finalizeProposal(
+        uint256 proposalId,
         uint256 _totalSpent,
-        uint256 _totalSpentSalt
-    ) public {}
-
-    function getVoiceCredits(address _user, bytes memory _data)
-        public
-        pure
-        returns (uint256)
-    {
-        return 1;
+        uint256 _totalSpentSalt,
+        uint256[] memory spent,
+        uint256[][][] calldata _spentProof,
+        uint256 _spentSalt
+    ) public {
+        Proposal memory proposal = proposals[proposalId];
+        address maciPollId = IMACI(MACI).getPoll(proposal.maciPollId);
     }
 
     /// @dev Determines if a proposal has succeeded.

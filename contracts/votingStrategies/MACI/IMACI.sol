@@ -1,23 +1,19 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 import "./IParams.sol";
 import "./IPubKey.sol";
 
 interface IMACI is IPubKey, IParams {
-    function signUp(
-        PubKey memory _pubKey,
-        bytes memory _signUpGatekeeperData,
-        bytes memory _initialVoiceCreditProxyData
-    ) external;
-
     function deployPoll(
         uint256 _duration,
         MaxValues memory _maxValues,
         TreeDepths memory _treeDepths,
         PubKey memory _coordinatorPubKey
     ) external;
+
+    function getPoll(uint256 _pollId) external view returns (address);
 
     function stateTreeDepth() external view returns (uint8);
 
