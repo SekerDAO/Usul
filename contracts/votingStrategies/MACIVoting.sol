@@ -6,24 +6,31 @@ import "../extensions/BaseMember.sol";
 import "./MACI/IMACI.sol";
 import "./MACI/IParams.sol";
 import "./MACI/IPubKey.sol";
+import "./MACI/IPoll.sol";
 
 struct Proposal {
+    address maci;
     uint256 maciPollId;
     bool finalized;
+    bool cancelled;
+    bool passed;
 }
 
 /// @title MACI Voting - A Usul strategy that enables secret voting using MACI.
 /// @author Nathan Ginnever - <team@hyphal.xyz> & Auryn Macmillan - <auryn.macmillan@gnosis.io>
-abstract contract MACIVoting is BaseMember, IPubKey, IParams {
+contract MACIVoting is BaseMember, IPubKey, IParams {
     address public coordinator;
     address public MACI;
     address public messageAqFactory;
     address public VkRegistry;
 
+    bytes32[] public tallyHashes;
+
     PubKey public coordinatorPubKey;
 
     uint256 public duration;
-    uint256 internal nextPollId = 0;
+    uint256 public nextPollId = 0;
+    uint256 public timeLockPeriod;
 
     mapping(uint256 => Proposal) public proposals;
     mapping(address => bool) public registered;
@@ -34,6 +41,7 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
     event MACIFacotrySet(address MACIFactory);
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
     event MemberRegistered(address member);
+    event VoteFinalized(uint256 proposalId, uint256 timestamp);
 
     // Can only be called by MACI.
     error NotMACI(address sender);
@@ -43,6 +51,24 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
     error NotMember(address member);
     // Can only be called by coordinator.
     error NotCoordinator(address sender);
+    // Proposal Already Finalized.
+    error AlreadyFinalized();
+    // Voting is still in progress.
+    error VotingInProgress();
+    // MACI address cannot be set to zero.
+    error MACIAddressCannotBeZero();
+    // Tallying is incomplete.
+    error TallyingIncomplete();
+    // Tally has has not been published.
+    error TallyHashNotPublished();
+    // Incorrect value provided for _totalSpent or _totalSpentSalt.
+    error IncorrectTotalSpent();
+    // Proposal has been cancelled.
+    error ProposalCancelled();
+    // _spent or _spentProof are not equal to 2.
+    error IncorrectArrayLength();
+    // Incorrect amount of spent voice credits.
+    error IncorrectSpentVoiceCredits();
 
     modifier onlyMACI() {
         if (msg.sender != MACI) revert NotMACI(msg.sender);
@@ -53,6 +79,12 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
         if (msg.sender != coordinator) revert NotCoordinator(msg.sender);
         _;
     }
+
+    constructor(bytes memory initializeParams) {
+        setUp(initializeParams);
+    }
+
+    function setUp(bytes memory initializeParams) public override {}
 
     // @dev Acts as signup gatekeeper for MACI.
     function register(address member, bytes memory) public onlyMACI {
@@ -104,24 +136,72 @@ abstract contract MACIVoting is BaseMember, IPubKey, IParams {
 
     function finalizeProposal(
         uint256 proposalId,
-        uint256 _totalSpent,
-        uint256 _totalSpentSalt,
+        uint256 totalSpent,
+        uint256 totalSpentSalt,
         uint256[] memory spent,
-        uint256[][][] calldata _spentProof,
-        uint256 _spentSalt
+        uint256[][][] calldata spentProof,
+        uint256 spentSalt
     ) public {
         Proposal memory proposal = proposals[proposalId];
-        address maciPollId = IMACI(MACI).getPoll(proposal.maciPollId);
+
+        if (proposal.finalized) revert AlreadyFinalized();
+        if (!proposal.cancelled) revert ProposalCancelled();
+
+        address maciPoll = IMACI(MACI).getPoll(proposal.maciPollId);
+        if (!IPoll(maciPoll).isAfterDeadline()) revert VotingInProgress();
+
+        (, uint256 tallyBatchSize, ) = IPoll(maciPoll).batchSizes();
+        uint256 batchStartIndex = IPoll(maciPoll).tallyBatchNum() *
+            tallyBatchSize;
+        (uint256 numSignUps, ) = IPoll(maciPoll).numSignUpsAndMessages();
+        if (batchStartIndex <= numSignUps) revert TallyingIncomplete();
+
+        if (tallyHashes[proposal.maciPollId] == bytes32(0))
+            revert TallyHashNotPublished();
+        bool verified = IPoll(maciPoll).verifySpentVoiceCredits(
+            totalSpent,
+            totalSpentSalt
+        );
+        if (!verified) revert IncorrectTotalSpent();
+
+        if (spent.length != 2 || spentProof.length != 2)
+            revert IncorrectArrayLength();
+
+        for (uint256 index = 0; index < spent.length; index++) {
+            bool spentVerified = IPoll(maciPoll).verifyPerVOSpentVoiceCredits(
+                index,
+                spent[index],
+                spentProof[index],
+                spentSalt
+            );
+            if (!spentVerified) revert IncorrectSpentVoiceCredits();
+        }
+
+        if (spent[0] < spent[1]) proposal.passed = true;
+        proposal.finalized = true;
+        finalizeStrategy(proposalId);
+    }
+
+    /// @dev Calls the proposal module to notify that a quorum has been reached.
+    /// @param proposalId the proposal to vote for.
+    function finalizeStrategy(uint256 proposalId) public virtual override {
+        if (isPassed(proposalId)) {
+            IProposal(UsulModule).receiveStrategy(proposalId, timeLockPeriod);
+        }
+        emit VoteFinalized(proposalId, block.timestamp);
     }
 
     /// @dev Determines if a proposal has succeeded.
     /// @param proposalId the proposal to vote for.
     /// @return boolean.
-    function isPassed(uint256 proposalId) public view override returns (bool) {}
+    function isPassed(uint256 proposalId) public view override returns (bool) {
+        return proposals[proposalId].passed;
+    }
 
     /// @dev Sets the MACI
     /// @param _MACI Address of the deployed MACI instance this
     function setMACI(address _MACI) public onlyOwner {
+        if (_MACI == address(0)) revert MACIAddressCannotBeZero();
         MACI = _MACI;
         emit MACIFacotrySet(MACI);
     }

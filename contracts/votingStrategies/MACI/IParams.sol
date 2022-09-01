@@ -1,4 +1,5 @@
-// SPDX-License-Identifier: LGPL-3.0-only
+// SPDX-License-Identifier: MIT
+pragma experimental ABIEncoderV2;
 pragma solidity >=0.8.0;
 
 interface IParams {
@@ -14,6 +15,7 @@ interface IParams {
     struct BatchSizes {
         uint8 messageBatchSize;
         uint8 tallyBatchSize;
+        uint8 subsidyBatchSize;
     }
 
     struct MaxValues {
