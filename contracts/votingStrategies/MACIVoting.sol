@@ -10,10 +10,11 @@ import "./MACI/IPoll.sol";
 
 struct Proposal {
     address maci;
-    uint256 maciPollId;
+    address poll;
     bool finalized;
     bool cancelled;
     bool passed;
+    bytes32 tallyHash;
 }
 
 /// @title MACI Voting - A Usul strategy that enables secret voting using MACI.
@@ -21,15 +22,10 @@ struct Proposal {
 contract MACIVoting is BaseMember, IPubKey, IParams {
     address public coordinator;
     address public MACI;
-    address public messageAqFactory;
-    address public VkRegistry;
-
-    bytes32[] public tallyHashes;
 
     PubKey public coordinatorPubKey;
 
     uint256 public duration;
-    uint256 public nextPollId = 0;
     uint256 public timeLockPeriod;
 
     mapping(uint256 => Proposal) public proposals;
@@ -69,6 +65,10 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     error IncorrectArrayLength();
     // Incorrect amount of spent voice credits.
     error IncorrectSpentVoiceCredits();
+    // MACI PollId provided already exists.
+    error PollIdAlreadyExists();
+    // MACI PollId provided does not correspond to the next MACI pollId.
+    error PollIdIsNotNext();
 
     modifier onlyMACI() {
         if (msg.sender != MACI) revert NotMACI(msg.sender);
@@ -105,21 +105,27 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
         voiceCredits = 1;
     }
 
+    function checkPoll(uint256 pollId) public view returns (bool) {
+        try IMACI(MACI).getPoll(pollId) {
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
     /// @dev Called by the proposal module, this notifes the strategy of a new proposal.
     /// @param data any extra data to pass to the voting strategy
-    function receiveProposal(bytes memory data)
-        external
-        virtual
-        override
-        onlyUsul
-    {
-        (uint256 proposalId, , ) = abi.decode(
+    function receiveProposal(bytes memory data) external override onlyUsul {
+        (uint256 proposalId, , bytes memory _pollId) = abi.decode(
             data,
             (uint256, bytes32[], bytes)
         );
 
-        // map Usul proposal ID to MACI proposal ID
-        proposals[proposalId].maciPollId = nextPollId;
+        uint256 pollId = abi.decode(_pollId, (uint256));
+        // revert if pollId already exist
+        if (checkPoll(pollId)) revert PollIdAlreadyExists();
+        // revert if previous pollId does not exist
+        if (!checkPoll(pollId - 1)) revert PollIdIsNotNext();
 
         // deploy MACI poll
         IMACI(MACI).deployPoll(
@@ -129,7 +135,11 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
             coordinatorPubKey
         );
 
-        nextPollId++;
+        // get poll address
+        address poll = IMACI(MACI).getPoll(pollId);
+
+        // map Usul proposal ID to MACI poll address
+        proposals[proposalId].poll = poll;
 
         emit ProposalReceived(proposalId, block.timestamp);
     }
@@ -145,20 +155,20 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
         Proposal memory proposal = proposals[proposalId];
 
         if (proposal.finalized) revert AlreadyFinalized();
+
         if (!proposal.cancelled) revert ProposalCancelled();
 
-        address maciPoll = IMACI(MACI).getPoll(proposal.maciPollId);
-        if (!IPoll(maciPoll).isAfterDeadline()) revert VotingInProgress();
+        if (!IPoll(proposal.poll).isAfterDeadline()) revert VotingInProgress();
 
-        (, uint256 tallyBatchSize, ) = IPoll(maciPoll).batchSizes();
-        uint256 batchStartIndex = IPoll(maciPoll).tallyBatchNum() *
+        (, uint256 tallyBatchSize, ) = IPoll(proposal.poll).batchSizes();
+        uint256 batchStartIndex = IPoll(proposal.poll).tallyBatchNum() *
             tallyBatchSize;
-        (uint256 numSignUps, ) = IPoll(maciPoll).numSignUpsAndMessages();
+        (uint256 numSignUps, ) = IPoll(proposal.poll).numSignUpsAndMessages();
         if (batchStartIndex <= numSignUps) revert TallyingIncomplete();
 
-        if (tallyHashes[proposal.maciPollId] == bytes32(0))
-            revert TallyHashNotPublished();
-        bool verified = IPoll(maciPoll).verifySpentVoiceCredits(
+        if (proposal.tallyHash == bytes32(0)) revert TallyHashNotPublished();
+
+        bool verified = IPoll(proposal.poll).verifySpentVoiceCredits(
             totalSpent,
             totalSpentSalt
         );
@@ -168,12 +178,13 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
             revert IncorrectArrayLength();
 
         for (uint256 index = 0; index < spent.length; index++) {
-            bool spentVerified = IPoll(maciPoll).verifyPerVOSpentVoiceCredits(
-                index,
-                spent[index],
-                spentProof[index],
-                spentSalt
-            );
+            bool spentVerified = IPoll(proposal.poll)
+                .verifyPerVOSpentVoiceCredits(
+                    index,
+                    spent[index],
+                    spentProof[index],
+                    spentSalt
+                );
             if (!spentVerified) revert IncorrectSpentVoiceCredits();
         }
 
