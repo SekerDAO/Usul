@@ -12,7 +12,8 @@
     "pretest": "yarn compile",
     "test": "npx hardhat test",
     "prepublishOnly": "yarn compile",
-    "deploy": "ts-node scripts/deploy.ts"
+    "deploy": "ts-node scripts/deploy.ts",
+    "hardhat": "hardhat"
   },
   "repository": {
     "type": "git",

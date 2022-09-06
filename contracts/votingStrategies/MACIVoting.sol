@@ -91,6 +91,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
         address _owner,
         address _coordinator,
         address _MACI,
+        address _UsulModule,
         PubKey memory _coordinatorPubKey,
         uint256 _duration,
         uint256 _timeLockPeriod,
@@ -101,6 +102,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
             _owner,
             _coordinator,
             _MACI,
+            _UsulModule,
             _coordinatorPubKey,
             _duration,
             _timeLockPeriod,
@@ -115,6 +117,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
             address _owner,
             address _coordinator,
             address _MACI,
+            address _UsulModule,
             PubKey memory _coordinatorPubKey,
             uint256 _duration,
             uint256 _timeLockPeriod,
@@ -123,6 +126,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
         ) = abi.decode(
                 initializeParams,
                 (
+                    address,
                     address,
                     address,
                     address,
@@ -136,6 +140,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
         __Ownable_init();
         setCoordinator(_coordinator, _coordinatorPubKey);
         setMACI(_MACI);
+        setUsul(_UsulModule);
         setDuration(_duration);
         setTimeLockPeriod(_timeLockPeriod);
         setMaxValuesAndTreeDepths(_maxValues, _treeDepths);
