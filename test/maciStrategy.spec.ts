@@ -15,8 +15,8 @@ import {
   deployVkRegistry,
   deployVerifier,
   deployTopupCredit,
-} from "maci-contracts/ts/deploy";
-import { Keypair } from "maci-domainobjs";
+} from "maci-contracts";
+import { Keypair, PubKey } from "maci-domainobjs";
 
 const deadline =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -106,6 +106,7 @@ describe("Maci Strategy:", () => {
       salt,
       ethers.utils.keccak256(byteCode)
     );
+
     expect(
       await moduleFactory.deployModule(
         masterProposalModule.address,
@@ -134,23 +135,24 @@ describe("Maci Strategy:", () => {
         "address",
         "address",
         "address",
-        "PubKey",
+        "tuple",
         "uint256",
         "uint256",
-        "MaxValues",
-        "TreeDepths",
+        "tuple",
+        "tuple",
       ],
       [
         safe.address,
         coordinator.address,
         proposalModule.address,
-        coodinatorKeyPair.pubKey,
+        coodinatorKeyPair.pubKey.asContractParam(),
         duration,
         timeLockPeriod,
         maxValues,
         treeDepths,
       ]
     );
+
     const initSimpleMemberData =
       MaciVotingMasterCopy.interface.encodeFunctionData("setUp", [
         encodedMaciVotingInitParams,
@@ -175,7 +177,7 @@ describe("Maci Strategy:", () => {
       ethers.utils.keccak256(byteCodeSimpleMember)
     );
 
-    expect(
+    await expect(
       await moduleFactory.deployModule(
         MaciVotingMasterCopy.address,
         initSimpleMemberData,

@@ -60,6 +60,8 @@
     "@openzeppelin/contracts": "4.3.2",
     "@openzeppelin/contracts-upgradeable": "^4.3.3",
     "maci-contracts": "^1.1.0",
+    "maci-core": "^1.1.0",
+    "maci-crypto": "^1.1.0",
     "maci-domainobjs": "^1.1.0"
   }
 }
