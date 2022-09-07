@@ -90,7 +90,6 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     constructor(
         address _owner,
         address _coordinator,
-        address _MACI,
         address _UsulModule,
         PubKey memory _coordinatorPubKey,
         uint256 _duration,
@@ -101,7 +100,6 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
         bytes memory initializeParams = abi.encode(
             _owner,
             _coordinator,
-            _MACI,
             _UsulModule,
             _coordinatorPubKey,
             _duration,
@@ -116,7 +114,6 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
         (
             address _owner,
             address _coordinator,
-            address _MACI,
             address _UsulModule,
             PubKey memory _coordinatorPubKey,
             uint256 _duration,
@@ -129,7 +126,6 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
                     address,
                     address,
                     address,
-                    address,
                     PubKey,
                     uint256,
                     uint256,
@@ -139,7 +135,6 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
             );
         __Ownable_init();
         setCoordinator(_coordinator, _coordinatorPubKey);
-        setMACI(_MACI);
         setUsul(_UsulModule);
         setDuration(_duration);
         setTimeLockPeriod(_timeLockPeriod);

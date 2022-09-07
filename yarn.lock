@@ -2940,6 +2940,11 @@ base64-js@^1.3.1:
   resolved "https://registry.yarnpkg.com/base64-js/-/base64-js-1.5.1.tgz#1b1b440160a5bf7ad40b650f095963481903930a"
   integrity sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==
 
+base64url@^3.0.1:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/base64url/-/base64url-3.0.1.tgz#6399d572e2bc3f90a9a8b22d5dbb0a32d33f788d"
+  integrity sha512-ir1UPr3dkwexU7FdV8qBBbNDRUhMmIekYMFZfi+C/sLNnRESKPl23nB9b2pltqfOQNnGzsDdId90AEtG5tCx4A==
+
 base@^0.11.1:
   version "0.11.2"
   resolved "https://registry.yarnpkg.com/base/-/base-0.11.2.tgz#7bde5ced145b6d551a90db87f83c558b4eb48a8f"
@@ -7337,10 +7342,10 @@ ltgt@~2.1.1:
   resolved "https://registry.yarnpkg.com/ltgt/-/ltgt-2.1.3.tgz#10851a06d9964b971178441c23c9e52698eece34"
   integrity sha1-EIUaBtmWS5cReEQcI8nlJpjuzjQ=
 
-maci-contracts@^1.0.2:
-  version "1.0.2"
-  resolved "https://registry.yarnpkg.com/maci-contracts/-/maci-contracts-1.0.2.tgz#4f3a1fed0a757068cf28daaa6907bb625726fe7e"
-  integrity sha512-lp0HA5Wf+hWA4RPWCqXKHRxVOxB1u+5xWp/2KXzEKr85sYr7bUp3QNzeGQtUSMVZzn7Kuf+tOV/Bo8dj6mz2QA==
+maci-contracts@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/maci-contracts/-/maci-contracts-1.1.0.tgz#99a1227f54d28db41e0a76324d0d6495ef6d08a1"
+  integrity sha512-OE4o1678nQcZ64r/SOko99p7VvEOKokGTnS87wgyn/0Qllj+Thi3gdqalXWSN4A6+J4p1VAqwhucSoLEnITPDA==
   dependencies:
     "@nomiclabs/hardhat-ethers" "^2.0.2"
     "@openzeppelin/contracts" "^3.3.0-solc-0.7"
@@ -7350,6 +7355,13 @@ maci-contracts@^1.0.2:
     hardhat-artifactor "^0.2.0"
     hardhat-contract-sizer "^2.0.3"
     module-alias "^2.2.2"
+
+maci-domainobjs@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/maci-domainobjs/-/maci-domainobjs-1.1.0.tgz#3850787aa34a9be6b01464661d83c00f99521c7a"
+  integrity sha512-NGYlCQYkVbMOelbDBKoaeOzwnhy6REDQxZieyrajiKv/Ie7M8gCJ/jZ/OVj7AK0p6wfHHetNw6lozslWN6n0Lw==
+  dependencies:
+    base64url "^3.0.1"
 
 make-error@^1.1.1:
   version "1.3.6"

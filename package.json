@@ -59,6 +59,7 @@
     "@gnosis.pm/zodiac": "1.0.1",
     "@openzeppelin/contracts": "4.3.2",
     "@openzeppelin/contracts-upgradeable": "^4.3.3",
-    "maci-contracts": "^1.0.2"
+    "maci-contracts": "^1.1.0",
+    "maci-domainobjs": "^1.1.0"
   }
 }
