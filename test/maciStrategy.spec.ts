@@ -118,69 +118,74 @@ describe("Maci Strategy:", () => {
       .withArgs(expectedAddress, masterProposalModule.address);
     const proposalModule = proposalContract.attach(expectedAddress);
 
-    const MaciVotingContract = await ethers.getContractFactory(
-      "SimpleMemberVoting"
-    );
+    const MaciVotingContract = await ethers.getContractFactory("MACIVoting");
     const MaciVotingMasterCopy = await MaciVotingContract.deploy(
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",
-      2,
+      "0x0000000000000000000000000000000000000001",
+      coodinatorKeyPair.pubKey.asContractParam(),
       1,
-      0,
-      ""
+      1,
+      maxValues,
+      treeDepths
     );
+
+    const coordinatorPubKey = coodinatorKeyPair.pubKey.asContractParam();
 
     const encodedMaciVotingInitParams = ethers.utils.defaultAbiCoder.encode(
       [
         "address",
         "address",
         "address",
-        "tuple",
+        "tuple(uint256, uint256)",
         "uint256",
         "uint256",
-        "tuple",
-        "tuple",
+        "tuple(uint256, uint256)",
+        "tuple(uint8, uint8, uint8, uint8)",
       ],
       [
         safe.address,
         coordinator.address,
         proposalModule.address,
-        coodinatorKeyPair.pubKey.asContractParam(),
+        [coordinatorPubKey.x, coordinatorPubKey.y],
         duration,
         timeLockPeriod,
-        maxValues,
-        treeDepths,
+        [maxValues.maxMessages, maxValues.maxVoteOptions],
+        [
+          treeDepths.intStateTreeDepth,
+          treeDepths.messageTreeSubDepth,
+          treeDepths.messageTreeDepth,
+          treeDepths.voteOptionTreeDepth,
+        ],
       ]
     );
 
-    const initSimpleMemberData =
+    const initMACIVotingData =
       MaciVotingMasterCopy.interface.encodeFunctionData("setUp", [
         encodedMaciVotingInitParams,
       ]);
+
     const masterCopyMaciVotingAddress = MaciVotingMasterCopy.address
       .toLowerCase()
       .replace(/^0x/, "");
-    const byteCodeSimpleMember =
+    const byteCodeMACIVoting =
       "0x602d8060093d393df3363d3d373d3d3d363d73" +
       masterCopyMaciVotingAddress +
       "5af43d82803e903d91602b57fd5bf3";
     const saltMaciVoting = ethers.utils.solidityKeccak256(
       ["bytes32", "uint256"],
-      [
-        ethers.utils.solidityKeccak256(["bytes"], [initSimpleMemberData]),
-        "0x01",
-      ]
+      [ethers.utils.solidityKeccak256(["bytes"], [initMACIVotingData]), "0x01"]
     );
     const expectedAddressMaciVoting = ethers.utils.getCreate2Address(
       moduleFactory.address,
       saltMaciVoting,
-      ethers.utils.keccak256(byteCodeSimpleMember)
+      ethers.utils.keccak256(byteCodeMACIVoting)
     );
 
     await expect(
       await moduleFactory.deployModule(
         MaciVotingMasterCopy.address,
-        initSimpleMemberData,
+        initMACIVotingData,
         "0x01"
       )
     )
