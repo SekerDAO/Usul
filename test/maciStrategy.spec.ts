@@ -206,22 +206,33 @@ describe("Maci Strategy:", () => {
     );
 
     // set maci on maciVoting
-    const setMaci = buildContractCall(
+    const setMACI = buildContractCall(
       maciVoting,
-      "setMaci",
-      maci.maciContract.address,
+      "setMACI",
+      [maci.maciContract.address],
       await safe.nonce()
     );
+
+    console.log(setMACI.to, setMACI.value, setMACI.data, setMACI.operation);
+
     const setMaciTxHash = await proposalModule.getTransactionHash(
-      setMaci.to,
-      setMaci.value,
-      setMaci.data,
-      setMaci.operation
+      setMACI.to,
+      setMACI.value,
+      setMACI.data,
+      setMACI.operation
     );
+    console.log(
+      safe.address,
+      maciVoting.address,
+      "setMACI",
+      [maci.maciContract.address],
+      [owner.address]
+    );
+
     await executeContractCallWithSigners(
       safe,
       maciVoting,
-      "setMaci",
+      "setMACI",
       [maci.maciContract.address],
       [owner]
     );
@@ -290,9 +301,7 @@ describe("Maci Strategy:", () => {
   describe("Deploy the things", async () => {
     it("deploys the things", async () => {
       const { maciVoting, maci } = await baseSetup();
-      expect(await maciVoting.maci()).to.equal(
-        await maci.maciContract.address()
-      );
+      expect(await maciVoting.MACI()).to.equal(maci.maciContract.address);
     });
   });
 
