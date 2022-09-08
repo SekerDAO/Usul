@@ -193,6 +193,10 @@ describe("Maci Strategy:", () => {
       .withArgs(expectedAddressMaciVoting, MaciVotingMasterCopy.address);
     const maciVoting = MaciVotingMasterCopy.attach(expectedAddressMaciVoting);
 
+    // silence logs to suppress output from MACI deploy scripts.
+    const original = console.log;
+    console.log = () => {};
+
     // deploy MACI
     const vkRegistry = await deployVkRegistry();
     const verifierContract = await deployVerifier();
@@ -204,6 +208,9 @@ describe("Maci Strategy:", () => {
       vkRegistry.address,
       topUpContract.address
     );
+
+    // restore logs
+    console.log = original;
 
     // set maci on maciVoting
     const setMACI = buildContractCall(
