@@ -11,7 +11,7 @@ declare module "maci-contracts" {
     pollFactoryContract: Contract;
     messageAqContract: Contract;
   }>;
-  export function deployVkRegistry(): Promise<any>;
-  export function deployVerifier(): Promise<any>;
-  export function deployTopupCredit(): Primise<any>;
+  export function deployVkRegistry(): Promise<Contract>;
+  export function deployVerifier(): Promise<Contract>;
+  export function deployTopupCredit(): Primise<Contract>;
 }
