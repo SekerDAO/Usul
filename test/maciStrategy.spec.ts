@@ -213,20 +213,11 @@ describe("Maci Strategy:", () => {
       await safe.nonce()
     );
 
-    console.log(setMACI.to, setMACI.value, setMACI.data, setMACI.operation);
-
     const setMaciTxHash = await proposalModule.getTransactionHash(
       setMACI.to,
       setMACI.value,
       setMACI.data,
       setMACI.operation
-    );
-    console.log(
-      safe.address,
-      maciVoting.address,
-      "setMACI",
-      [maci.maciContract.address],
-      [owner.address]
     );
 
     await executeContractCallWithSigners(
