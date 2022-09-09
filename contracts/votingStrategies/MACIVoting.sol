@@ -270,6 +270,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     /// @dev Calls the Usul to notify that a given proposal has passed.
     /// @param proposalId the proposal to vote for.
     function finalizeStrategy(uint256 proposalId) public virtual override {
+        // TODO: figure out if we shoudl check whether or not the strategy has already been finalized
         if (isPassed(proposalId)) {
             IProposal(UsulModule).receiveStrategy(proposalId, timeLockPeriod);
         }
