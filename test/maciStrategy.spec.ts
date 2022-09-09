@@ -664,7 +664,7 @@ describe("Maci Strategy:", () => {
     it("calls finalizeStrategy() with correct proposalId");
   });
 
-  describe("finalizeProposal()", async () => {
+  describe("finalizeStrategy()", async () => {
     it("reverts if proposal has not passed");
     it("calls reveiveProposal() on usul if proposal has passed");
     it("emits VoteFinalized with correct return values");
