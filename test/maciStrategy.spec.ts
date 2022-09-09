@@ -563,32 +563,7 @@ describe("Maci Strategy:", () => {
         "only Usul module may enter"
       );
     });
-    it("reverts if pollId already exists", async () => {
-      const { maciVoting, safe } = await baseSetup();
-      const data = await ethers.utils.defaultAbiCoder.encode(
-        ["uint256", "bytes32[]", "uint256"],
-        ["0", [], "1"]
-      );
-      await expect(
-        await executeContractCallWithSigners(
-          safe,
-          maciVoting,
-          "setUsul",
-          [owner.address],
-          [owner]
-        )
-      );
-      await expect(maciVoting.receiveProposal(data)).to.be.revertedWith(
-        "PollIdIsNotNext()"
-      );
-    });
     it("deploys a new poll", async () => {
-      const { maciVoting } = await baseSetup();
-      await expect(maciVoting.receiveProposal("0x")).to.be.revertedWith(
-        "only Usul module may enter"
-      );
-    });
-    it("reverts if pollId already exists", async () => {
       const { maciVoting, safe } = await baseSetup();
       const data = await ethers.utils.defaultAbiCoder.encode(
         ["uint256", "bytes32[]", "uint256"],
@@ -651,7 +626,13 @@ describe("Maci Strategy:", () => {
   });
 
   describe("finalizeProposal()", async () => {
-    it("reverts if proposal is already finalized");
+    it("reverts if proposal is already finalized", async () => {
+      const { maci, maciVoting, safe, proposalModule, txHash, addCall } =
+        await baseSetup();
+      const data = await ethers.utils.defaultAbiCoder.encode(["uint256"], [0]);
+      const proposalCount = await proposalModule.totalProposalCount();
+      await proposalModule.submitProposal([txHash], maciVoting.address, data);
+    });
     it("reverts if proposal is cancelled");
     it("reverts if voting is still in progress");
     it("reverts if tallying is not yet complete");
