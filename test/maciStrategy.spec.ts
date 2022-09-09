@@ -315,10 +315,55 @@ describe("Maci Strategy:", () => {
   });
 
   describe("SetMACI()", async () => {
-    it("reverts if called by an account that is not owner");
-    it("reverts if _MACI is zero address");
-    it("sets MACI address");
-    it("emits MACISet event with correct return values");
+    it("reverts if called by an account that is not owner", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      await expect(maciVoting.setMACI(owner.address)).to.be.revertedWith(
+        "Ownable: caller is not the owner"
+      );
+    });
+    it("reverts if _MACI is zero address", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      // transfer ownership to EOA to avoid safe gas estimation errors.
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "transferOwnership",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(maciVoting.setMACI(AddressZero)).to.be.revertedWith(
+        "MACIAddressCannotBeZero()"
+      );
+    });
+    it("sets MACI address", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setMACI",
+          [owner.address],
+          [owner]
+        )
+      );
+      expect(await maciVoting.MACI()).to.equal(owner.address);
+    });
+    it("emits MACISet event with correct return values", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setMACI",
+          [owner.address],
+          [owner]
+        )
+      )
+        .to.emit(maciVoting, "MACISet")
+        .withArgs(owner.address);
+    });
   });
 
   describe("SetCoordinator()", async () => {
