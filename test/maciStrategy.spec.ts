@@ -371,8 +371,8 @@ describe("Maci Strategy:", () => {
     it("returns false if a given poll does not exist on the MACI contract");
   });
 
-  describe("checkPoll()", async () => {
-    it("reverts if called by an account that is not usul");
+  describe("receiveProposal()", async () => {
+    it("reverts if called by an account that is not Usul");
     it("reverts if pollId already exists");
     it("reverts if pollId is not the next pollId");
     it("deploys a new poll");
