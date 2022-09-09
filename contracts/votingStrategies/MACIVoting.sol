@@ -35,7 +35,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
 
     event CoordinatorSet(address coordinator, PubKey coordinatorPubKey);
     event DurationSet(uint256 duration);
-    event MACIFacotrySet(address MACIFactory);
+    event MACISet(address MACI);
     event MaxValuesAndTreeDepthsSet(MaxValues maxValues, TreeDepths treeDepths);
     event MemberRegistered(address member);
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
@@ -290,7 +290,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     function setMACI(address _MACI) public onlyOwner {
         if (_MACI == address(0)) revert MACIAddressCannotBeZero();
         MACI = _MACI;
-        emit MACIFacotrySet(MACI);
+        emit MACISet(MACI);
     }
 
     /// @dev Sets the coordinator address and pubkey.

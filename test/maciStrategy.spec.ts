@@ -200,13 +200,12 @@ describe("Maci Strategy:", () => {
     // deploy MACI
     const vkRegistry = await deployVkRegistry();
     const verifierContract = await deployVerifier();
-    const topUpContract = await deployTopupCredit();
     const maci = await deployMaci(
       maciVoting.address,
       maciVoting.address,
       verifierContract.address,
       vkRegistry.address,
-      topUpContract.address
+      maciVoting.address
     );
 
     // restore logs
@@ -296,10 +295,108 @@ describe("Maci Strategy:", () => {
     };
   });
 
-  describe("Deploy the things", async () => {
-    it("deploys the things", async () => {
+  describe("SetUp()", async () => {
+    it("constructor and setUp() functions succeed", async () => {
       const { maciVoting, maci } = await baseSetup();
       expect(await maciVoting.MACI()).to.equal(maci.maciContract.address);
     });
+
+    it("correctly initializes variables", async () => {
+      const { maciVoting, maci, safe } = await baseSetup();
+      expect(await maciVoting.owner()).to.equal(safe.address);
+      expect(await maciVoting.coordinator()).to.equal(coordinator.address);
+      expect(await maciVoting.MACI()).to.equal(maci.maciContract.address);
+      expect((await maciVoting.coordinatorPubKey()).toString()).to.equal(
+        coodinatorKeyPair.pubKey.asArray().toString()
+      );
+      expect(await maciVoting.duration()).to.equal(duration);
+      expect(await maciVoting.timeLockPeriod()).to.equal(timeLockPeriod);
+    });
+  });
+
+  describe("SetMACI()", async () => {
+    it("reverts if called by an account that is not owner");
+    it("reverts if _MACI is zero address");
+    it("sets MACI address");
+    it("emits MACISet event with correct return values");
+  });
+
+  describe("SetCoordinator()", async () => {
+    it("reverts if called by an account that is not owner");
+    it("reverts if _coordinator is zero address");
+    it("sets coordinator address");
+    it("sets coordinatorPubKey");
+    it("emits CoordinatorSet event with correct return values");
+  });
+
+  describe("SetDuration()", async () => {
+    it("reverts if called by an account that is not owner");
+    it("reverts if _duration is zero address");
+    it("sets duration");
+    it("emits DurationSet event with correct return values");
+  });
+
+  describe("SetTimeLockPeriod()", async () => {
+    it("reverts if called by an account that is not owner");
+    it("sets timeLockPeriod");
+    it("emits TimeLockPeriodSet event with correct return values");
+  });
+
+  describe("SetMaxValuesAndTreeDepths()", async () => {
+    it("reverts if called by an account that is not owner");
+    it("reverts if treeDepths are invalid");
+    it("sets BatchSizes");
+    it("sets TreeDepths");
+    it("emits MaxValuesAndTreeDepthsSet event with correct return values");
+  });
+
+  describe("SetDuration()", async () => {
+    it("returns false if proposal has not passed");
+    it("returns true if proposal has passed");
+  });
+
+  describe("Register()", async () => {
+    it("reverts if called by an account that is not MACI");
+    it("reverts if provided member is not a member");
+    it("reverts if member is already registered");
+    it("emits MemberRegistered event with correct return values");
+  });
+
+  describe("getVoiceCredits()", async () => {
+    it("returns correct number of voice credits");
+  });
+
+  describe("checkPoll()", async () => {
+    it("returns true if a given poll exists on the MACI contract");
+    it("returns false if a given poll does not exist on the MACI contract");
+  });
+
+  describe("checkPoll()", async () => {
+    it("reverts if called by an account that is not usul");
+    it("reverts if pollId already exists");
+    it("reverts if pollId is not the next pollId");
+    it("deploys a new poll");
+    it("maps the Usul poll ID to the maci poll address");
+    it("emits ProposalReceived with correct return values");
+  });
+
+  describe("finalizeProposal()", async () => {
+    it("reverts if proposal is already finalized");
+    it("reverts if proposal is cancelled");
+    it("reverts if voting is still in progress");
+    it("reverts if tallying is not yet complete");
+    it("reverts if tallyHash is not yet published");
+    it("reverts if total spent is incorrect");
+    it("reverts if spent length or spent proof arrays lengths are not 2");
+    it("reverts if incorrect spent voice credits are provided");
+    it("sets proposal.passed to true if yes votes are greater than no votes");
+    it("sets proposal.finalized to true");
+    it("calls finalizeStrategy() with correct proposalId");
+  });
+
+  describe("finalizeProposal()", async () => {
+    it("reverts if proposal has not passed");
+    it("calls reveiveProposal() on usul if proposal has passed");
+    it("emits VoteFinalized with correct return values");
   });
 });
