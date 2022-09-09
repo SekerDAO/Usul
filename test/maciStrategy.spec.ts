@@ -295,7 +295,7 @@ describe("Maci Strategy:", () => {
     };
   });
 
-  describe("SetUp()", async () => {
+  describe("setUp()", async () => {
     it("constructor and setUp() functions succeed", async () => {
       const { maciVoting, maci } = await baseSetup();
       expect(await maciVoting.MACI()).to.equal(maci.maciContract.address);
@@ -314,7 +314,7 @@ describe("Maci Strategy:", () => {
     });
   });
 
-  describe("SetMACI()", async () => {
+  describe("setMACI()", async () => {
     it("reverts if called by an account that is not owner", async () => {
       const { maciVoting, safe } = await baseSetup();
       await expect(maciVoting.setMACI(owner.address)).to.be.revertedWith(
@@ -366,7 +366,7 @@ describe("Maci Strategy:", () => {
     });
   });
 
-  describe("SetCoordinator()", async () => {
+  describe("setCoordinator()", async () => {
     it("reverts if called by an account that is not owner");
     it("reverts if _coordinator is zero address");
     it("sets coordinator address");
@@ -374,20 +374,20 @@ describe("Maci Strategy:", () => {
     it("emits CoordinatorSet event with correct return values");
   });
 
-  describe("SetDuration()", async () => {
+  describe("setDuration()", async () => {
     it("reverts if called by an account that is not owner");
     it("reverts if _duration is zero address");
     it("sets duration");
     it("emits DurationSet event with correct return values");
   });
 
-  describe("SetTimeLockPeriod()", async () => {
+  describe("setTimeLockPeriod()", async () => {
     it("reverts if called by an account that is not owner");
     it("sets timeLockPeriod");
     it("emits TimeLockPeriodSet event with correct return values");
   });
 
-  describe("SetMaxValuesAndTreeDepths()", async () => {
+  describe("setMaxValuesAndTreeDepths()", async () => {
     it("reverts if called by an account that is not owner");
     it("reverts if treeDepths are invalid");
     it("sets BatchSizes");
@@ -395,34 +395,259 @@ describe("Maci Strategy:", () => {
     it("emits MaxValuesAndTreeDepthsSet event with correct return values");
   });
 
-  describe("SetDuration()", async () => {
+  describe("setDuration()", async () => {
     it("returns false if proposal has not passed");
     it("returns true if proposal has passed");
   });
 
-  describe("Register()", async () => {
-    it("reverts if called by an account that is not MACI");
-    it("reverts if provided member is not a member");
-    it("reverts if member is already registered");
-    it("emits MemberRegistered event with correct return values");
+  describe("register()", async () => {
+    it("reverts if called by an account that is not MACI", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      await expect(maciVoting.register(owner.address, "0x")).to.be.revertedWith(
+        `NotMACI("${owner.address}")`
+      );
+    });
+    it("reverts if provided member is not a member", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setMACI",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(
+        maciVoting.register(user_1.address, "0x")
+      ).to.be.revertedWith(`NotMember("${user_1.address}")`);
+    });
+    it("reverts if member is already registered", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setMACI",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "addMember",
+          [user_1.address],
+          [owner]
+        )
+      );
+      await expect(maciVoting.register(user_1.address, "0x"));
+      await expect(
+        maciVoting.register(user_1.address, "0x")
+      ).to.be.revertedWith(`AlreadyRegistered("${user_1.address}")`);
+    });
+    it("registers a user", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setMACI",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "addMember",
+          [user_1.address],
+          [owner]
+        )
+      );
+      await expect(maciVoting.register(user_1.address, "0x"));
+      await expect(await maciVoting.registered(user_1.address)).to.equal(true);
+    });
+    it("emits MemberRegistered event with correct return values", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setMACI",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "addMember",
+          [user_1.address],
+          [owner]
+        )
+      );
+      await expect(maciVoting.register(user_1.address, "0x"))
+        .to.emit(maciVoting, "MemberRegistered")
+        .withArgs(user_1.address);
+    });
   });
 
   describe("getVoiceCredits()", async () => {
-    it("returns correct number of voice credits");
+    it("returns correct number of voice credits", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      await expect(
+        await maciVoting.getVoiceCredits(user_1.address, "0x")
+      ).to.equal(1);
+    });
   });
 
   describe("checkPoll()", async () => {
-    it("returns true if a given poll exists on the MACI contract");
-    it("returns false if a given poll does not exist on the MACI contract");
+    it("returns true if a given poll exists on the MACI contract", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      const data = await ethers.utils.defaultAbiCoder.encode(
+        ["uint256", "bytes32[]", "uint256"],
+        ["0", [], "0"]
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setUsul",
+          [owner.address],
+          [owner]
+        )
+      );
+      await maciVoting.receiveProposal(data);
+      await expect(await maciVoting.checkPoll(0)).to.equal(true);
+    });
+    it("returns false if a given poll does not exist on the MACI contract", async () => {
+      const { maciVoting } = await baseSetup();
+      await expect(await maciVoting.checkPoll(0)).to.equal(false);
+    });
   });
 
   describe("receiveProposal()", async () => {
-    it("reverts if called by an account that is not Usul");
-    it("reverts if pollId already exists");
-    it("reverts if pollId is not the next pollId");
-    it("deploys a new poll");
-    it("maps the Usul poll ID to the maci poll address");
-    it("emits ProposalReceived with correct return values");
+    it("reverts if called by an account that is not Usul", async () => {
+      const { maciVoting } = await baseSetup();
+      await expect(maciVoting.receiveProposal("0x")).to.be.revertedWith(
+        "only Usul module may enter"
+      );
+    });
+    it("reverts if pollId already exists", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      const data = await ethers.utils.defaultAbiCoder.encode(
+        ["uint256", "bytes32[]", "uint256"],
+        ["0", [], "0"]
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setUsul",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(await maciVoting.receiveProposal(data));
+      await expect(maciVoting.receiveProposal(data)).to.be.revertedWith(
+        "PollIdAlreadyExists()"
+      );
+    });
+    it("reverts if pollId is not the next pollId", async () => {
+      const { maciVoting } = await baseSetup();
+      await expect(maciVoting.receiveProposal("0x")).to.be.revertedWith(
+        "only Usul module may enter"
+      );
+    });
+    it("reverts if pollId already exists", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      const data = await ethers.utils.defaultAbiCoder.encode(
+        ["uint256", "bytes32[]", "uint256"],
+        ["0", [], "1"]
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setUsul",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(maciVoting.receiveProposal(data)).to.be.revertedWith(
+        "PollIdIsNotNext()"
+      );
+    });
+    it("deploys a new poll", async () => {
+      const { maciVoting } = await baseSetup();
+      await expect(maciVoting.receiveProposal("0x")).to.be.revertedWith(
+        "only Usul module may enter"
+      );
+    });
+    it("reverts if pollId already exists", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      const data = await ethers.utils.defaultAbiCoder.encode(
+        ["uint256", "bytes32[]", "uint256"],
+        ["0", [], "0"]
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setUsul",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(maciVoting.receiveProposal(data));
+    });
+    it("maps the Usul poll ID to the maci poll address", async () => {
+      const { maci, maciVoting, safe } = await baseSetup();
+      const data = await ethers.utils.defaultAbiCoder.encode(
+        ["uint256", "bytes32[]", "uint256"],
+        ["0", [], "0"]
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setUsul",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(maciVoting.receiveProposal(data));
+      expect(await maci.maciContract.getPoll(0)).to.equal(
+        (await maciVoting.proposals(0)).poll
+      );
+    });
+    it("emits ProposalReceived with correct return values", async () => {
+      const { maci, maciVoting, safe } = await baseSetup();
+      const data = await ethers.utils.defaultAbiCoder.encode(
+        ["uint256", "bytes32[]", "uint256"],
+        ["0", [], "0"]
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setUsul",
+          [owner.address],
+          [owner]
+        )
+      );
+      const tx = await maciVoting.receiveProposal(data);
+      const blockNumBefore = await ethers.provider.getBlockNumber();
+      const blockBefore = await ethers.provider.getBlock(blockNumBefore);
+      const timestampBefore = blockBefore.timestamp;
+      await expect(tx)
+        .to.emit(maciVoting, "ProposalReceived")
+        .withArgs(0, timestampBefore);
+    });
   });
 
   describe("finalizeProposal()", async () => {
