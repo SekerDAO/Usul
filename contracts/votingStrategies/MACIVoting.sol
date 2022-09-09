@@ -183,11 +183,12 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     /// @param data ABI encoded data including the proposalID, txHashes (not used by this strategy), and the next pollId for the MACI instance.
     /// @notice Can only be called by Usul.
     function receiveProposal(bytes memory data) external override onlyUsul {
-        (uint256 proposalId, , uint256 pollId) = abi.decode(
+        (uint256 proposalId, , bytes memory _pollId) = abi.decode(
             data,
-            (uint256, bytes32[], uint256)
+            (uint256, bytes32[], bytes)
         );
 
+        uint256 pollId = uint256(bytes32(_pollId));
         /// revert if pollId already exist
         if (checkPoll(pollId)) revert PollIdAlreadyExists();
         /// revert if previous pollId does not exist
