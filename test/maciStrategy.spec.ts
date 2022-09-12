@@ -21,13 +21,15 @@ import { Keypair, PubKey } from "maci-domainobjs";
 const deadline =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
+const provider = waffle.provider;
+
 describe("Maci Strategy:", () => {
   const [owner, coordinator, user_1, user_2] = waffle.provider.getWallets();
   const chainId = ethers.BigNumber.from(network.config.chainId).toNumber();
 
   const coodinatorKeyPair = new Keypair();
-  const duration = 30; // seconds
-  const timeLockPeriod = 1; // seconds
+  const duration = 300; // seconds
+  const timeLockPeriod = 300; // seconds
   const maxValues = {
     maxMessages: 25,
     maxVoteOptions: 25,
@@ -119,13 +121,15 @@ describe("Maci Strategy:", () => {
     const proposalModule = proposalContract.attach(expectedAddress);
 
     const MaciVotingContract = await ethers.getContractFactory("MACIVoting");
+    const duration = 300;
+    const timeLockPeriod = 300;
     const MaciVotingMasterCopy = await MaciVotingContract.deploy(
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",
       coodinatorKeyPair.pubKey.asContractParam(),
-      1,
-      1,
+      duration,
+      timeLockPeriod,
       maxValues,
       treeDepths
     );
@@ -281,6 +285,23 @@ describe("Maci Strategy:", () => {
       [owner]
     );
 
+    const dummyTallyData = {
+      totalSpent: 0,
+      totalSpentSalt: 0,
+      spent: [0, 0],
+      spentProof: [
+        [
+          [0, 0],
+          [0, 0],
+        ],
+        [
+          [0, 0],
+          [0, 0],
+        ],
+      ],
+      spentSalt: 0,
+    };
+
     return {
       proposalModule,
       maciVoting,
@@ -292,6 +313,9 @@ describe("Maci Strategy:", () => {
       safe,
       defaultBalance,
       thresholdPercent,
+      dummyTallyData,
+      duration,
+      timeLockPeriod,
     };
   });
 
@@ -558,10 +582,18 @@ describe("Maci Strategy:", () => {
       );
     });
     it("reverts if pollId is not the next pollId", async () => {
-      const { maciVoting } = await baseSetup();
-      await expect(maciVoting.receiveProposal("0x")).to.be.revertedWith(
-        "only Usul module may enter"
+      const { maciVoting, proposalModule, txHash } = await baseSetup();
+      const pollId = await ethers.utils.defaultAbiCoder.encode(
+        ["uint256"],
+        [0]
       );
+      const data = await ethers.utils.defaultAbiCoder.encode(
+        ["bytes"],
+        [pollId]
+      );
+      await expect(
+        proposalModule.submitProposal([txHash], maciVoting.address, data)
+      ).to.be.revertedWith("PollIdIsNotNext()");
     });
     it("deploys a new poll", async () => {
       const { maciVoting, safe } = await baseSetup();
@@ -626,16 +658,81 @@ describe("Maci Strategy:", () => {
   });
 
   describe("finalizeProposal()", async () => {
-    it("reverts if proposal is already finalized", async () => {
-      const { maci, maciVoting, safe, proposalModule, txHash, addCall } =
+    it("reverts if proposal is already finalized");
+    it("reverts if proposal is cancelled", async () => {
+      const { dummyTallyData, maciVoting, safe, proposalModule, txHash } =
         await baseSetup();
-      const data = await ethers.utils.defaultAbiCoder.encode(["uint256"], [0]);
-      const proposalCount = await proposalModule.totalProposalCount();
-      await proposalModule.submitProposal([txHash], maciVoting.address, data);
+      const proposalId = 0;
+      await proposalModule.submitProposal(
+        [txHash],
+        maciVoting.address,
+        proposalId
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "cancelProposal",
+          [proposalId],
+          [owner]
+        )
+      );
+      const prop = await maciVoting.proposals(proposalId);
+      await expect(prop.cancelled).to.equal(true);
+      await expect(
+        maciVoting.finalizeProposal(
+          proposalId,
+          dummyTallyData.totalSpent,
+          dummyTallyData.totalSpentSalt,
+          dummyTallyData.spent,
+          dummyTallyData.spentProof,
+          dummyTallyData.spentSalt
+        )
+      ).to.be.revertedWith("ProposalHasBeenCancelled()");
     });
-    it("reverts if proposal is cancelled");
-    it("reverts if voting is still in progress");
-    it("reverts if tallying is not yet complete");
+    it("reverts if voting is still in progress", async () => {
+      const { dummyTallyData, maciVoting, proposalModule, txHash } =
+        await baseSetup();
+      const proposalId = 0;
+      await proposalModule.submitProposal(
+        [txHash],
+        maciVoting.address,
+        proposalId
+      );
+      await expect(
+        maciVoting.finalizeProposal(
+          proposalId,
+          dummyTallyData.totalSpent,
+          dummyTallyData.totalSpentSalt,
+          dummyTallyData.spent,
+          dummyTallyData.spentProof,
+          dummyTallyData.spentSalt
+        )
+      ).to.be.revertedWith("VotingInProgress()");
+    });
+    it("reverts if tallying is not yet complete", async () => {
+      const { dummyTallyData, maciVoting, proposalModule, txHash, duration } =
+        await baseSetup();
+      const proposalId = 0;
+      await proposalModule.submitProposal(
+        [txHash],
+        maciVoting.address,
+        proposalId
+      );
+
+      await provider.send("evm_increaseTime", [duration + 1]);
+
+      await expect(
+        maciVoting.finalizeProposal(
+          proposalId,
+          dummyTallyData.totalSpent,
+          dummyTallyData.totalSpentSalt,
+          dummyTallyData.spent,
+          dummyTallyData.spentProof,
+          dummyTallyData.spentSalt
+        )
+      ).to.be.revertedWith("TallyingIncomplete()");
+    });
     it("reverts if tallyHash is not yet published");
     it("reverts if total spent is incorrect");
     it("reverts if spent length or spent proof arrays lengths are not 2");

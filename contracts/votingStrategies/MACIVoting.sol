@@ -38,6 +38,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     event MACISet(address MACI);
     event MaxValuesAndTreeDepthsSet(MaxValues maxValues, TreeDepths treeDepths);
     event MemberRegistered(address member);
+    event ProposalCancelled(uint256 proposalId);
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
     event TimelockPeriodSet(uint256 timeLockPeriod);
     event VoteFinalized(uint256 proposalId, uint256 timestamp);
@@ -69,7 +70,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     /// MACI PollId provided does not correspond to the next MACI pollId.
     error PollIdIsNotNext();
     /// Proposal has been cancelled.
-    error ProposalCancelled();
+    error ProposalHasBeenCancelled();
     /// Tally has has not been published.
     error TallyHashNotPublished();
     /// Tallying is incomplete.
@@ -180,7 +181,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     }
 
     /// @dev Called by Usul to notify this strategy of a new proposal.
-    /// @param data ABI encoded data including the proposalID, txHashes (not used by this strategy), and the next pollId for the MACI instance.
+    /// @param data ABI encoded data including the proposalId, txHashes (not used by this strategy), and the next pollId for the MACI instance.
     /// @notice Can only be called by Usul.
     function receiveProposal(bytes memory data) external override onlyUsul {
         (uint256 proposalId, , bytes memory _pollId) = abi.decode(
@@ -231,7 +232,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
 
         if (proposal.finalized) revert AlreadyFinalized();
 
-        if (!proposal.cancelled) revert ProposalCancelled();
+        if (proposal.cancelled) revert ProposalHasBeenCancelled();
 
         if (!IPoll(proposal.poll).isAfterDeadline()) revert VotingInProgress();
 
@@ -283,6 +284,11 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     /// @return boolean.
     function isPassed(uint256 proposalId) public view override returns (bool) {
         return proposals[proposalId].passed;
+    }
+
+    function cancelProposal(uint256 proposalId) public onlyOwner {
+        proposals[proposalId].cancelled = true;
+        emit ProposalCancelled(proposalId);
     }
 
     /// @dev Sets the MACI address.
