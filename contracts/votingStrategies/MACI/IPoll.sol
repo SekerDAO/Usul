@@ -11,7 +11,8 @@ interface IPoll is IParams {
             uint8
         );
 
-    function tallyBatchNum() external view returns (uint256);
+    // TOTO: figure out where to get this or if it's actually needed.
+    // function tallyBatchNum() external view returns (uint256);
 
     function isAfterDeadline() external view returns (bool);
 

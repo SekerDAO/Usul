@@ -40,6 +40,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     event MemberRegistered(address member);
     event ProposalCancelled(uint256 proposalId);
     event ProposalReceived(uint256 proposalId, uint256 timestamp);
+    event TallyHashPublished(uint256 proposalId, bytes32 tallyHash);
     event TimelockPeriodSet(uint256 timeLockPeriod);
     event VoteFinalized(uint256 proposalId, uint256 timestamp);
 
@@ -236,11 +237,12 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
 
         if (!IPoll(proposal.poll).isAfterDeadline()) revert VotingInProgress();
 
-        (, uint256 tallyBatchSize, ) = IPoll(proposal.poll).batchSizes();
-        uint256 batchStartIndex = IPoll(proposal.poll).tallyBatchNum() *
-            tallyBatchSize;
-        (uint256 numSignUps, ) = IPoll(proposal.poll).numSignUpsAndMessages();
-        if (batchStartIndex <= numSignUps) revert TallyingIncomplete();
+        // TODO -- figure out how to run this check given that tallyBatchNum() does not exist in Poll
+        // (, uint256 tallyBatchSize, ) = IPoll(proposal.poll).batchSizes();
+        // uint256 batchStartIndex = IPoll(proposal.poll).tallyBatchNum() *
+        //     tallyBatchSize;
+        // (uint256 numSignUps, ) = IPoll(proposal.poll).numSignUpsAndMessages();
+        // if (batchStartIndex <= numSignUps) revert TallyingIncomplete();
 
         if (proposal.tallyHash == bytes32(0)) revert TallyHashNotPublished();
 
@@ -277,6 +279,19 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
             IProposal(UsulModule).receiveStrategy(proposalId, timeLockPeriod);
         }
         emit VoteFinalized(proposalId, block.timestamp);
+    }
+
+    /// @dev Publish the tally hash for a given proposal.
+    /// @param proposalId Uint256 propsal ID on which to publish the tally hash.
+    /// @param tallyHash Bytes32 IPFS hash of the tally file.
+    function publishTallyHash(uint256 proposalId, bytes32 tallyHash)
+        public
+        onlyCoordinator
+    {
+        if (proposals[proposalId].finalized) revert AlreadyFinalized();
+        if (proposals[proposalId].cancelled) revert ProposalHasBeenCancelled();
+        proposals[proposalId].tallyHash = tallyHash;
+        emit TallyHashPublished(proposalId, tallyHash);
     }
 
     /// @dev Determines if a proposal has succeeded.

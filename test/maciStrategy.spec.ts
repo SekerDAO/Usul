@@ -300,6 +300,7 @@ describe("Maci Strategy:", () => {
         ],
       ],
       spentSalt: 0,
+      hash: "0x0000000000000000000000000000000000000000000000000000000000000001",
     };
 
     return {
@@ -391,7 +392,16 @@ describe("Maci Strategy:", () => {
   });
 
   describe("setCoordinator()", async () => {
-    it("reverts if called by an account that is not owner");
+    it("reverts if called by an account that is not owner", async () => {
+      const { maciVoting } = await baseSetup();
+      const keypair = new Keypair();
+      await expect(
+        maciVoting.setCoordinator(
+          user_1.address,
+          keypair.pubKey.asContractParam()
+        )
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
     it("reverts if _coordinator is zero address");
     it("sets coordinator address");
     it("sets coordinatorPubKey");
@@ -710,7 +720,43 @@ describe("Maci Strategy:", () => {
         )
       ).to.be.revertedWith("VotingInProgress()");
     });
-    it("reverts if tallying is not yet complete", async () => {
+    it(
+      "reverts if tallying is not yet complete"
+      // TODO - fix test once you've figured out how to add this check to the contract
+      // , async () => {
+      //   const { dummyTallyData, maciVoting, proposalModule, txHash, duration } =
+      //     await baseSetup();
+      //   const proposalId = 0;
+      //   await proposalModule.submitProposal(
+      //     [txHash],
+      //     maciVoting.address,
+      //     proposalId
+      //   );
+
+      //   await provider.send("evm_increaseTime", [duration + 1]);
+
+      //   const proposal = await maciVoting.proposals(proposalId);
+      //   const poll = await ethers.getContractAt("Poll", proposal.poll);
+      //   const [, tallyBatchSize] = await poll.batchSizes();
+      //   console.log("tallyBatchSize:", tallyBatchSize);
+      //   const tallyBatchNum = await poll.tallyBatchNum();
+      //   console.log("tallyBatchNum:", tallyBatchNum);
+      //   const numSignUpsAndMessages = await poll.numSignUpsAndMessages();
+      //   console.log("numSignUpsAndMessages:", numSignUpsAndMessages);
+
+      //   await expect(
+      //     maciVoting.finalizeProposal(
+      //       proposalId,
+      //       dummyTallyData.totalSpent,
+      //       dummyTallyData.totalSpentSalt,
+      //       dummyTallyData.spent,
+      //       dummyTallyData.spentProof,
+      //       dummyTallyData.spentSalt
+      //     )
+      //   ).to.be.revertedWith("TallyingIncomplete()");
+      // }
+    );
+    it("reverts if tallyHash is not yet published", async () => {
       const { dummyTallyData, maciVoting, proposalModule, txHash, duration } =
         await baseSetup();
       const proposalId = 0;
@@ -731,10 +777,35 @@ describe("Maci Strategy:", () => {
           dummyTallyData.spentProof,
           dummyTallyData.spentSalt
         )
-      ).to.be.revertedWith("TallyingIncomplete()");
+      ).to.be.revertedWith("TallyHashNotPublished()");
     });
-    it("reverts if tallyHash is not yet published");
-    it("reverts if total spent is incorrect");
+    it("reverts if total spent is incorrect", async () => {
+      const { dummyTallyData, maciVoting, proposalModule, txHash, duration } =
+        await baseSetup();
+      const proposalId = 0;
+      await proposalModule.submitProposal(
+        [txHash],
+        maciVoting.address,
+        proposalId
+      );
+
+      await provider.send("evm_increaseTime", [duration + 1]);
+
+      await maciVoting
+        .connect(coordinator)
+        .publishTallyHash(0, dummyTallyData.hash);
+
+      await expect(
+        maciVoting.finalizeProposal(
+          proposalId,
+          dummyTallyData.totalSpent,
+          dummyTallyData.totalSpentSalt,
+          dummyTallyData.spent,
+          dummyTallyData.spentProof,
+          dummyTallyData.spentSalt
+        )
+      ).to.be.revertedWith("IncorrectTotalSpent()");
+    });
     it("reverts if spent length or spent proof arrays lengths are not 2");
     it("reverts if incorrect spent voice credits are provided");
     it("sets proposal.passed to true if yes votes are greater than no votes");
