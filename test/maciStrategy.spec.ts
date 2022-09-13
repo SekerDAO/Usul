@@ -15,8 +15,8 @@ import {
   deployVkRegistry,
   deployVerifier,
   deployTopupCredit,
-  publish,
 } from "maci-contracts";
+import { publish } from "maci-cli/ts/publish";
 import { Keypair, PubKey } from "maci-domainobjs";
 
 const deadline =
@@ -735,7 +735,7 @@ describe("Maci Strategy:", () => {
       await expect(maciVoting.receiveProposal(data));
     });
 
-    it.only("cast a vote", async () => {
+    it("cast a vote", async () => {
       const { maciVoting, safe, maci } = await baseSetup();
       const data = await ethers.utils.defaultAbiCoder.encode(
         ["uint256", "bytes32[]", "uint256"],
@@ -797,16 +797,37 @@ describe("Maci Strategy:", () => {
       const pollId = "0";
       const salt = "0";
 
+      const publishArgs =
+        "-p " +
+        voterPubKey +
+        " -x " +
+        PollContract.address +
+        " -sk " +
+        voterPrivKey +
+        " -s " +
+        stateIndex +
+        " -v " +
+        voteOptionIndex +
+        " -w " +
+        newVoteWeight +
+        " -n " +
+        nonce +
+        " -s " +
+        salt +
+        " -o " +
+        pollId;
+
       const pubMessage = await publish(
-        voterPubKey,
-        PollContract.address,
-        voterPrivKey,
-        stateIndex,
-        voteOptionIndex,
-        newVoteWeight,
-        nonce,
-        salt,
-        pollId
+        publishArgs
+        // voterPubKey,
+        // PollContract.address,
+        // voterPrivKey,
+        // stateIndex,
+        // voteOptionIndex,
+        // newVoteWeight,
+        // nonce,
+        // salt,
+        // pollId
       );
 
       // const command:PCommand = new PCommand(
