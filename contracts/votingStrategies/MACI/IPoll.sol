@@ -1,17 +1,11 @@
 pragma solidity >=0.8.0;
 import "./IParams.sol";
+import "./IPubKey.sol";
 
 interface IMessage {
     struct Message {
         uint256 msgType; // 1: vote message (size 10), 2: topup message (size 2)
         uint256[10] data; // data length is padded to size 10
-    }
-}
-
-interface IPubKey {
-    struct PubKey {
-        uint256 x;
-        uint256 y;
     }
 }
 
