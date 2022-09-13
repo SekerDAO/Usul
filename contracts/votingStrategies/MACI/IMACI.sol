@@ -31,4 +31,10 @@ interface IMACI is IPubKey, IParams {
     function stateAq() external view returns (address);
 
     function init(address _vkRegistry, address _messageAqFactory) external;
+
+    function signUp(
+        PubKey memory _pubKey,
+        bytes memory _signUpGatekeeperData,
+        bytes memory _initialVoiceCreditProxyData
+    ) external;
 }
