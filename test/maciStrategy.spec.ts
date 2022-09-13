@@ -514,7 +514,7 @@ describe("Maci Strategy:", () => {
         )
       );
     });
-    it.only("emits DurationSet event with correct return values", async () => {
+    it("emits DurationSet event with correct return values", async () => {
       const { maciVoting, safe } = await baseSetup();
       const tx = await executeContractCallWithSigners(
         safe,
