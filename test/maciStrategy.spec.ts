@@ -8,7 +8,7 @@ import {
 } from "./shared/utils";
 import { AddressZero } from "@ethersproject/constants";
 import { signTypedMessage, TypedDataUtils } from "eth-sig-util";
-import { ecsign } from "ethereumjs-util";
+import { ecsign, zeroAddress } from "ethereumjs-util";
 import Wallet from "ethereumjs-wallet";
 import {
   deployMaci,
@@ -402,10 +402,82 @@ describe("Maci Strategy:", () => {
         )
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
-    it("reverts if _coordinator is zero address");
-    it("sets coordinator address");
-    it("sets coordinatorPubKey");
-    it("emits CoordinatorSet event with correct return values");
+    it("reverts if _coordinator is zero address", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      const keypair = new Keypair();
+      await executeContractCallWithSigners(
+        safe,
+        maciVoting,
+        "transferOwnership",
+        [owner.address],
+        [owner]
+      );
+      await expect(
+        maciVoting.setCoordinator(
+          zeroAddress(),
+          keypair.pubKey.asContractParam()
+        )
+      ).to.be.revertedWith("CoordinatorAddressCannotBeZero()");
+    });
+    it("sets coordinator address", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      const keypair = new Keypair();
+      await executeContractCallWithSigners(
+        safe,
+        maciVoting,
+        "transferOwnership",
+        [owner.address],
+        [owner]
+      );
+      await expect(
+        maciVoting.setCoordinator(
+          user_1.address,
+          keypair.pubKey.asContractParam()
+        )
+      );
+      await expect(await maciVoting.coordinator()).to.equal(user_1.address);
+    });
+    it("sets coordinatorPubKey", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      const keypair = new Keypair();
+      await executeContractCallWithSigners(
+        safe,
+        maciVoting,
+        "transferOwnership",
+        [owner.address],
+        [owner]
+      );
+      await expect(
+        maciVoting.setCoordinator(
+          user_1.address,
+          keypair.pubKey.asContractParam()
+        )
+      );
+      let expectedPubKey = keypair.pubKey.asContractParam();
+      await expect((await maciVoting.coordinatorPubKey()).toString()).to.equal(
+        [expectedPubKey.x, expectedPubKey.y].toString()
+      );
+    });
+    it("emits CoordinatorSet event with correct return values", async () => {
+      const { maciVoting, safe } = await baseSetup();
+      const keypair = new Keypair();
+      await executeContractCallWithSigners(
+        safe,
+        maciVoting,
+        "transferOwnership",
+        [owner.address],
+        [owner]
+      );
+      let expectedPubKey = keypair.pubKey.asContractParam();
+      await expect(
+        maciVoting.setCoordinator(
+          user_1.address,
+          keypair.pubKey.asContractParam()
+        )
+      )
+        .to.emit(maciVoting, "CoordinatorSet")
+        .withArgs(user_1.address, [expectedPubKey.x, expectedPubKey.y]);
+    });
   });
 
   describe("setDuration()", async () => {
