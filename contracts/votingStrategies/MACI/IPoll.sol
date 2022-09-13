@@ -1,7 +1,21 @@
 pragma solidity >=0.8.0;
 import "./IParams.sol";
 
-interface IPoll is IParams {
+interface IMessage {
+    struct Message {
+        uint256 msgType; // 1: vote message (size 10), 2: topup message (size 2)
+        uint256[10] data; // data length is padded to size 10
+    }
+}
+
+interface IPubKey {
+    struct PubKey {
+        uint256 x;
+        uint256 y;
+    }
+}
+
+interface IPoll is IParams, IMessage, IPubKey {
     function batchSizes()
         external
         view
@@ -13,6 +27,9 @@ interface IPoll is IParams {
 
     // TOTO: figure out where to get this or if it's actually needed.
     // function tallyBatchNum() external view returns (uint256);
+
+    function publishMessage(Message memory _message, PubKey memory _encPubKey)
+        external;
 
     function isAfterDeadline() external view returns (bool);
 
