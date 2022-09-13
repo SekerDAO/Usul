@@ -50,6 +50,8 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     error AlreadyRegistered(address member);
     /// Coordinator address cannot be set to zero.
     error CoordinatorAddressCannotBeZero();
+    /// Duration must be greater than zero.
+    error DurationMustBeGreaterThanZero();
     /// Incorrect amount of spent voice credits.
     error IncorrectSpentVoiceCredits();
     /// _spent or _spentProof are not equal to 2.
@@ -333,6 +335,7 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
     /// @param _duration Uint256 duration in seconds.
     /// @notice Can only be called by owner.
     function setDuration(uint256 _duration) public onlyOwner {
+        if (_duration == 0) revert DurationMustBeGreaterThanZero();
         duration = _duration;
         emit DurationSet(duration);
     }
