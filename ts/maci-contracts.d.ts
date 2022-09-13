@@ -23,6 +23,6 @@ declare module "maci-contracts" {
     newVoteWeight: int,
     nonce: int,
     salt: string,
-    pollId: string,
+    pollId: string
   ): Promise<Bool>;
 }

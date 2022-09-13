@@ -735,101 +735,98 @@ describe("Maci Strategy:", () => {
       await expect(maciVoting.receiveProposal(data));
     });
 
-    // it("cast a vote", async () => {
-    //   const { maciVoting, safe, maci } = await baseSetup();
-    //   const data = await ethers.utils.defaultAbiCoder.encode(
-    //     ["uint256", "bytes32[]", "uint256"],
-    //     ["0", [], "0"]
-    //   );
-    //   await expect(
-    //     await executeContractCallWithSigners(
-    //       safe,
-    //       maciVoting,
-    //       "setUsul",
-    //       [owner.address],
-    //       [owner]
-    //     )
-    //   );
-    //   await expect(maciVoting.receiveProposal(data));
-    //   const proposal = await maciVoting.proposals(0);
-    //   const PollContract = await ethers.getContractAt("Poll", proposal.poll);
-    //   const voterKeyPair = new Keypair();
-    //   const voterPubKey = voterKeyPair.pubKey.serialize();
-    //   const voterPrivKey = voterKeyPair.privKey.serialize();
-    //   console.log(voterPrivKey);
-    //   //console.log(maci)
-    //   let signups = await maci.maciContract.numSignUps();
-    //   console.log(signups);
-    //   //await maci.maciContract.signUp(voterPubKey, "0x", "0x");
+    it.only("cast a vote", async () => {
+      const { maciVoting, safe, maci } = await baseSetup();
+      const data = await ethers.utils.defaultAbiCoder.encode(
+        ["uint256", "bytes32[]", "uint256"],
+        ["0", [], "0"]
+      );
+      await expect(
+        await executeContractCallWithSigners(
+          safe,
+          maciVoting,
+          "setUsul",
+          [owner.address],
+          [owner]
+        )
+      );
+      await expect(maciVoting.receiveProposal(data));
+      const proposal = await maciVoting.proposals(0);
+      const PollContract = await ethers.getContractAt("Poll", proposal.poll);
+      const voterKeyPair = new Keypair();
+      const voterPubKey = voterKeyPair.pubKey.serialize();
+      const voterPrivKey = voterKeyPair.privKey.serialize();
+      // console.log(voterPrivKey);
+      //console.log(maci)
+      // let signups = await maci.maciContract.numSignUps();
+      // console.log(signups);
+      //await maci.maciContract.signUp(voterPubKey, "0x", "0x");
+      const tx = await maci.maciContract.signUp(
+        voterKeyPair.pubKey.asContractParam(),
+        "0x",
+        "0x"
+      );
+      // //console.log(tx)
+      // const receipt = await tx.wait();
+      // const iface = maci.maciContract.interface;
+      // console.log("Transaction hash:", tx.hash);
+      // console.log(receipt.logs[0]);
+      // //console.log(iface)
+      // // get state index from the event
+      // let stateIndex;
+      // if (receipt && receipt.logs) {
+      //   const sIndex = receipt.logs[0].data;
+      //   stateIndex = BigInt(sIndex);
+      //   console.log("State index:", stateIndex.toString());
+      // } else {
+      //   console.error("Error: unable to retrieve the transaction receipt");
+      // }
 
-    //   let tx;
-    //   try {
-    //     tx = await maci.maciContract.signUp(voterPubKey, "0x", "0x", {
-    //       gasLimit: 1000000,
-    //     });
-    //   } catch (e) {
-    //     console.error("Error: the transaction failed");
-    //     if (e.message) {
-    //       console.error(e.message);
-    //     }
-    //     return;
-    //   }
-    //   //console.log(tx)
-    //   const receipt = await tx.wait();
-    //   const iface = maci.maciContract.interface;
-    //   console.log("Transaction hash:", tx.hash);
-    //   console.log(receipt.logs[0]);
-    //   //console.log(iface)
-    //   // get state index from the event
-    //   let stateIndex;
-    //   if (receipt && receipt.logs) {
-    //     const sIndex = receipt.logs[0].data;
-    //     stateIndex = BigInt(sIndex);
-    //     console.log("State index:", stateIndex.toString());
-    //   } else {
-    //     console.error("Error: unable to retrieve the transaction receipt");
-    //   }
+      // todo get state index from event
+      // signups = await maci.maciContract.numSignUps();
+      // console.log(signups);
 
-    //   // todo get state index from event
-    //   signups = await maci.maciContract.numSignUps();
-    //   console.log(signups);
+      const receipt = tx.wait();
+      console.log(await receipt);
 
-    //   const voteOptionIndex = -1;
-    //   const newVoteWeight = 1;
-    //   const nonce = 1;
-    //   const pollId = "0";
-    //   const salt = "0";
+      const stateIndex = receipt;
 
-    //   const pubMessage = await publish(
-    //     voterPubKey,
-    //     PollContract.address,
-    //     voterPrivKey,
-    //     stateIndex,
-    //     voteOptionIndex,
-    //     newVoteWeight,
-    //     nonce,
-    //     salt,
-    //     pollId
-    //   );
+      const voteOptionIndex = 0;
+      const newVoteWeight = 1;
+      const nonce = 1;
+      const pollId = "0";
+      const salt = "0";
 
-    //   // const command:PCommand = new PCommand(
-    //   //     stateIndex,
-    //   //     voterPubKey,
-    //   //     voteOptionIndex,
-    //   //     newVoteWeight,
-    //   //     nonce,
-    //   //     pollId,
-    //   //     salt,
-    //   // )
-    //   // const signature = command.sign(userMaciPrivkey)
-    //   // const message = command.encrypt(
-    //   //     signature,
-    //   //     Keypair.genEcdhSharedKey(
-    //   //         encKeypair.privKey,
-    //   //         coordinatorPubKey,
-    //   //     )
-    //   // )
-    // });
+      const pubMessage = await publish(
+        voterPubKey,
+        PollContract.address,
+        voterPrivKey,
+        stateIndex,
+        voteOptionIndex,
+        newVoteWeight,
+        nonce,
+        salt,
+        pollId
+      );
+
+      // const command:PCommand = new PCommand(
+      //     stateIndex,
+      //     voterPubKey,
+      //     voteOptionIndex,
+      //     newVoteWeight,
+      //     nonce,
+      //     pollId,
+      //     salt,
+      // )
+      // const signature = command.sign(userMaciPrivkey)
+      // const message = command.encrypt(
+      //     signature,
+      //     Keypair.genEcdhSharedKey(
+      //         encKeypair.privKey,
+      //         coordinatorPubKey,
+      //     )
+      // )
+    });
 
     it("maps the Usul poll ID to the maci poll address", async () => {
       const { maci, maciVoting, safe } = await baseSetup();
