@@ -1,7 +1,7 @@
-import { ethers } from "hardhat";
-import { Contract } from "ethers";
-
 declare module "maci-contracts" {
+  import { ethers } from "hardhat";
+  import { Contract } from "ethers";
+
   export function deployMaci(
     signUpTokenGatekeeperContractAddress: string,
     initialVoiceCreditBalanceAddress: string,
@@ -20,16 +20,5 @@ declare module "maci-contracts" {
 }
 
 declare module "publish" {
-  export function publish(publishArgs: string): Promise<boolean>;
-  // export function publish(
-  //   voterPubKey: string,
-  //   PollContract: string,
-  //   voterPrivKey: string,
-  //   stateIndex: int,
-  //   voteOptionIndex: int,
-  //   newVoteWeight: int,
-  //   nonce: int,
-  //   salt: string,
-  //   pollId: string
-  // ): Promise<boolean>;
+  export function publish(publishArgs: any): Promise<boolean>;
 }
