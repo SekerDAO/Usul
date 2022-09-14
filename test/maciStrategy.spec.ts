@@ -18,7 +18,7 @@ import {
   deployConstantInitialVoiceCreditProxy,
 } from "maci-contracts";
 import { publish } from "maci-cli/build/publish.js";
-import { Keypair, PubKey } from "maci-domainobjs";
+import { Keypair, PubKey, PCommand } from "maci-domainobjs";
 
 const deadline =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -759,28 +759,36 @@ describe("Maci Strategy:", () => {
       );
       const receipt = await tx.wait();
       const stateIndex = receipt.events[1].args._stateIndex.toString();
-      const voteOptionIndex = 0;
-      const newVoteWeight = 1;
-      const nonce = 1;
-      const pollId = "0";
+      const voteOptionIndex = BigInt(0);
+      const newVoteWeight = BigInt(1);
+      const nonce = BigInt(1);
+      const pollId = BigInt(0);
+      const salt = BigInt(0);
 
-      const publishArgs = {
-        pubkey: voterPubKey,
-        contract: PollContract.address,
-        privkey: voterPrivKey,
-        state_index: stateIndex,
-        vote_option_index: voteOptionIndex,
-        new_vote_weight: newVoteWeight,
-        nonce: nonce,
-        poll_id: pollId,
-      };
-      // console.log(PollContract.address);
-      // console.log(await PollContract.getDeployTimeAndDuration());
+      const encKeypair = new Keypair();
 
-      await expect(await publish(publishArgs)).to.emit(
-        PollContract,
-        "PublishMessage"
+      const command: PCommand = new PCommand(
+        stateIndex,
+        voterKeyPair.pubKey,
+        voteOptionIndex,
+        newVoteWeight,
+        nonce,
+        pollId,
+        salt
       );
+      const signature = command.sign(voterKeyPair.privKey);
+      const message = command.encrypt(
+        signature,
+        Keypair.genEcdhSharedKey(encKeypair.privKey, coodinatorKeyPair.pubKey)
+      );
+
+      // await publish(publishArgs);
+      await expect(
+        await PollContract.publishMessage(
+          message.asContractParam(),
+          encKeypair.pubKey.asContractParam()
+        )
+      ).to.emit(PollContract, "PublishMessage");
     });
 
     it("maps the Usul poll ID to the maci poll address", async () => {
