@@ -14,6 +14,10 @@ declare module "maci-contracts" {
     pollFactoryContract: Contract;
     messageAqContract: Contract;
   }>;
+  export function deployConstantInitialVoiceCreditProxy(
+    amount: number,
+    quiet: boolean
+  ): Promise<Contract>;
   export function deployVkRegistry(): Promise<Contract>;
   export function deployVerifier(): Promise<Contract>;
   export function deployTopupCredit(): Promise<Contract>;

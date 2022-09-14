@@ -15,6 +15,7 @@ import {
   deployVkRegistry,
   deployVerifier,
   deployTopupCredit,
+  deployConstantInitialVoiceCreditProxy,
 } from "maci-contracts";
 import { publish } from "maci-cli/build/publish.js";
 import { Keypair, PubKey } from "maci-domainobjs";
@@ -205,9 +206,13 @@ describe("Maci Strategy:", () => {
     // deploy MACI
     const vkRegistry = await deployVkRegistry();
     const verifierContract = await deployVerifier();
+    const voiceCreditProxy = await deployConstantInitialVoiceCreditProxy(
+      1,
+      true
+    );
     const maci = await deployMaci(
       maciVoting.address,
-      maciVoting.address,
+      voiceCreditProxy.address,
       verifierContract.address,
       vkRegistry.address,
       maciVoting.address
@@ -642,15 +647,6 @@ describe("Maci Strategy:", () => {
     });
   });
 
-  describe("getVoiceCredits()", async () => {
-    it("returns correct number of voice credits", async () => {
-      const { maciVoting, safe } = await baseSetup();
-      await expect(
-        await maciVoting.getVoiceCredits(user_1.address, "0x")
-      ).to.equal(1);
-    });
-  });
-
   describe("checkPoll()", async () => {
     it("returns true if a given poll exists on the MACI contract", async () => {
       const { maciVoting, safe } = await baseSetup();
@@ -778,6 +774,8 @@ describe("Maci Strategy:", () => {
         nonce: nonce,
         poll_id: pollId,
       };
+      // console.log(PollContract.address);
+      // console.log(await PollContract.getDeployTimeAndDuration());
 
       await expect(await publish(publishArgs)).to.emit(
         PollContract,

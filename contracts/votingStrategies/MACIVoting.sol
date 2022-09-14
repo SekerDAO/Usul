@@ -159,18 +159,18 @@ contract MACIVoting is BaseMember, IPubKey, IParams {
         emit MemberRegistered(member);
     }
 
-    /// @dev Acts as voiceCreditProxy for MACI
-    /// @return voiceCredits Uint256 number of voice credits for the given member.
-    /// @notice Returns 1 for all queries.
-    /// @notice Can only be called by MACI.
-    /// TODO: Break this function out into a separate voiceCredit proxy to make this strategy more modular.
-    function getVoiceCredits(address, bytes memory)
-        public
-        pure
-        returns (uint256 voiceCredits)
-    {
-        voiceCredits = 1;
-    }
+    // /// @dev Acts as voiceCreditProxy for MACI
+    // /// @return voiceCredits Uint256 number of voice credits for the given member.
+    // /// @notice Returns 1 for all queries.
+    // /// @notice Can only be called by MACI.
+    // /// TODO: Break this function out into a separate voiceCredit proxy to make this strategy more modular.
+    // function getVoiceCredits(address, bytes memory)
+    //     public
+    //     pure
+    //     returns (uint256 voiceCredits)
+    // {
+    //     voiceCredits = 1;
+    // }
 
     /// @dev Checks to see if a given pollId exists on the current MACI instance.
     /// @param pollId Uint256 identifier to check.
