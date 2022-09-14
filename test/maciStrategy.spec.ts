@@ -31,16 +31,16 @@ describe("Maci Strategy:", () => {
 
   const coodinatorKeyPair = new Keypair();
   const duration = 300; // seconds
-  const timeLockPeriod = 300; // seconds
+  const timeLockPeriod = 0; // seconds
   const maxValues = {
     maxMessages: 25,
     maxVoteOptions: 25,
   };
   const treeDepths = {
-    intStateTreeDepth: 2,
+    intStateTreeDepth: 1,
+    messageTreeDepth: 2,
     messageTreeSubDepth: 1,
-    messageTreeDepth: 32,
-    voteOptionTreeDepth: 32,
+    voteOptionTreeDepth: 2,
   };
 
   const baseSetup = deployments.createFixture(async () => {
@@ -123,8 +123,7 @@ describe("Maci Strategy:", () => {
     const proposalModule = proposalContract.attach(expectedAddress);
 
     const MaciVotingContract = await ethers.getContractFactory("MACIVoting");
-    const duration = 300;
-    const timeLockPeriod = 300;
+
     const MaciVotingMasterCopy = await MaciVotingContract.deploy(
       "0x0000000000000000000000000000000000000001",
       "0x0000000000000000000000000000000000000001",
@@ -750,8 +749,6 @@ describe("Maci Strategy:", () => {
       const proposal = await maciVoting.proposals(0);
       const PollContract = await ethers.getContractAt("Poll", proposal.poll);
       const voterKeyPair = new Keypair();
-      const voterPubKey = voterKeyPair.pubKey.serialize();
-      const voterPrivKey = voterKeyPair.privKey.serialize();
       const tx = await maci.maciContract.signUp(
         voterKeyPair.pubKey.asContractParam(),
         "0x",
@@ -764,7 +761,6 @@ describe("Maci Strategy:", () => {
       const nonce = BigInt(1);
       const pollId = BigInt(0);
       const salt = BigInt(0);
-
       const encKeypair = new Keypair();
 
       const command: PCommand = new PCommand(
@@ -948,36 +944,33 @@ describe("Maci Strategy:", () => {
         )
       ).to.be.revertedWith("TallyHashNotPublished()");
     });
-    it(
-      "reverts if total spent is incorrect"
-      // , async () => {
-      //   const { dummyTallyData, maciVoting, proposalModule, txHash, duration } =
-      //     await baseSetup();
-      //   const proposalId = 0;
-      //   await proposalModule.submitProposal(
-      //     [txHash],
-      //     maciVoting.address,
-      //     proposalId
-      //   );
+    it("reverts if total spent is incorrect", async () => {
+      const { dummyTallyData, maciVoting, proposalModule, txHash, duration } =
+        await baseSetup();
+      const proposalId = 0;
+      await proposalModule.submitProposal(
+        [txHash],
+        maciVoting.address,
+        proposalId
+      );
 
-      //   await provider.send("evm_increaseTime", [duration + 1]);
+      await provider.send("evm_increaseTime", [duration + 1]);
 
-      //   await maciVoting
-      //     .connect(coordinator)
-      //     .publishTallyHash(0, dummyTallyData.hash);
+      await maciVoting
+        .connect(coordinator)
+        .publishTallyHash(0, dummyTallyData.hash);
 
-      //   await expect(
-      //     maciVoting.finalizeProposal(
-      //       proposalId,
-      //       dummyTallyData.totalSpent,
-      //       dummyTallyData.totalSpentSalt,
-      //       dummyTallyData.spent,
-      //       dummyTallyData.spentProof,
-      //       dummyTallyData.spentSalt
-      //     )
-      //   ).to.be.revertedWith("IncorrectTotalSpent()");
-      // }
-    );
+      await expect(
+        maciVoting.finalizeProposal(
+          proposalId,
+          dummyTallyData.totalSpent,
+          dummyTallyData.totalSpentSalt,
+          dummyTallyData.spent,
+          dummyTallyData.spentProof,
+          dummyTallyData.spentSalt
+        )
+      ).to.be.revertedWith("IncorrectTotalSpent()");
+    });
     it("reverts if spent length or spent proof arrays lengths are not 2");
     it("reverts if incorrect spent voice credits are provided");
     it("sets proposal.passed to true if yes votes are greater than no votes");
