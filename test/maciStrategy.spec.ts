@@ -17,7 +17,10 @@ import {
   deployTopupCredit,
   deployConstantInitialVoiceCreditProxy,
 } from "maci-contracts";
-import { publish } from "maci-cli/build/publish.js";
+import { publish } from "maci-cli/build/publish";
+import { genProofs } from "maci-cli/build/genProofs";
+import { mergeSignups } from "maci-cli/build/mergeSignups";
+import { mergeMessages } from "maci-cli/build/mergeMessages";
 import { Keypair, PubKey, PCommand } from "maci-domainobjs";
 
 const deadline =
@@ -778,7 +781,6 @@ describe("Maci Strategy:", () => {
         Keypair.genEcdhSharedKey(encKeypair.privKey, coodinatorKeyPair.pubKey)
       );
 
-      // await publish(publishArgs);
       await expect(
         await PollContract.publishMessage(
           message.asContractParam(),
@@ -899,6 +901,7 @@ describe("Maci Strategy:", () => {
       //   );
 
       //   await provider.send("evm_increaseTime", [duration + 1]);
+      //   await provider.send("evm_mine", []);
 
       //   const proposal = await maciVoting.proposals(proposalId);
       //   const poll = await ethers.getContractAt("Poll", proposal.poll);
@@ -932,6 +935,7 @@ describe("Maci Strategy:", () => {
       );
 
       await provider.send("evm_increaseTime", [duration + 1]);
+      await provider.send("evm_mine", []);
 
       await expect(
         maciVoting.finalizeProposal(
@@ -955,6 +959,7 @@ describe("Maci Strategy:", () => {
       );
 
       await provider.send("evm_increaseTime", [duration + 1]);
+      await provider.send("evm_mine", []);
 
       await maciVoting
         .connect(coordinator)
@@ -971,7 +976,120 @@ describe("Maci Strategy:", () => {
         )
       ).to.be.revertedWith("IncorrectTotalSpent()");
     });
-    it("reverts if spent length or spent proof arrays lengths are not 2");
+    it.only("reverts if spent length or spent proof arrays lengths are not 2", async () => {
+      const {
+        dummyTallyData,
+        maciVoting,
+        maci,
+        proposalModule,
+        txHash,
+        duration,
+      } = await baseSetup();
+      const proposalId = 0;
+      await proposalModule.submitProposal(
+        [txHash],
+        maciVoting.address,
+        proposalId
+      );
+
+      /// signup and publish message
+      const proposal = await maciVoting.proposals(0);
+      const PollContract = await ethers.getContractAt("Poll", proposal.poll);
+      const voterKeyPair = new Keypair();
+      const tx = await maci.maciContract.signUp(
+        voterKeyPair.pubKey.asContractParam(),
+        "0x",
+        "0x"
+      );
+      const receipt = await tx.wait();
+      const stateIndex = receipt.events[1].args._stateIndex.toString();
+      const voteOptionIndex = BigInt(0);
+      const newVoteWeight = BigInt(1);
+      const nonce = BigInt(1);
+      const pollId = BigInt(0);
+      const salt = BigInt(0);
+      const encKeypair = new Keypair();
+
+      const command: PCommand = new PCommand(
+        stateIndex,
+        voterKeyPair.pubKey,
+        voteOptionIndex,
+        newVoteWeight,
+        nonce,
+        pollId,
+        salt
+      );
+      const signature = command.sign(voterKeyPair.privKey);
+      const message = command.encrypt(
+        signature,
+        Keypair.genEcdhSharedKey(encKeypair.privKey, coodinatorKeyPair.pubKey)
+      );
+      await expect(
+        await PollContract.publishMessage(
+          message.asContractParam(),
+          encKeypair.pubKey.asContractParam()
+        )
+      ).to.emit(PollContract, "PublishMessage");
+
+      await provider.send("evm_increaseTime", [duration + 1]);
+      await provider.send("evm_mine", []);
+
+      // Let's generate some MACI proofs!
+      // silence logs to suppress output from maci-cli.
+      const original = console.log;
+      console.log = () => {};
+
+      // mergeSignups()
+      const mergSignupsArgs = {
+        contract: maci.maciContract.address,
+        poll_id: pollId,
+        num_queue_ops: 4,
+      };
+
+      await expect(await mergeSignups(mergSignupsArgs)).to.equal(0);
+
+      // mergeMessages()
+      const mergMessagesArgs = {
+        contract: maci.maciContract.address,
+        poll_id: pollId,
+        num_queue_ops: 4,
+      };
+
+      await expect(await mergeMessages(mergMessagesArgs)).to.equal(0);
+
+      // restore logs
+      console.log = original;
+
+      // genProofs
+      const genProofsArgs = {
+        privkey: coodinatorKeyPair.privKey.serialize(),
+        contract: maci.maciContract.address,
+        poll_id: pollId,
+        tally_file: "tally.json",
+        rapidsnark: "[some path]",
+        process_witnessgen: "[some path]",
+        tally_witnessgen: "[some path]",
+        subsidy_witnessgen: "[some path]",
+        process_zkey: "[some path]",
+        tally_zkey: "[some path]",
+        "subsidy-zkey": "[some path]",
+        output: "[name of output file]",
+        transaction_hash: "[tx has of maci contract creation]",
+      };
+
+      await expect(await genProofs(genProofsArgs)).to.equal(0);
+
+      // proveOnChain
+      const proveOnChainArgs = {
+        contract: maci.maciContract.address,
+        poll_id: pollId,
+        ppt: "put the ppt contract address here, not sure where to get it.",
+        proof_dir: "output dir from genProofs",
+      };
+
+      // cleanup dirs when we're done
+      expect(true).to.equal(false); // TODO: delete this line.
+    });
     it("reverts if incorrect spent voice credits are provided");
     it("sets proposal.passed to true if yes votes are greater than no votes");
     it("sets proposal.finalized to true");

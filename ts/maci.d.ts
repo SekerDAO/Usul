@@ -23,6 +23,14 @@ declare module "maci-contracts" {
   export function deployTopupCredit(): Promise<Contract>;
 }
 
-declare module "publish" {
-  export function publish(publishArgs: any): Promise<boolean>;
-}
+// declare module "publish" {
+//   export function publish(publishArgs: any): Promise<boolean>;
+// }
+
+// declare module "mergeSignups" {
+//   export function mergeSignups(mergeSignupsArgs: any): Promise<boolean>;
+// }
+
+// declare module "mergeMessages" {
+//   export function mergeMessages(mergeMessagesArgs: any): Promise<boolean>;
+// }
