@@ -5,6 +5,10 @@ import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "hardhat-gas-reporter";
 import "@nomiclabs/hardhat-etherscan";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 //import "@nomiclabs/hardhat-ethers";
 /**
  * @type import('hardhat/config').HardhatUserConfig

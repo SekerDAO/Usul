@@ -22,6 +22,7 @@ import { genProofs } from "maci-cli/build/genProofs";
 import { mergeSignups } from "maci-cli/build/mergeSignups";
 import { mergeMessages } from "maci-cli/build/mergeMessages";
 import { Keypair, PubKey, PCommand } from "maci-domainobjs";
+import fs from "fs";
 
 const deadline =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -1060,21 +1061,44 @@ describe("Maci Strategy:", () => {
       // restore logs
       console.log = original;
 
+      let circomHelperConfig;
+      const circomHelperConfigPath: string =
+        "node_modules/maci-circuits/circomHelperConfig.json";
+      await fs.readFile(circomHelperConfigPath, "utf8", (err, jsonString) => {
+        if (err) {
+          console.log("File read failed:", err);
+          return;
+        }
+        try {
+          circomHelperConfig = JSON.parse(jsonString);
+        } catch (err) {
+          console.log("Error parsing JSON string:", err);
+          return;
+        }
+        circomHelperConfig.circom = process.env.RELATIVE_PATH_TO_CIRCOM;
+
+        fs.writeFile(
+          "node_modules/maci-circuits/circomHelperConfig.json",
+          JSON.stringify(circomHelperConfig),
+          (err) => {
+            if (err) console.log("Error writing file:", err);
+            return;
+          }
+        );
+      });
+
       // genProofs
       const genProofsArgs = {
         privkey: coodinatorKeyPair.privKey.serialize(),
         contract: maci.maciContract.address,
         poll_id: pollId,
-        tally_file: "tally.json",
-        rapidsnark: "[some path]",
-        process_witnessgen: "[some path]",
-        tally_witnessgen: "[some path]",
-        subsidy_witnessgen: "[some path]",
-        process_zkey: "[some path]",
-        tally_zkey: "[some path]",
-        "subsidy-zkey": "[some path]",
-        output: "[name of output file]",
-        transaction_hash: "[tx has of maci contract creation]",
+        tally_file: "tally",
+        rapidsnark: process.env.RELATIVE_PATH_TO_RAPIDSNARK_BINARY,
+        process_witnessgen: "test/maci/zkeys/ProcessMessages_10-2-1-2_test",
+        tally_witnessgen: "test/maci/zkeys/TallyVotes_10-1-2_test",
+        process_zkey: "test/maci/ProcessMessages_10-2-1-2_test.0.zkey",
+        tally_zkey: "test/maci/TallyVotes_10-1-2_test.0.zkey",
+        output: "test/maci/output",
       };
 
       await expect(await genProofs(genProofsArgs)).to.equal(0);
