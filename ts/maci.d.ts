@@ -23,6 +23,10 @@ declare module "maci-contracts" {
   export function deployTopupCredit(): Promise<Contract>;
 }
 
+declare module "maci-circuits" {
+  export function VerifyingKey(): Promise<object>;
+}
+
 // declare module "publish" {
 //   export function publish(publishArgs: any): Promise<boolean>;
 // }

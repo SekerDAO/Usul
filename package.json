@@ -59,12 +59,15 @@
     "@gnosis.pm/zodiac": "1.0.1",
     "@openzeppelin/contracts": "4.3.2",
     "@openzeppelin/contracts-upgradeable": "^4.3.3",
+    "@types/shelljs": "^0.8.11",
+    "@types/tmp": "^0.2.3",
     "dotenv": "^16.0.3",
     "hardhat-deploy-ethers": "^0.3.0-beta.13",
     "maci-cli": "^1.1.0",
     "maci-contracts": "^1.1.0",
     "maci-core": "^1.1.0",
     "maci-crypto": "^1.1.0",
-    "maci-domainobjs": "^1.1.0"
+    "maci-domainobjs": "^1.1.0",
+    "shelljs": "^0.8.5"
   }
 }

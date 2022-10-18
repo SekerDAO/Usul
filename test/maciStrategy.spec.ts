@@ -17,17 +17,45 @@ import {
   deployTopupCredit,
   deployConstantInitialVoiceCreditProxy,
 } from "maci-contracts";
+import { setVerifyingKeys } from "maci-cli/build/setVerifyingKeys";
 import { publish } from "maci-cli/build/publish";
 import { genProofs } from "maci-cli/build/genProofs";
 import { mergeSignups } from "maci-cli/build/mergeSignups";
 import { mergeMessages } from "maci-cli/build/mergeMessages";
-import { Keypair, PubKey, PCommand } from "maci-domainobjs";
+import { Keypair, PubKey, PCommand, VerifyingKey } from "maci-domainobjs";
 import fs from "fs";
+import * as path from "path";
+import * as tmp from "tmp";
+import * as shelljs from "shelljs";
 
 const deadline =
   "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
 const provider = waffle.provider;
+
+// -----
+// taken from maci-circuits because it TS complained about it not having default exports.
+// TODO: figure out some better solution.
+const snarkjsPath = path.join(__dirname, "..", "./node_modules/snarkjs/cli.js");
+
+const extractVk = (zkeyPath: string) => {
+  // Create tmp directory
+  const tmpObj = tmp.dirSync();
+
+  const tmpDirPath = tmpObj.name;
+  const vkJsonPath = path.join(tmpDirPath, "vk.json");
+
+  const exportCmd = `node ${snarkjsPath} zkev ${zkeyPath} ${vkJsonPath}`;
+  shelljs.exec(exportCmd);
+
+  const vk = JSON.parse(fs.readFileSync(vkJsonPath).toString());
+
+  fs.unlinkSync(vkJsonPath);
+  tmpObj.removeCallback();
+
+  return vk;
+};
+// -----
 
 describe("Maci Strategy:", () => {
   const [owner, coordinator, user_1, user_2] = waffle.provider.getWallets();
@@ -46,6 +74,15 @@ describe("Maci Strategy:", () => {
     messageTreeSubDepth: 1,
     voteOptionTreeDepth: 2,
   };
+  const stateTreeDepth = 10;
+
+  const pmZkeyFile = path.resolve(
+    "test/maci/ProcessMessages_10-2-1-2_test.0.zkey"
+  );
+  const tvZkeyFile = path.resolve("test/maci/TallyVotes_10-1-2_test.0.zkey");
+
+  const processVk: VerifyingKey = VerifyingKey.fromObj(extractVk(pmZkeyFile));
+  const tallyVk: VerifyingKey = VerifyingKey.fromObj(extractVk(tvZkeyFile));
 
   const baseSetup = deployments.createFixture(async () => {
     await deployments.fixture();
@@ -208,6 +245,16 @@ describe("Maci Strategy:", () => {
 
     // deploy MACI
     const vkRegistry = await deployVkRegistry();
+    const tx = await vkRegistry.setVerifyingKeys(
+      stateTreeDepth,
+      treeDepths.intStateTreeDepth,
+      treeDepths.messageTreeDepth,
+      treeDepths.voteOptionTreeDepth,
+      5 ** treeDepths.messageTreeSubDepth,
+      processVk.asContractParam(),
+      tallyVk.asContractParam()
+    );
+    await tx.wait();
     const verifierContract = await deployVerifier();
     const voiceCreditProxy = await deployConstantInitialVoiceCreditProxy(
       1,
@@ -1058,9 +1105,6 @@ describe("Maci Strategy:", () => {
 
       await expect(await mergeMessages(mergMessagesArgs)).to.equal(0);
 
-      // restore logs
-      console.log = original;
-
       let circomHelperConfig;
       const circomHelperConfigPath: string =
         "node_modules/maci-circuits/circomHelperConfig.json";
@@ -1101,18 +1145,21 @@ describe("Maci Strategy:", () => {
         output: "test/maci/output",
       };
 
+      // restore logs
+      console.log = original;
+
       await expect(await genProofs(genProofsArgs)).to.equal(0);
 
-      // proveOnChain
-      const proveOnChainArgs = {
-        contract: maci.maciContract.address,
-        poll_id: pollId,
-        ppt: "put the ppt contract address here, not sure where to get it.",
-        proof_dir: "output dir from genProofs",
-      };
+      // // proveOnChain
+      // const proveOnChainArgs = {
+      //   contract: maci.maciContract.address,
+      //   poll_id: pollId,
+      //   ppt: "put the ppt contract address here, not sure where to get it.",
+      //   proof_dir: "output dir from genProofs",
+      // };
 
-      // cleanup dirs when we're done
-      expect(true).to.equal(false); // TODO: delete this line.
+      // // cleanup dirs when we're done
+      // expect(true).to.equal(false); // TODO: delete this line.
     });
     it("reverts if incorrect spent voice credits are provided");
     it("sets proposal.passed to true if yes votes are greater than no votes");
