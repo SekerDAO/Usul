@@ -23,6 +23,7 @@ import { publish } from "maci-cli/build/publish";
 import { genProofs } from "maci-cli/build/genProofs";
 import { mergeSignups } from "maci-cli/build/mergeSignups";
 import { mergeMessages } from "maci-cli/build/mergeMessages";
+import { proveOnChain } from "maci-cli/build/proveOnChain";
 import { Keypair, PubKey, PCommand, VerifyingKey } from "maci-domainobjs";
 import fs from "fs";
 import * as path from "path";
@@ -365,6 +366,7 @@ describe("Maci Strategy:", () => {
       proposalModule,
       maciVoting,
       maci,
+      pptContract,
       txHash,
       txHash_1,
       addCall,
@@ -1031,6 +1033,7 @@ describe("Maci Strategy:", () => {
         dummyTallyData,
         maciVoting,
         maci,
+        pptContract,
         proposalModule,
         txHash,
         duration,
@@ -1157,9 +1160,26 @@ describe("Maci Strategy:", () => {
       const proveOnChainArgs = {
         contract: maci.maciContract.address,
         poll_id: pollId,
-        ppt: "put the ppt contract address here, not sure where to get it.",
+        ppt: pptContract.address,
         proof_dir: "test/maci/output",
       };
+      //await expect(proveOnChain(proveOnChainArgs)).to.equal(0);
+      await proveOnChain(proveOnChainArgs)
+
+      const tallyOutput = JSON.parse(fs.readFileSync('tally').toString());
+      var myArr = new Array();
+      myArr[0] = new Array();
+      myArr[0][0] = new Array()
+      const finalizeArgs = {
+        proposalId: 0,
+        totalSpent: tallyOutput.totalSpentVoiceCredits.spent,
+        totalSpentSalt: tallyOutput.totalSpentVoiceCredits.salt,
+        spent: tallyOutput.perVOSpentVoiceCredits.tally,
+        spentProof: myArr,
+        spentSalt: tallyOutput.perVOSpentVoiceCredits.salt
+      }
+      console.log(finalizeArgs)
+      //await maciVoting.finalizeProposal(finalizeArgs);
 
       // // cleanup dirs when we're done
       // expect(true).to.equal(false); // TODO: delete this line.
