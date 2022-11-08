@@ -12,6 +12,7 @@ import { ecsign, zeroAddress } from "ethereumjs-util";
 import Wallet from "ethereumjs-wallet";
 import {
   deployMaci,
+  deployPpt,
   deployVkRegistry,
   deployVerifier,
   deployTopupCredit,
@@ -241,7 +242,7 @@ describe("Maci Strategy:", () => {
 
     // silence logs to suppress output from MACI deploy scripts.
     const original = console.log;
-    console.log = () => {};
+    //console.log = () => {};
 
     // deploy MACI
     const vkRegistry = await deployVkRegistry();
@@ -260,6 +261,7 @@ describe("Maci Strategy:", () => {
       1,
       true
     );
+    const pptContract = await deployPpt(verifierContract.address);
     const maci = await deployMaci(
       maciVoting.address,
       voiceCreditProxy.address,
@@ -1085,7 +1087,7 @@ describe("Maci Strategy:", () => {
       // Let's generate some MACI proofs!
       // silence logs to suppress output from maci-cli.
       const original = console.log;
-      console.log = () => {};
+      //console.log = () => {};
 
       // mergeSignups()
       const mergSignupsArgs = {
@@ -1105,31 +1107,32 @@ describe("Maci Strategy:", () => {
 
       await expect(await mergeMessages(mergMessagesArgs)).to.equal(0);
 
-      let circomHelperConfig;
-      const circomHelperConfigPath: string =
-        "node_modules/maci-circuits/circomHelperConfig.json";
-      await fs.readFile(circomHelperConfigPath, "utf8", (err, jsonString) => {
-        if (err) {
-          console.log("File read failed:", err);
-          return;
-        }
-        try {
-          circomHelperConfig = JSON.parse(jsonString);
-        } catch (err) {
-          console.log("Error parsing JSON string:", err);
-          return;
-        }
-        circomHelperConfig.circom = process.env.RELATIVE_PATH_TO_CIRCOM;
+      // I don't believe this is necessary if we keep using v1
+      // let circomHelperConfig;
+      // const circomHelperConfigPath: string =
+      //   "node_modules/maci-circuits/circomHelperConfig.json";
+      // await fs.readFile(circomHelperConfigPath, "utf8", (err, jsonString) => {
+      //   if (err) {
+      //     console.log("File read failed:", err);
+      //     return;
+      //   }
+      //   try {
+      //     circomHelperConfig = JSON.parse(jsonString);
+      //   } catch (err) {
+      //     console.log("Error parsing JSON string:", err);
+      //     return;
+      //   }
+      //   circomHelperConfig.circom = process.env.RELATIVE_PATH_TO_CIRCOM;
 
-        fs.writeFile(
-          "node_modules/maci-circuits/circomHelperConfig.json",
-          JSON.stringify(circomHelperConfig),
-          (err) => {
-            if (err) console.log("Error writing file:", err);
-            return;
-          }
-        );
-      });
+      //   fs.writeFile(
+      //     "node_modules/maci-circuits/circomHelperConfig.json",
+      //     JSON.stringify(circomHelperConfig),
+      //     (err) => {
+      //       if (err) console.log("Error writing file:", err);
+      //       return;
+      //     }
+      //   );
+      // });
 
       // genProofs
       const genProofsArgs = {
@@ -1150,13 +1153,13 @@ describe("Maci Strategy:", () => {
 
       await expect(await genProofs(genProofsArgs)).to.equal(0);
 
-      // // proveOnChain
-      // const proveOnChainArgs = {
-      //   contract: maci.maciContract.address,
-      //   poll_id: pollId,
-      //   ppt: "put the ppt contract address here, not sure where to get it.",
-      //   proof_dir: "output dir from genProofs",
-      // };
+      // proveOnChain
+      const proveOnChainArgs = {
+        contract: maci.maciContract.address,
+        poll_id: pollId,
+        ppt: "put the ppt contract address here, not sure where to get it.",
+        proof_dir: "test/maci/output",
+      };
 
       // // cleanup dirs when we're done
       // expect(true).to.equal(false); // TODO: delete this line.

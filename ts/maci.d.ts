@@ -21,6 +21,9 @@ declare module "maci-contracts" {
   export function deployVkRegistry(): Promise<Contract>;
   export function deployVerifier(): Promise<Contract>;
   export function deployTopupCredit(): Promise<Contract>;
+  export function deployPpt(
+    verifierContractAddress: string
+  ): Promise<Contract>;
 }
 
 declare module "maci-circuits" {
