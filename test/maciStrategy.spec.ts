@@ -25,6 +25,7 @@ import { mergeSignups } from "maci-cli/build/mergeSignups";
 import { mergeMessages } from "maci-cli/build/mergeMessages";
 import { proveOnChain } from "maci-cli/build/proveOnChain";
 import { Keypair, PubKey, PCommand, VerifyingKey } from "maci-domainobjs";
+import { genRandomSalt, IncrementalQuinTree } from 'maci-crypto';
 import fs from "fs";
 import * as path from "path";
 import * as tmp from "tmp";
@@ -1163,25 +1164,44 @@ describe("Maci Strategy:", () => {
         ppt: pptContract.address,
         proof_dir: "test/maci/output",
       };
+      // for some reason this returns an empty object rather than 0
       //await expect(proveOnChain(proveOnChainArgs)).to.equal(0);
       await proveOnChain(proveOnChainArgs)
 
       const tallyOutput = JSON.parse(fs.readFileSync('tally').toString());
+
+      const voteOptionTreeDepth = 2;
+      const yay_index = 0;
+      const nay_index = 1;
+      const spent_yay = tallyOutput.perVOSpentVoiceCredits.tally[yay_index];
+      const spent_nay = tallyOutput.perVOSpentVoiceCredits.tally[nay_index];
+      const spentSalt = tallyOutput.perVOSpentVoiceCredits.salt;
+      const spentTree = new IncrementalQuinTree(voteOptionTreeDepth, BigInt(0));
+      for (const leaf of tallyOutput.totalVoiceCreditsPerVoteOption.tally) {
+        spentTree.insert(BigInt(leaf))
+      }
+      const spentProof_yay = spentTree.genMerklePath(yay_index)
+      const spentProof_nay = spentTree.genMerklePath(nay_index)
+
       var myArr = new Array();
       myArr[0] = new Array();
       myArr[0][0] = new Array()
+
       const finalizeArgs = {
         proposalId: 0,
         totalSpent: tallyOutput.totalSpentVoiceCredits.spent,
         totalSpentSalt: tallyOutput.totalSpentVoiceCredits.salt,
         spent: tallyOutput.perVOSpentVoiceCredits.tally,
         spentProof: myArr,
-        spentSalt: tallyOutput.perVOSpentVoiceCredits.salt
+        spentSalt: spentSalt
       }
       console.log(finalizeArgs)
+
+
       //await maciVoting.finalizeProposal(finalizeArgs);
 
       // // cleanup dirs when we're done
+      //fs.unlinkSync('tally');
       // expect(true).to.equal(false); // TODO: delete this line.
     });
     it("reverts if incorrect spent voice credits are provided");
