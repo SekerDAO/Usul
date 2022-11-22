@@ -25,7 +25,7 @@ import { mergeSignups } from "maci-cli/build/mergeSignups";
 import { mergeMessages } from "maci-cli/build/mergeMessages";
 import { proveOnChain } from "maci-cli/build/proveOnChain";
 import { Keypair, PubKey, PCommand, VerifyingKey } from "maci-domainobjs";
-import { genRandomSalt, IncrementalQuinTree } from 'maci-crypto';
+import { genRandomSalt, IncrementalQuinTree, hash2, hash5 } from 'maci-crypto';
 import fs from "fs";
 import * as path from "path";
 import * as tmp from "tmp";
@@ -1176,23 +1176,28 @@ describe("Maci Strategy:", () => {
       const spent_yay = tallyOutput.perVOSpentVoiceCredits.tally[yay_index];
       const spent_nay = tallyOutput.perVOSpentVoiceCredits.tally[nay_index];
       const spentSalt = tallyOutput.perVOSpentVoiceCredits.salt;
-      const spentTree = new IncrementalQuinTree(voteOptionTreeDepth, BigInt(0));
-      for (const leaf of tallyOutput.totalVoiceCreditsPerVoteOption.tally) {
+      const spentTree = new IncrementalQuinTree(voteOptionTreeDepth, BigInt(0), 5, hash5);
+      for (const leaf of tallyOutput.perVOSpentVoiceCredits.tally) {
         spentTree.insert(BigInt(leaf))
       }
       const spentProof_yay = spentTree.genMerklePath(yay_index)
       const spentProof_nay = spentTree.genMerklePath(nay_index)
 
-      var myArr = new Array();
-      myArr[0] = new Array();
-      myArr[0][0] = new Array()
+      // var myArr = new Array();
+      // myArr[0] = new Array();
+      // myArr[0][0] = new Array()
+
+      var spentProofArr = new Array();
+      spentProofArr[0] = spentProof_yay.pathElements.map((x: any) => x.map((y: any) => y.toString()))
+      spentProofArr[1] = spentProof_nay.pathElements.map((x: any) => x.map((y: any) => y.toString()))
+      console.log(spentProofArr)
 
       const finalizeArgs = {
         proposalId: 0,
         totalSpent: tallyOutput.totalSpentVoiceCredits.spent,
         totalSpentSalt: tallyOutput.totalSpentVoiceCredits.salt,
         spent: tallyOutput.perVOSpentVoiceCredits.tally,
-        spentProof: myArr,
+        spentProof: spentProofArr,
         spentSalt: spentSalt
       }
       console.log(finalizeArgs)
